@@ -2,15 +2,284 @@
  "_comment": "Heures en UTC. Mis à jour automatiquement par scripts/update_calendar.py (API Jolpica) quand elle est joignable. approx = horaires estimés.",
  "2026": [
   {
+   "round": 1,
+   "gp": "Australian Grand Prix",
+   "city": "Melbourne",
+   "country": "Australie",
+   "sessions": {
+    "FP1": "2026-03-06T01:30:00Z",
+    "FP2": "2026-03-06T05:00:00Z",
+    "FP3": "2026-03-07T01:30:00Z",
+    "Q": "2026-03-07T05:00:00Z",
+    "R": "2026-03-08T04:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 2,
+   "gp": "Chinese Grand Prix",
+   "city": "Shanghai",
+   "country": "Chine",
+   "sessions": {
+    "FP1": "2026-03-13T03:30:00Z",
+    "SQ": "2026-03-13T07:30:00Z",
+    "S": "2026-03-14T03:00:00Z",
+    "Q": "2026-03-14T07:00:00Z",
+    "R": "2026-03-15T07:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 3,
+   "gp": "Japanese Grand Prix",
+   "city": "Suzuka",
+   "country": "Japon",
+   "sessions": {
+    "FP1": "2026-03-27T02:30:00Z",
+    "FP2": "2026-03-27T06:00:00Z",
+    "FP3": "2026-03-28T02:30:00Z",
+    "Q": "2026-03-28T06:00:00Z",
+    "R": "2026-03-29T05:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 4,
+   "gp": "Miami Grand Prix",
+   "city": "Miami",
+   "country": "États-Unis",
+   "sessions": {
+    "FP1": "2026-05-01T16:00:00Z",
+    "SQ": "2026-05-01T20:30:00Z",
+    "S": "2026-05-02T16:00:00Z",
+    "Q": "2026-05-02T20:00:00Z",
+    "R": "2026-05-03T20:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 5,
+   "gp": "Canadian Grand Prix",
+   "city": "Montreal",
+   "country": "Canada",
+   "sessions": {
+    "FP1": "2026-05-22T16:30:00Z",
+    "SQ": "2026-05-22T20:30:00Z",
+    "S": "2026-05-23T16:00:00Z",
+    "Q": "2026-05-23T20:00:00Z",
+    "R": "2026-05-24T20:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 6,
+   "gp": "Monaco Grand Prix",
+   "city": "Monte Carlo",
+   "country": "Monaco",
+   "sessions": {
+    "FP1": "2026-06-05T11:30:00Z",
+    "FP2": "2026-06-05T15:00:00Z",
+    "FP3": "2026-06-06T10:30:00Z",
+    "Q": "2026-06-06T14:00:00Z",
+    "R": "2026-06-07T13:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 7,
+   "gp": "Barcelona Grand Prix",
+   "city": "Barcelona",
+   "country": "Espagne",
+   "sessions": {
+    "FP1": "2026-06-12T11:30:00Z",
+    "FP2": "2026-06-12T15:00:00Z",
+    "FP3": "2026-06-13T10:30:00Z",
+    "Q": "2026-06-13T14:00:00Z",
+    "R": "2026-06-14T13:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 8,
+   "gp": "Austrian Grand Prix",
+   "city": "Spielberg",
+   "country": "Autriche",
+   "sessions": {
+    "FP1": "2026-06-26T11:30:00Z",
+    "FP2": "2026-06-26T15:00:00Z",
+    "FP3": "2026-06-27T10:30:00Z",
+    "Q": "2026-06-27T14:00:00Z",
+    "R": "2026-06-28T13:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 9,
+   "gp": "British Grand Prix",
+   "city": "Silverstone",
+   "country": "Royaume-Uni",
+   "sessions": {
+    "FP1": "2026-07-03T11:30:00Z",
+    "SQ": "2026-07-03T15:30:00Z",
+    "S": "2026-07-04T11:00:00Z",
+    "Q": "2026-07-04T15:00:00Z",
+    "R": "2026-07-05T14:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 10,
+   "gp": "Belgian Grand Prix",
+   "city": "Spa",
+   "country": "Belgique",
+   "sessions": {
+    "FP1": "2026-07-17T11:30:00Z",
+    "FP2": "2026-07-17T15:00:00Z",
+    "FP3": "2026-07-18T10:30:00Z",
+    "Q": "2026-07-18T14:00:00Z",
+    "R": "2026-07-19T13:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 11,
+   "gp": "Hungarian Grand Prix",
+   "city": "Budapest",
+   "country": "Hongrie",
+   "sessions": {
+    "FP1": "2026-07-24T11:30:00Z",
+    "FP2": "2026-07-24T15:00:00Z",
+    "FP3": "2026-07-25T10:30:00Z",
+    "Q": "2026-07-25T14:00:00Z",
+    "R": "2026-07-26T13:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 12,
+   "gp": "Dutch Grand Prix",
+   "city": "Zandvoort",
+   "country": "Pays-Bas",
+   "sessions": {
+    "FP1": "2026-08-21T10:30:00Z",
+    "SQ": "2026-08-21T14:30:00Z",
+    "S": "2026-08-22T10:00:00Z",
+    "Q": "2026-08-22T14:00:00Z",
+    "R": "2026-08-23T13:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 13,
+   "gp": "Italian Grand Prix",
+   "city": "Monza",
+   "country": "Italie",
+   "sessions": {
+    "FP1": "2026-09-04T10:30:00Z",
+    "FP2": "2026-09-04T14:00:00Z",
+    "FP3": "2026-09-05T10:30:00Z",
+    "Q": "2026-09-05T14:00:00Z",
+    "R": "2026-09-06T13:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 14,
+   "gp": "Spanish Grand Prix",
+   "city": "Madrid",
+   "country": "Espagne",
+   "sessions": {
+    "FP1": "2026-09-11T11:30:00Z",
+    "FP2": "2026-09-11T15:00:00Z",
+    "FP3": "2026-09-12T10:30:00Z",
+    "Q": "2026-09-12T14:00:00Z",
+    "R": "2026-09-13T13:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 15,
+   "gp": "Azerbaijan Grand Prix",
+   "city": "Baku",
+   "country": "Azerbaïdjan",
+   "sessions": {
+    "FP1": "2026-09-24T08:30:00Z",
+    "FP2": "2026-09-24T12:00:00Z",
+    "FP3": "2026-09-25T08:30:00Z",
+    "Q": "2026-09-25T12:00:00Z",
+    "R": "2026-09-26T11:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 16,
+   "gp": "Bahrain Grand Prix in Malaysia",
+   "city": "Kuala Lumpur",
+   "country": "Malaysia",
+   "sessions": {
+    "FP1": "2026-10-02T04:30:00Z",
+    "FP2": "2026-10-02T08:00:00Z",
+    "FP3": "2026-10-03T04:30:00Z",
+    "Q": "2026-10-03T08:00:00Z",
+    "R": "2026-10-04T07:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 17,
+   "gp": "Singapore Grand Prix",
+   "city": "Marina Bay",
+   "country": "Singapour",
+   "sessions": {
+    "FP1": "2026-10-09T08:30:00Z",
+    "SQ": "2026-10-09T12:30:00Z",
+    "S": "2026-10-10T09:00:00Z",
+    "Q": "2026-10-10T13:00:00Z",
+    "R": "2026-10-11T12:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 18,
+   "gp": "United States Grand Prix",
+   "city": "Austin",
+   "country": "États-Unis",
+   "sessions": {
+    "FP1": "2026-10-23T17:30:00Z",
+    "FP2": "2026-10-23T21:00:00Z",
+    "FP3": "2026-10-24T17:30:00Z",
+    "Q": "2026-10-24T21:00:00Z",
+    "R": "2026-10-25T20:00:00Z"
+   },
+   "approx": false
+  },
+  {
+   "round": 19,
+   "gp": "Mexico City Grand Prix",
+   "city": "Mexico City",
+   "country": "Mexique",
+   "sessions": {
+    "FP1": "2026-10-30T18:30:00Z",
+    "FP2": "2026-10-30T22:00:00Z",
+    "FP3": "2026-10-31T17:30:00Z",
+    "Q": "2026-10-31T21:00:00Z",
+    "R": "2026-11-01T20:00:00Z"
+   },
+   "approx": false
+  },
+  {
    "round": 20,
    "gp": "São Paulo Grand Prix",
    "city": "São Paulo",
    "country": "Brésil",
    "sessions": {
+    "FP1": "2026-11-06T15:30:00Z",
+    "FP2": "2026-11-06T19:00:00Z",
+    "FP3": "2026-11-07T14:30:00Z",
     "Q": "2026-11-07T18:00:00Z",
     "R": "2026-11-08T17:00:00Z"
    },
-   "approx": true
+   "approx": false
   },
   {
    "round": 21,
@@ -43,7 +312,7 @@
   {
    "round": 23,
    "gp": "Abu Dhabi Grand Prix",
-   "city": "Yas Marina",
+   "city": "Abu Dhabi",
    "country": "Émirats arabes unis",
    "sessions": {
     "FP1": "2026-12-04T09:30:00Z",
@@ -52,7 +321,7 @@
     "Q": "2026-12-05T14:00:00Z",
     "R": "2026-12-06T13:00:00Z"
    },
-   "approx": true
+   "approx": false
   }
  ]
 }

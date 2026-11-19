@@ -1,0 +1,45 @@
+publie_utc,season,grand_prix,type,etape,driver,team,proba,modele
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),RUS,Mercedes,0.20285,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),HAM,Ferrari,0.17384,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),LEC,Ferrari,0.16314,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),VER,Red Bull Racing,0.14145,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),ANT,Mercedes,0.13288,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),NOR,McLaren,0.07982,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),HAD,Red Bull Racing,0.05497,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),PIA,McLaren,0.04086,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),LAW,Racing Bulls,0.00364,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),GAS,Alpine,0.00291,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),LIN,Racing Bulls,0.00204,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),HUL,Audi,0.00055,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),COL,Alpine,0.00039,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),BOR,Audi,0.00038,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),CAM,Haas F1 Team,0.00015,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),BEA,Haas F1 Team,9e-05,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),SAI,Williams,3e-05,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),ALB,Williams,1e-05,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),ALO,Aston Martin,1e-05,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),STR,Aston Martin,0.0,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),BOT,Cadillac,0.0,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,pole,avant le week-end (aucun essai libre disponible),PER,Cadillac,0.0,forme du pilote (logit conditionnel)
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),RUS,Mercedes,0.18028,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),HAM,Ferrari,0.15745,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),LEC,Ferrari,0.14697,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),VER,Red Bull Racing,0.13965,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),ANT,Mercedes,0.12763,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),NOR,McLaren,0.08064,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),HAD,Red Bull Racing,0.06141,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),PIA,McLaren,0.05207,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),LAW,Racing Bulls,0.00983,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),GAS,Alpine,0.00811,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),LIN,Racing Bulls,0.00739,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),HUL,Audi,0.00462,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),BOR,Audi,0.00411,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),COL,Alpine,0.00379,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),CAM,Haas F1 Team,0.00324,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),BEA,Haas F1 Team,0.00273,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),SAI,Williams,0.00213,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),ALB,Williams,0.0018,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),ALO,Aston Martin,0.00172,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),STR,Aston Martin,0.00156,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),BOT,Cadillac,0.00147,place sur la grille
+2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),PER,Cadillac,0.00142,place sur la grille

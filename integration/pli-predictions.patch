@@ -1,0 +1,1543 @@
+From b12b6298b2ba21ad80466bf1c986d5da5f17f3ab Mon Sep 17 00:00:00 2001
+From: Maxime Basset <112871003+maximebasset1@users.noreply.github.com>
+Date: Thu, 19 Nov 2026 22:49:58 +0100
+Subject: [PATCH] feat: add predictions page and widgets
+
+- [routes/predictions.js]: new /predictions page
+- [utils/predictions]: engine data loader with cache, home and driver summaries, display helpers
+- [views/predictions]: predictions page, home widget, driver widget
+- [app.js]: register route, load home summary, share display helpers
+- [routes/drivers.js]: pass driver prediction to the driver page
+- [views/home/home.ejs, views/drivers/driver.ejs, views/partials/header.ejs]: include widgets and menu link
+- [config.json, locales/en.json]: settings and texts
+- [public/stylesheets/style.css]: rebuilt with npm run build:css
+---
+ app.js                                     |   9 +-
+ config.json                                |  38 ++-
+ locales/en.json                            |  73 +++++-
+ public/stylesheets/style.css               | 205 +++++++++++++--
+ routes/drivers.js                          |   4 +-
+ routes/predictions.js                      |  18 ++
+ utils/predictions/getDriverPrediction.js   |  32 +++
+ utils/predictions/getPredictionsData.js    | 212 ++++++++++++++++
+ utils/predictions/getPredictionsSummary.js |  29 +++
+ utils/predictions/predictionFormat.js      |  51 ++++
+ views/drivers/driver.ejs                   |   2 +
+ views/home/home.ejs                        |   2 +
+ views/partials/header.ejs                  |   3 +
+ views/predictions/driverWidget.ejs         |  16 ++
+ views/predictions/homeWidget.ejs           |  32 +++
+ views/predictions/predictions.ejs          | 274 +++++++++++++++++++++
+ 16 files changed, 977 insertions(+), 23 deletions(-)
+ create mode 100644 routes/predictions.js
+ create mode 100644 utils/predictions/getDriverPrediction.js
+ create mode 100644 utils/predictions/getPredictionsData.js
+ create mode 100644 utils/predictions/getPredictionsSummary.js
+ create mode 100644 utils/predictions/predictionFormat.js
+ create mode 100644 views/predictions/driverWidget.ejs
+ create mode 100644 views/predictions/homeWidget.ejs
+ create mode 100644 views/predictions/predictions.ejs
+
+diff --git a/app.js b/app.js
+index 769e9e1..038c8f6 100644
+--- a/app.js
++++ b/app.js
+@@ -19,6 +19,8 @@ app.set('view engine', 'ejs');
+ //     debug: true // Force the display of compiled code in the console
+ // });
+ 
++app.locals.predictionFormat = require('./utils/predictions/predictionFormat'); // display helpers shared by prediction views
++
+ app.use(express.json());
+ app.use(express.urlencoded({ extended: false }));
+ app.use(express.static(path.join(__dirname, 'public')));
+@@ -111,12 +113,14 @@ app.use(async (req, res, next) => {
+ 
+ const getHomeData = require("./utils/home/getHomeData"); // call getHomeData function from utils/home/getHomeData.js
+ const getNewsHomePage = require("./utils/news/getNewsHomePage"); // call getNewsHomePage function from utils/news/getNewsHomePage.js
++const getPredictionsSummary = require("./utils/predictions/getPredictionsSummary"); // call getPredictionsSummary function from utils/predictions/getPredictionsSummary.js
+ 
+ app.get("/", async (req, res) => { // home page
+     try {
+         var homeData = await getHomeData();
+         var newsHomePage = await getNewsHomePage();
+-        res.render("home/home", { homeData: homeData.homeData, newsFront: newsHomePage });
++        var predictionsSummary = await getPredictionsSummary();
++        res.render("home/home", { homeData: homeData.homeData, newsFront: newsHomePage, predictionsSummary: predictionsSummary });
+     } catch (error) {
+         res.render('security/error', { textError: 'base route, error during processing', error: error });
+     }
+@@ -149,6 +153,9 @@ app.use('/', liveRoutes);
+ const newsRoutes = require('./routes/news'); // call newsRoutes function from routes/news.js
+ app.use('/', newsRoutes);
+ 
++const predictionsRoutes = require('./routes/predictions'); // call predictionsRoutes function from routes/predictions.js
++app.use('/', predictionsRoutes);
++
+ const aboutRoutes = require('./routes/about'); // call aboutRoutes function from routes/about.js
+ app.use('/', aboutRoutes);
+ 
+diff --git a/config.json b/config.json
+index a5641d6..74466c5 100644
+--- a/config.json
++++ b/config.json
+@@ -26,5 +26,39 @@
+       "url": "https://www.racefans.net/wp-json/wp/v2/posts?_embed&per_page=20",
+       "type": "wp-json"
+     }
+-  ]
+-}
++  ],
++  "predictions": {
++    "baseUrl": "https://maximebasset1.github.io/extinction-des-feux/data",
++    "files": [
++      "next",
++      "history",
++      "performance",
++      "journal"
++    ],
++    "cacheDurationMs": 600000,
++    "requestTimeoutMs": 8000,
++    "gridSize": 6,
++    "homeWidgetSize": 3,
++    "minDisplayedProbability": 0.01,
++    "historySeasons": [
++      2026,
++      2025,
++      2024
++    ],
++    "trackRecordSeasons": [
++      2024,
++      2025
++    ],
++    "topRankCount": 3,
++    "rainDisplayThreshold": 0.05,
++    "grandPrixAliases": {
++      "Barcelona": "barcelona-catalunya",
++      "Spanish": "spain",
++      "Mexico City": "mexico",
++      "United States": "united-states",
++      "São Paulo": "sao-paulo",
++      "Abu Dhabi": "abu-dhabi"
++    },
++    "engineRepositoryUrl": "https://github.com/maximebasset1/extinction-des-feux"
++  }
++}
+\ No newline at end of file
+diff --git a/locales/en.json b/locales/en.json
+index eaffbc8..f67f0ce 100644
+--- a/locales/en.json
++++ b/locales/en.json
+@@ -14,7 +14,8 @@
+ 		"retro_f1": "RETRO F1",
+ 		"live": "LIVE",
+ 		"account": "ACCOUNT",
+-		"news": "NEWS"
++		"news": "NEWS",
++		"predictions": "PREDICTIONS"
+ 	},
+ 	"home": {
+ 		"next_race": "Next",
+@@ -359,5 +360,75 @@
+ 		"chassis_poles": "Poles",
+ 		"engines": "Engines",
+ 		"tyres": "Tyres"
++	},
++	"predictions": {
++		"tab_title": "Predictions",
++		"title": "Predictions",
++		"pole_question": "Who takes pole?",
++		"win_question": "Who wins?",
++		"likely_grid": "Most likely front of the grid",
++		"actual_grid": "Starting grid and win chances",
++		"race_result": "Race result",
++		"pole": "Pole",
++		"win": "Win",
++		"chance": "chance",
++		"before_practice": "Forecast made before practice. It is updated after each session.",
++		"after_practice": "Updated with this weekend's practice sessions.",
++		"after_qualifying": "Grid known: win chances use the real starting grid.",
++		"season_over": "The season is over. Predictions for next season will appear once the calendar is out.",
++		"race_over": "Race finished. The next forecast will be online in a few hours.",
++		"early_season": "Early season: the model knows little about this year's cars yet, so its forecasts are less certain.",
++		"estimated_schedule": "Session times are still estimated.",
++		"weekend": "Weekend schedule",
++		"local_time": "Times shown in your local time zone.",
++		"weather": "Forecast",
++		"dry": "Dry",
++		"rain_risk": "rain",
++		"rain_note": "Rain risk counts any shower, even a light one.",
++		"all_drivers": "All drivers",
++		"driver": "Driver",
++		"not_a_result": "A forecast, not a result: one bad lap can change everything.",
++		"history_title": "Model vs reality",
++		"history_text": "For each qualifying, the model is replayed using only the races before it, as if it had run at the time. Each bar shows the chance it gave to the driver who took pole.",
++		"history_choice": "2026 rounds 4 to 11 were used to choose the model, so it has an edge there. Forecasts actually published in advance are in the log below.",
++		"pole_sitter": "Pole",
++		"model_gave": "the model gave",
++		"favourite": "Model favourite",
++		"winner": "Winner",
++		"wet_session": "Wet session: the model is not built for these conditions.",
++		"before_weekend": "Before weekend",
++		"after_practice_short": "After practice",
++		"qualifying": "Quali",
++		"finish": "Finish",
++		"track_record": "Track record",
++		"top_three": "Pole sitter was in the model's top 3 before practice, in 2024 and 2025.",
++		"favourite_hits": "The model's favourite took pole.",
++		"beats_random": "Better than chance",
++		"beats_random_text": "On 2024-2025, never used to tune the model, its probabilities clearly beat a random draw.",
++		"not_proven": "Not proven yet",
++		"not_proven_text": "The model does not yet clearly beat a random draw.",
++		"race_model": "Race wins",
++		"race_model_text": "Starting position explains most of a win. The model does slightly better than that simple rule, not yet proven.",
++		"journal": "Forecast log",
++		"journal_text": "Each forecast is recorded before the session, never rewritten, then compared with the result.",
++		"journal_empty": "The log starts with this grand prix. Forecasts published before each session will appear here with the result.",
++		"published": "Published",
++		"actual": "Actual",
++		"given": "Chance given",
++		"rank": "Rank",
++		"method": "How it works",
++		"method_text": "Lap times since 2018, each driver's recent form, the car's pace, practice sessions and the weather forecast feed a statistical model, retrained after every race.",
++		"source": "Prediction engine",
++		"unavailable": "Predictions are temporarily unavailable.",
++		"see_all": "All predictions",
++		"next_gp": "Next grand prix",
++		"driver_title": "Next grand prix forecast",
++		"rank_of": "of",
++		"stale": "Showing the last available forecast.",
++		"updated": "Updated",
++		"not_affiliated": "Unofficial student project, not a betting tool.",
++		"model_gave_header": "Model gave",
++		"race_model_proven": "For race wins, the model beats the simple rule that front-row starters usually win.",
++		"race_model_none": "Starting position explains most of a win: the model does not beat that simple rule yet."
+ 	}
+ }
+\ No newline at end of file
+diff --git a/public/stylesheets/style.css b/public/stylesheets/style.css
+index 25669e2..e59b5e3 100644
+--- a/public/stylesheets/style.css
++++ b/public/stylesheets/style.css
+@@ -1,4 +1,4 @@
+-/*! tailwindcss v4.3.3 | MIT License | https://tailwindcss.com */
++/*! tailwindcss v4.3.5 | MIT License | https://tailwindcss.com */
+ @layer properties;
+ @layer theme, base, components, utilities;
+ @layer theme {
+@@ -15,9 +15,11 @@
+     --color-orange-400: oklch(75% 0.183 55.934);
+     --color-orange-500: oklch(70.5% 0.213 47.604);
+     --color-yellow-300: oklch(90.5% 0.182 98.111);
++    --color-yellow-400: oklch(85.2% 0.199 91.936);
+     --color-yellow-500: oklch(79.5% 0.184 86.047);
+     --color-green-400: oklch(79.2% 0.209 151.711);
+     --color-green-500: oklch(72.3% 0.219 149.579);
++    --color-sky-400: oklch(74.6% 0.16 232.661);
+     --color-blue-400: oklch(70.7% 0.165 254.624);
+     --color-blue-500: oklch(62.3% 0.214 259.815);
+     --color-blue-700: oklch(48.8% 0.243 264.376);
+@@ -60,6 +62,8 @@
+     --text-3xl--line-height: calc(2.25 / 1.875);
+     --text-4xl: 2.25rem;
+     --text-4xl--line-height: calc(2.5 / 2.25);
++    --text-5xl: 3rem;
++    --text-5xl--line-height: 1;
+     --font-weight-medium: 500;
+     --font-weight-semibold: 600;
+     --font-weight-black: 900;
+@@ -335,6 +339,9 @@
+   .my-auto {
+     margin-block: auto;
+   }
++  .mt-0 {
++    margin-top: 0px;
++  }
+   .mt-1 {
+     margin-top: var(--spacing);
+   }
+@@ -368,6 +375,9 @@
+   .mr-20 {
+     margin-right: calc(var(--spacing) * 20);
+   }
++  .mb-0 {
++    margin-bottom: 0px;
++  }
+   .mb-1 {
+     margin-bottom: var(--spacing);
+   }
+@@ -425,6 +435,9 @@
+   .h-1 {
+     height: var(--spacing);
+   }
++  .h-2 {
++    height: calc(var(--spacing) * 2);
++  }
+   .h-2\/3 {
+     height: calc(2 / 3 * 100%);
+   }
+@@ -443,6 +456,9 @@
+   .h-6 {
+     height: calc(var(--spacing) * 6);
+   }
++  .h-7 {
++    height: calc(var(--spacing) * 7);
++  }
+   .h-8 {
+     height: calc(var(--spacing) * 8);
+   }
+@@ -515,6 +531,9 @@
+   .min-h-screen {
+     min-height: 100vh;
+   }
++  .w-0 {
++    width: 0px;
++  }
+   .w-0\.5 {
+     width: calc(var(--spacing) * 0.5);
+   }
+@@ -524,39 +543,72 @@
+   .w-1\/2 {
+     width: calc(1 / 2 * 100%);
+   }
++  .w-1\/3 {
++    width: calc(1 / 3 * 100%);
++  }
++  .w-1\/12 {
++    width: calc(1 / 12 * 100%);
++  }
+   .w-2\/3 {
+     width: calc(2 / 3 * 100%);
+   }
++  .w-2\/12 {
++    width: calc(2 / 12 * 100%);
++  }
+   .w-3 {
+     width: calc(var(--spacing) * 3);
+   }
+   .w-3\/4 {
+     width: calc(3 / 4 * 100%);
+   }
++  .w-3\/12 {
++    width: calc(3 / 12 * 100%);
++  }
+   .w-4 {
+     width: calc(var(--spacing) * 4);
+   }
+   .w-4\/5 {
+     width: calc(4 / 5 * 100%);
+   }
++  .w-4\/12 {
++    width: calc(4 / 12 * 100%);
++  }
+   .w-5 {
+     width: calc(var(--spacing) * 5);
+   }
++  .w-5\/12 {
++    width: calc(5 / 12 * 100%);
++  }
+   .w-6 {
+     width: calc(var(--spacing) * 6);
+   }
+   .w-6\/12 {
+     width: calc(6 / 12 * 100%);
+   }
++  .w-7 {
++    width: calc(var(--spacing) * 7);
++  }
++  .w-7\/12 {
++    width: calc(7 / 12 * 100%);
++  }
+   .w-8 {
+     width: calc(var(--spacing) * 8);
+   }
++  .w-8\/12 {
++    width: calc(8 / 12 * 100%);
++  }
+   .w-9\/10 {
+     width: calc(9 / 10 * 100%);
+   }
++  .w-9\/12 {
++    width: calc(9 / 12 * 100%);
++  }
+   .w-10 {
+     width: calc(var(--spacing) * 10);
+   }
++  .w-10\/12 {
++    width: calc(10 / 12 * 100%);
++  }
+   .w-11\/12 {
+     width: calc(11 / 12 * 100%);
+   }
+@@ -617,6 +669,9 @@
+   .max-w-sm {
+     max-width: var(--container-sm);
+   }
++  .min-w-0 {
++    min-width: 0px;
++  }
+   .min-w-48 {
+     min-width: calc(var(--spacing) * 48);
+   }
+@@ -626,6 +681,9 @@
+   .flex-shrink-0 {
+     flex-shrink: 0;
+   }
++  .shrink-0 {
++    flex-shrink: 0;
++  }
+   .flex-grow {
+     flex-grow: 1;
+   }
+@@ -643,7 +701,7 @@
+     translate: var(--tw-translate-x) var(--tw-translate-y);
+   }
+   .transform {
+-    transform: var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,);
++    transform: var(--tw-rotate-x, ) var(--tw-rotate-y, ) var(--tw-rotate-z, ) var(--tw-skew-x, ) var(--tw-skew-y, );
+   }
+   .animate-pulse {
+     animation: var(--animate-pulse);
+@@ -657,6 +715,9 @@
+   .resize {
+     resize: both;
+   }
++  .list-none {
++    list-style-type: none;
++  }
+   .grid-cols-1 {
+     grid-template-columns: repeat(1, minmax(0, 1fr));
+   }
+@@ -789,6 +850,9 @@
+   .gap-y-2 {
+     row-gap: calc(var(--spacing) * 2);
+   }
++  .gap-y-3 {
++    row-gap: calc(var(--spacing) * 3);
++  }
+   .gap-y-4 {
+     row-gap: calc(var(--spacing) * 4);
+   }
+@@ -803,6 +867,9 @@
+   .overflow-hidden {
+     overflow: hidden;
+   }
++  .overflow-x-auto {
++    overflow-x: auto;
++  }
+   .overflow-x-scroll {
+     overflow-x: scroll;
+   }
+@@ -852,6 +919,10 @@
+     border-top-style: var(--tw-border-style);
+     border-top-width: 2px;
+   }
++  .border-t-4 {
++    border-top-style: var(--tw-border-style);
++    border-top-width: 4px;
++  }
+   .border-b {
+     border-bottom-style: var(--tw-border-style);
+     border-bottom-width: 1px;
+@@ -1118,6 +1189,9 @@
+       border-color: color-mix(in oklab, var(--color-gray-400) 50%, transparent);
+     }
+   }
++  .border-gray-500 {
++    border-color: var(--color-gray-500);
++  }
+   .border-gray-500\/20 {
+     border-color: color-mix(in srgb, oklch(55.1% 0.027 264.364) 20%, transparent);
+     @supports (color: color-mix(in lab, red, red)) {
+@@ -1127,6 +1201,12 @@
+   .border-gray-600 {
+     border-color: var(--color-gray-600);
+   }
++  .border-gray-600\/40 {
++    border-color: color-mix(in srgb, oklch(44.6% 0.03 256.802) 40%, transparent);
++    @supports (color: color-mix(in lab, red, red)) {
++      border-color: color-mix(in oklab, var(--color-gray-600) 40%, transparent);
++    }
++  }
+   .border-gray-700 {
+     border-color: var(--color-gray-700);
+   }
+@@ -1520,6 +1600,9 @@
+   .border-yellow-300 {
+     border-color: var(--color-yellow-300);
+   }
++  .border-yellow-400 {
++    border-color: var(--color-yellow-400);
++  }
+   .border-zakspeed {
+     border-color: #c71701;
+   }
+@@ -1751,12 +1834,21 @@
+   .bg-gordini {
+     background-color: #378cc4;
+   }
++  .bg-gray-500 {
++    background-color: var(--color-gray-500);
++  }
+   .bg-gray-500\/10 {
+     background-color: color-mix(in srgb, oklch(55.1% 0.027 264.364) 10%, transparent);
+     @supports (color: color-mix(in lab, red, red)) {
+       background-color: color-mix(in oklab, var(--color-gray-500) 10%, transparent);
+     }
+   }
++  .bg-gray-500\/20 {
++    background-color: color-mix(in srgb, oklch(55.1% 0.027 264.364) 20%, transparent);
++    @supports (color: color-mix(in lab, red, red)) {
++      background-color: color-mix(in oklab, var(--color-gray-500) 20%, transparent);
++    }
++  }
+   .bg-gray-700\/40 {
+     background-color: color-mix(in srgb, oklch(37.3% 0.034 259.733) 40%, transparent);
+     @supports (color: color-mix(in lab, red, red)) {
+@@ -2186,6 +2278,9 @@
+   .object-cover {
+     object-fit: cover;
+   }
++  .p-0 {
++    padding: 0px;
++  }
+   .p-2 {
+     padding: calc(var(--spacing) * 2);
+   }
+@@ -2210,6 +2305,9 @@
+   .px-2\.5 {
+     padding-inline: calc(var(--spacing) * 2.5);
+   }
++  .px-3 {
++    padding-inline: calc(var(--spacing) * 3);
++  }
+   .px-4 {
+     padding-inline: calc(var(--spacing) * 4);
+   }
+@@ -2919,6 +3017,9 @@
+   .text-simtek {
+     color: #445eb9;
+   }
++  .text-sky-400 {
++    color: var(--color-sky-400);
++  }
+   .text-snowberger {
+     color: #058785;
+   }
+@@ -3036,6 +3137,10 @@
+   .italic {
+     font-style: italic;
+   }
++  .ordinal {
++    --tw-ordinal: ordinal;
++    font-variant-numeric: var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, );
++  }
+   .underline {
+     text-decoration-line: underline;
+   }
+@@ -3103,19 +3208,19 @@
+   }
+   .blur-\[120px\] {
+     --tw-blur: blur(120px);
+-    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
++    filter: var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, );
+   }
+   .drop-shadow-md {
+     --tw-drop-shadow-size: drop-shadow(0 3px 3px var(--tw-drop-shadow-color, rgb(0 0 0 / 0.12)));
+     --tw-drop-shadow: drop-shadow(var(--drop-shadow-md));
+-    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
++    filter: var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, );
+   }
+   .filter {
+-    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
++    filter: var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, );
+   }
+   .backdrop-filter {
+-    -webkit-backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
+-    backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
++    -webkit-backdrop-filter: var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, );
++    backdrop-filter: var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, );
+   }
+   .transition {
+     transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events;
+@@ -3151,19 +3256,19 @@
+     outline-style: none;
+   }
+   @media (hover: hover) {
+-    .group-hover\:translate-x-1:is(:where(.group):hover *) {
++    :is(:where(.group):hover .group-hover\:translate-x-1) {
+       --tw-translate-x: var(--spacing);
+       translate: var(--tw-translate-x) var(--tw-translate-y);
+     }
+-    .group-hover\:bg-gray-500\/15:is(:where(.group):hover *) {
++    :is(:where(.group):hover .group-hover\:bg-gray-500\/15) {
+       background-color: color-mix(in srgb, oklch(55.1% 0.027 264.364) 15%, transparent);
+     }
+     @supports (color: color-mix(in lab, red, red)) {
+-      .group-hover\:bg-gray-500\/15:is(:where(.group):hover *) {
++      :is(:where(.group):hover .group-hover\:bg-gray-500\/15) {
+         background-color: color-mix(in oklab, var(--color-gray-500) 15%, transparent);
+       }
+     }
+-    .group-hover\:opacity-100:is(:where(.group):hover *) {
++    :is(:where(.group):hover .group-hover\:opacity-100) {
+       opacity: 100%;
+     }
+   }
+@@ -3213,6 +3318,14 @@
+     .hover\:cursor-pointer:hover {
+       cursor: pointer;
+     }
++    .hover\:bg-gray-500\/15:hover {
++      background-color: color-mix(in srgb, oklch(55.1% 0.027 264.364) 15%, transparent);
++    }
++    @supports (color: color-mix(in lab, red, red)) {
++      .hover\:bg-gray-500\/15:hover {
++        background-color: color-mix(in oklab, var(--color-gray-500) 15%, transparent);
++      }
++    }
+     .hover\:bg-main-color\/40:hover {
+       background-color: color-mix(in oklab, #058785 40%, transparent);
+     }
+@@ -3234,6 +3347,9 @@
+     .hover\:underline:hover {
+       text-decoration-line: underline;
+     }
++    .hover\:opacity-80:hover {
++      opacity: 80%;
++    }
+     .hover\:opacity-100:hover {
+       opacity: 100%;
+     }
+@@ -3243,11 +3359,11 @@
+     }
+     .hover\:brightness-110:hover {
+       --tw-brightness: brightness(110%);
+-      filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
++      filter: var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, );
+     }
+   }
+   .focus\:ring-2:focus {
+-    --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
++    --tw-ring-shadow: var(--tw-ring-inset, ) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+   }
+   .focus\:ring-gray-500:focus {
+@@ -3262,18 +3378,33 @@
+     }
+   }
+   @media (width >= 40rem) {
++    .sm\:mt-8 {
++      margin-top: calc(var(--spacing) * 8);
++    }
++    .sm\:inline {
++      display: inline;
++    }
++    .sm\:table-cell {
++      display: table-cell;
++    }
+     .sm\:max-w-xl {
+       max-width: var(--container-xl);
+     }
+     .sm\:grid-cols-2 {
+       grid-template-columns: repeat(2, minmax(0, 1fr));
+     }
++    .sm\:grid-cols-3 {
++      grid-template-columns: repeat(3, minmax(0, 1fr));
++    }
+     .sm\:flex-row {
+       flex-direction: row;
+     }
+     .sm\:items-center {
+       align-items: center;
+     }
++    .sm\:justify-between {
++      justify-content: space-between;
++    }
+     :where(.sm\:space-y-0 > :not(:last-child)) {
+       --tw-space-y-reverse: 0;
+       margin-block-start: 0;
+@@ -3331,6 +3462,9 @@
+     .md\:inline {
+       display: inline;
+     }
++    .md\:table-cell {
++      display: table-cell;
++    }
+     .md\:h-6 {
+       height: calc(var(--spacing) * 6);
+     }
+@@ -3361,6 +3495,9 @@
+     .md\:max-w-lg {
+       max-width: var(--container-lg);
+     }
++    .md\:grid-cols-2 {
++      grid-template-columns: repeat(2, minmax(0, 1fr));
++    }
+     .md\:grid-cols-10 {
+       grid-template-columns: repeat(10, minmax(0, 1fr));
+     }
+@@ -3386,6 +3523,9 @@
+     .md\:gap-y-0 {
+       row-gap: 0px;
+     }
++    .md\:p-6 {
++      padding: calc(var(--spacing) * 6);
++    }
+     .md\:pt-4 {
+       padding-top: calc(var(--spacing) * 4);
+     }
+@@ -3397,6 +3537,10 @@
+       font-size: var(--text-3xl);
+       line-height: var(--tw-leading, var(--text-3xl--line-height));
+     }
++    .md\:text-5xl {
++      font-size: var(--text-5xl);
++      line-height: var(--tw-leading, var(--text-5xl--line-height));
++    }
+     .md\:text-base {
+       font-size: var(--text-base);
+       line-height: var(--tw-leading, var(--text-base--line-height));
+@@ -3415,13 +3559,13 @@
+     }
+     .md\:backdrop-blur-sm {
+       --tw-backdrop-blur: blur(var(--blur-sm));
+-      -webkit-backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
+-      backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
++      -webkit-backdrop-filter: var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, );
++      backdrop-filter: var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, );
+     }
+     .md\:backdrop-blur-xl {
+       --tw-backdrop-blur: blur(var(--blur-xl));
+-      -webkit-backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
+-      backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
++      -webkit-backdrop-filter: var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, );
++      backdrop-filter: var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, );
+     }
+   }
+   @media (width >= 64rem) {
+@@ -3561,6 +3705,26 @@
+   syntax: "*";
+   inherits: false;
+ }
++@property --tw-ordinal {
++  syntax: "*";
++  inherits: false;
++}
++@property --tw-slashed-zero {
++  syntax: "*";
++  inherits: false;
++}
++@property --tw-numeric-figure {
++  syntax: "*";
++  inherits: false;
++}
++@property --tw-numeric-spacing {
++  syntax: "*";
++  inherits: false;
++}
++@property --tw-numeric-fraction {
++  syntax: "*";
++  inherits: false;
++}
+ @property --tw-shadow {
+   syntax: "*";
+   inherits: false;
+@@ -3745,7 +3909,7 @@
+   }
+ }
+ @layer properties {
+-  @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
++  @supports ((-webkit-hyphens: none) and (not (margin-trim: block))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
+     *, ::before, ::after, ::backdrop {
+       --tw-translate-x: 0;
+       --tw-translate-y: 0;
+@@ -3761,6 +3925,11 @@
+       --tw-leading: initial;
+       --tw-font-weight: initial;
+       --tw-tracking: initial;
++      --tw-ordinal: initial;
++      --tw-slashed-zero: initial;
++      --tw-numeric-figure: initial;
++      --tw-numeric-spacing: initial;
++      --tw-numeric-fraction: initial;
+       --tw-shadow: 0 0 #0000;
+       --tw-shadow-color: initial;
+       --tw-shadow-alpha: 100%;
+diff --git a/routes/drivers.js b/routes/drivers.js
+index d38f79b..2110308 100644
+--- a/routes/drivers.js
++++ b/routes/drivers.js
+@@ -4,6 +4,7 @@ const router = express.Router();
+ // functions
+ const getActualDrivers = require("../utils/drivers/getActualDrivers");
+ const getDriverData = require("../utils/drivers/getDriverData");
++const getDriverPrediction = require("../utils/predictions/getDriverPrediction");
+ 
+ router.get("/drivers", async (req, res) => {
+     try {
+@@ -17,7 +18,8 @@ router.get("/drivers", async (req, res) => {
+ router.get("/driver/:driver_id", async (req, res) => {
+     try {
+         var driverData = await getDriverData(req.params.driver_id);
+-        res.render("drivers/driver", { dataDriver: driverData });
++        var driverPrediction = await getDriverPrediction(req.params.driver_id);
++        res.render("drivers/driver", { dataDriver: driverData, driverPrediction: driverPrediction });
+     } catch (error) {
+         res.render('security/error', { textError: '/driver route, error during execution', error: error });
+     }
+diff --git a/routes/predictions.js b/routes/predictions.js
+new file mode 100644
+index 0000000..ccba7a9
+--- /dev/null
++++ b/routes/predictions.js
+@@ -0,0 +1,18 @@
++const express = require('express');
++const router = express.Router();
++
++// functions
++const getPredictionsData = require('../utils/predictions/getPredictionsData');
++
++router.get('/predictions', async (req, res) => {
++    try {
++        var predictions = await getPredictionsData();
++        const requestedSeason = Number(req.query.season);
++        const season = predictions.historySeasons.includes(requestedSeason) ? requestedSeason : predictions.historySeasons[0];
++        res.render('predictions/predictions', { predictions: predictions, historySeason: season, pageTitle: 'PLI - Predictions' });
++    } catch (error) {
++        res.render('security/error', { textError: '/predictions route, error during execution', error: error });
++    }
++});
++
++module.exports = router;
+diff --git a/utils/predictions/getDriverPrediction.js b/utils/predictions/getDriverPrediction.js
+new file mode 100644
+index 0000000..e1a0555
+--- /dev/null
++++ b/utils/predictions/getDriverPrediction.js
+@@ -0,0 +1,32 @@
++const getPredictionsData = require('./getPredictionsData');
++
++/**
++ * @description Returns the next grand prix prediction of one driver for the driver page.
++ * @async
++ * @param {string} driverId - f1db driver id.
++ * @returns {Promise<Object>} Prediction with isAvailable flag, ranks and probabilities.
++ */
++async function getDriverPrediction(driverId) {
++    try {
++        const data = await getPredictionsData();
++        const index = data.field.findIndex(p => p.driverId === driverId);
++        if (index === -1) return { isAvailable: false };
++        const entry = data.field[index];
++        const winRank = data.winFavourites.findIndex(p => p.driverId === driverId) + 1;
++        return {
++            isAvailable: true,
++            grandPrix: data.grandPrix,
++            poleProbability: entry.probability,
++            poleRank: index + 1,
++            winProbability: entry.winProbability,
++            winRank: winRank,
++            fieldSize: data.field.length,
++        };
++    } catch (error) {
++        // the driver page must still render when the prediction engine is down.
++        console.error(new Error('getDriverPrediction unavailable', { cause: error }));
++        return { isAvailable: false };
++    }
++}
++
++module.exports = getDriverPrediction;
+diff --git a/utils/predictions/getPredictionsData.js b/utils/predictions/getPredictionsData.js
+new file mode 100644
+index 0000000..5da82a4
+--- /dev/null
++++ b/utils/predictions/getPredictionsData.js
+@@ -0,0 +1,212 @@
++const config = require('../../config.json');
++const drivers = require('../../data/f1db/f1db-drivers.json');
++const entrantsDrivers = require('../../data/f1db/f1db-seasons-entrants-drivers.json');
++const grandsPrix = require('../../data/f1db/f1db-grands-prix.json');
++const races = require('../../data/f1db/f1db-races.json');
++
++const settings = config.predictions;
++// local development can point to a copy of the engine files.
++const baseUrl = process.env.PREDICTIONS_BASE_URL || settings.baseUrl;
++
++// in-memory cache: the engine only publishes new numbers a few times per hour.
++let cache = { data: null, fetchedAt: 0 };
++
++/**
++ * @description Downloads one JSON file published by the prediction engine.
++ * @async
++ * @param {string} name - File name without extension (next, history...).
++ * @returns {Promise<Object>} Parsed JSON content.
++ */
++async function fetchEngineFile(name) {
++    const url = `${baseUrl}/${name}.json`;
++    const response = await fetch(url, { signal: AbortSignal.timeout(settings.requestTimeoutMs) });
++    if (!response.ok) {
++        throw new Error(`prediction engine returned ${response.status} for ${url}`);
++    }
++    return response.json();
++}
++
++/**
++ * @description Builds a lookup from three-letter driver codes to f1db drivers for one season.
++ * @param {number} year - Season year.
++ * @returns {Map<string, Object>} Map of code to driver identity and constructor.
++ */
++function buildDriverLookup(year) {
++    const seasonEntries = entrantsDrivers.filter(e => e.year === year && !e.testDriver);
++    const lookup = new Map();
++    seasonEntries.forEach(entry => {
++        const driver = drivers.find(d => d.id === entry.driverId);
++        if (!driver || !driver.abbreviation) return;
++        const lastRound = Math.max(...entry.rounds);
++        const known = lookup.get(driver.abbreviation);
++        // keep the team a driver raced for most recently when he changed team mid-season.
++        if (known && known.lastRound >= lastRound) return;
++        lookup.set(driver.abbreviation, {
++            driverId: driver.id,
++            firstName: driver.firstName,
++            lastName: driver.lastName,
++            constructorId: entry.constructorId,
++            lastRound: lastRound,
++        });
++    });
++    return lookup;
++}
++
++/**
++ * @description Finds the f1db grand prix matching an engine grand prix name (e.g. "British").
++ * @param {string} engineName - Grand prix name as published by the engine.
++ * @returns {Object|null} f1db grand prix record.
++ */
++function findGrandPrix(engineName) {
++    const aliasId = settings.grandPrixAliases[engineName];
++    if (aliasId) return grandsPrix.find(g => g.id === aliasId) || null;
++    return grandsPrix.find(g => g.fullName === `${engineName} Grand Prix` || g.name === engineName) || null;
++}
++
++/**
++ * @description Adds f1db identity (id, names, team) to an engine driver entry.
++ * @param {Object} entry - Engine entry with a code field.
++ * @param {Map<string, Object>} lookup - Driver lookup for the season.
++ * @returns {Object} Entry enriched with f1db fields, original fields untouched.
++ */
++function withIdentity(entry, lookup) {
++    const identity = lookup.get(entry.code) || {};
++    return {
++        ...entry,
++        driverId: identity.driverId || null,
++        firstName: identity.firstName || entry.nom || entry.code,
++        lastName: identity.lastName || entry.famille || entry.code,
++        constructorId: identity.constructorId || null,
++    };
++}
++
++/**
++ * @description Formats an engine grand prix for display with its flag and circuit layout.
++ * @param {number} year - Season year.
++ * @param {string} engineName - Grand prix name as published by the engine.
++ * @returns {{name: string, countryId: string|null, circuitLayoutId: string|null, raceId: number|null}} Display data.
++ */
++function describeGrandPrix(year, engineName) {
++    const grandPrix = findGrandPrix(engineName);
++    if (!grandPrix) return { name: `${engineName} GP`, countryId: null, circuitLayoutId: null, raceId: null };
++    const race = races.find(r => r.year === year && r.grandPrixId === grandPrix.id) || {};
++    return {
++        name: grandPrix.shortName,
++        countryId: grandPrix.countryId,
++        circuitLayoutId: race.circuitLayoutId || null,
++        raceId: race.id || null,
++    };
++}
++
++/**
++ * @description Ranks a driver in a past qualifying according to the pre-weekend probabilities.
++ * @param {Object[]} pilots - Engine drivers of one grand prix.
++ * @param {string} code - Driver code to rank.
++ * @returns {number} 1-based rank, 0 when the driver is absent.
++ */
++function rankBeforeWeekend(pilots, code) {
++    const sorted = [...pilots].sort((a, b) => (b.avant || 0) - (a.avant || 0));
++    return sorted.findIndex(p => p.code === code) + 1;
++}
++
++/**
++ * @description Turns engine files into the view model used by the predictions pages.
++ * @param {Object} files - Raw engine files keyed by name.
++ * @returns {Object} View model.
++ */
++function buildViewModel(files) {
++    const { next, history, performance, journal } = files;
++    const lookup = buildDriverLookup(next.saison);
++    const hasPracticeData = next.pole.some(p => p.apres !== null && p.apres !== undefined);
++    const poleKey = hasPracticeData ? 'apres' : 'avant';
++    const pole = next.pole
++        .map(p => withIdentity({ ...p, probability: p[poleKey] }, lookup))
++        .sort((a, b) => b.probability - a.probability);
++    const win = next.victoire
++        .map(p => withIdentity({ ...p, probability: p.proba }, lookup))
++        .sort((a, b) => b.probability - a.probability);
++    const winByCode = new Map(win.map(p => [p.code, p.probability]));
++    const field = pole.map(p => ({ ...p, winProbability: winByCode.get(p.code) || 0 }));
++
++    const seasons = settings.historySeasons.filter(year => history.saisons[year]);
++    const pastGrandsPrix = seasons.reduce((acc, year) => {
++        const seasonLookup = buildDriverLookup(year);
++        const list = history.saisons[year].map(gp => {
++            const pilots = gp.pilotes.map(p => withIdentity(p, seasonLookup));
++            const poleSitter = pilots.find(p => p.code === gp.poleman) || null;
++            const winner = pilots.find(p => p.code === gp.vainqueur) || null;
++            const favourite = [...pilots].sort((a, b) => ((b.apres ?? b.avant) || 0) - ((a.apres ?? a.avant) || 0))[0] || null;
++            return {
++                ...describeGrandPrix(year, gp.gp),
++                date: gp.date,
++                isWet: gp.pluie,
++                poleSitter: poleSitter,
++                poleSitterProbability: poleSitter ? (poleSitter.apres ?? poleSitter.avant) : null,
++                poleSitterColor: history.pilotes[gp.poleman] ? history.pilotes[gp.poleman].couleur : null,
++                favourite: favourite,
++                winner: winner,
++                pilots: pilots,
++            };
++        });
++        return { ...acc, [year]: list };
++    }, {});
++
++    const trackRecordRaces = settings.trackRecordSeasons.flatMap(year => history.saisons[year] || []).filter(gp => gp.poleman);
++    const ranks = trackRecordRaces.map(gp => rankBeforeWeekend(gp.pilotes, gp.poleman));
++    const randomGain = performance.gains.find(g => g.modele === 'avant le week-end' && g.periode === '2024-2025' && g.contre.startsWith('hasard'));
++    const raceGain = performance.course && performance.course.gains ? performance.course.gains.find(g => g.periode === String(next.saison)) : null;
++
++    return {
++        updatedAt: next.maj_utc,
++        season: next.saison,
++        grandPrix: describeGrandPrix(next.saison, next.gp),
++        sessions: next.sessions,
++        isScheduleEstimated: next.horaires_estimes,
++        isSeasonOver: next.saison_terminee,
++        isQualifyingDone: next.qualif_disputee,
++        isEarlySeason: next.debut_saison,
++        hasPracticeData: hasPracticeData,
++        weather: next.meteo || null,
++        poleSitter: next.poleman ? withIdentity(next.poleman, lookup) : null,
++        grid: pole.slice(0, settings.gridSize),
++        field: field,
++        winFavourites: win,
++        raceResult: (next.arrivee || []).map(p => withIdentity(p, lookup)),
++        history: pastGrandsPrix,
++        historySeasons: seasons,
++        trackRecord: {
++            races: trackRecordRaces.length,
++            poleSitterInTopThree: ranks.filter(r => r > 0 && r <= settings.topRankCount).length,
++            favouriteTookPole: ranks.filter(r => r === 1).length,
++            beatsRandom: Boolean(randomGain && randomGain.ic95_bas > 0),
++            raceGain: raceGain,
++        },
++        journal: (journal.evaluations || []).map(e => ({ ...e, grandPrix: describeGrandPrix(e.season, e.grand_prix) })).reverse(),
++        engineRepositoryUrl: settings.engineRepositoryUrl,
++        minDisplayedProbability: settings.minDisplayedProbability,
++        rainDisplayThreshold: settings.rainDisplayThreshold,
++    };
++}
++
++/**
++ * @description Returns the predictions view model, cached for config.predictions.cacheDurationMs.
++ * @async
++ * @returns {Promise<Object>} Predictions view model.
++ */
++async function getPredictionsData() {
++    const isFresh = cache.data && Date.now() - cache.fetchedAt < settings.cacheDurationMs;
++    if (isFresh) return cache.data;
++    try {
++        const contents = await Promise.all(settings.files.map(fetchEngineFile));
++        const files = settings.files.reduce((acc, name, i) => ({ ...acc, [name]: contents[i] }), {});
++        const data = buildViewModel(files);
++        cache = { data: data, fetchedAt: Date.now() };
++        return data;
++    } catch (error) {
++        // serve the last good copy when the engine is briefly unreachable.
++        if (cache.data) return { ...cache.data, isStale: true };
++        throw new Error('getPredictionsData failed to load prediction engine files', { cause: error });
++    }
++}
++
++module.exports = getPredictionsData;
+diff --git a/utils/predictions/getPredictionsSummary.js b/utils/predictions/getPredictionsSummary.js
+new file mode 100644
+index 0000000..83223ee
+--- /dev/null
++++ b/utils/predictions/getPredictionsSummary.js
+@@ -0,0 +1,29 @@
++const config = require('../../config.json');
++const getPredictionsData = require('./getPredictionsData');
++
++/**
++ * @description Returns the short prediction summary shown on the home page.
++ * @async
++ * @returns {Promise<Object>} Summary with isAvailable flag, top pole and win favourites.
++ */
++async function getPredictionsSummary() {
++    try {
++        const data = await getPredictionsData();
++        return {
++            isAvailable: true,
++            grandPrix: data.grandPrix,
++            isQualifyingDone: data.isQualifyingDone,
++            isSeasonOver: data.isSeasonOver,
++            hasPracticeData: data.hasPracticeData,
++            weather: data.weather,
++            pole: data.grid.slice(0, config.predictions.homeWidgetSize),
++            win: data.winFavourites.slice(0, config.predictions.homeWidgetSize),
++        };
++    } catch (error) {
++        // the home page must still render when the prediction engine is down.
++        console.error(new Error('getPredictionsSummary unavailable', { cause: error }));
++        return { isAvailable: false };
++    }
++}
++
++module.exports = getPredictionsSummary;
+diff --git a/utils/predictions/predictionFormat.js b/utils/predictions/predictionFormat.js
+new file mode 100644
+index 0000000..a1f87ac
+--- /dev/null
++++ b/utils/predictions/predictionFormat.js
+@@ -0,0 +1,51 @@
++const config = require('../../config.json');
++
++// widths are rounded to twelfths so that every class exists in the Tailwind build (listed in predictions.ejs).
++const WIDTH_CLASSES = ['w-0', 'w-1/12', 'w-2/12', 'w-3/12', 'w-4/12', 'w-5/12', 'w-6/12', 'w-7/12', 'w-8/12', 'w-9/12', 'w-10/12', 'w-11/12', 'w-full'];
++const ORDINAL_SUFFIXES = { 1: 'st', 2: 'nd', 3: 'rd' };
++const DRIVER_IMAGE_URL = 'https://pitlaneinsider-data.alwaysdata.net/drivers_img';
++const FALLBACK_IMAGE = '/img/assets/pli-logo-dark.png';
++
++/**
++ * @description Formats a probability as a rounded percentage for display.
++ * @param {number|null} value - Probability between 0 and 1.
++ * @returns {string} Display text such as "18%" or "<1%".
++ */
++function probability(value) {
++    if (value === null || value === undefined) return '–';
++    if (value < config.predictions.minDisplayedProbability) return '<1%';
++    return `${Math.round(value * 100)}%`;
++}
++
++/**
++ * @description Picks the Tailwind width class of a bar relative to the largest value.
++ * @param {number} value - Probability of the row.
++ * @param {number} max - Largest probability of the table.
++ * @returns {string} Tailwind width class.
++ */
++function barWidth(value, max) {
++    const steps = WIDTH_CLASSES.length - 1;
++    const index = Math.round(((value || 0) / (max || 1)) * steps);
++    return WIDTH_CLASSES[Math.max(value > 0 ? 1 : 0, Math.min(steps, index))];
++}
++
++/**
++ * @description Returns an English ordinal such as 1st, 2nd or 11th.
++ * @param {number} n - Rank.
++ * @returns {string} Ordinal text.
++ */
++function ordinal(n) {
++    const isTeen = n % 100 >= 11 && n % 100 <= 13;
++    return `${n}${isTeen ? 'th' : ORDINAL_SUFFIXES[n % 10] || 'th'}`;
++}
++
++/**
++ * @description Returns the photo URL of a driver, or the site logo when unknown.
++ * @param {Object} driver - Driver with an optional f1db driverId.
++ * @returns {string} Image URL.
++ */
++function driverPhoto(driver) {
++    return driver && driver.driverId ? `${DRIVER_IMAGE_URL}/${driver.driverId}.webp` : FALLBACK_IMAGE;
++}
++
++module.exports = { probability, barWidth, ordinal, driverPhoto };
+diff --git a/views/drivers/driver.ejs b/views/drivers/driver.ejs
+index ae34506..46c7c3c 100644
+--- a/views/drivers/driver.ejs
++++ b/views/drivers/driver.ejs
+@@ -50,6 +50,8 @@
+                         </div>
+                     </div>
+ 
++                    <%- include('../predictions/driverWidget.ejs') %>
++
+                     <div class="flex flex-col">
+                         <div class="text-center mt-4">
+                             <h3 class="text-base sm:text-lg font-bold"><%= __('driver.carreer_title') %></h3>
+diff --git a/views/home/home.ejs b/views/home/home.ejs
+index 86454d8..6a0b206 100644
+--- a/views/home/home.ejs
++++ b/views/home/home.ejs
+@@ -129,6 +129,8 @@
+                     </div>
+                 </div>
+ 
++                <%- include('../predictions/homeWidget.ejs') %>
++
+                 <div class="flex flex-col md:flex-row gap-y-4 gap-x-4 mt-4 mb-8">
+                     <!-- Classements (Merged) -->
+                     <div class="w-full lg:w-1/2 bg-s-<%= theme %> py-2 rounded-3xl p-4">
+diff --git a/views/partials/header.ejs b/views/partials/header.ejs
+index f3eee36..f47bc42 100644
+--- a/views/partials/header.ejs
++++ b/views/partials/header.ejs
+@@ -35,6 +35,9 @@
+                 <tr class="border-b-2 border-white">
+                     <td><a href="/retrohome" id="retro"> <%= __('header.retro_f1') %> </a></td>
+                 </tr>
++                <tr class="border-b-2 border-white">
++                    <td><a href="/predictions" id="predictions"> <%= __('header.predictions') %> </a></td>
++                </tr>
+                 <tr class="border-b-2 border-white">
+                     <td><a href="/live" id="live"> <%= __('header.live') %> </a></td>
+                 </tr>
+diff --git a/views/predictions/driverWidget.ejs b/views/predictions/driverWidget.ejs
+new file mode 100644
+index 0000000..98bd873
+--- /dev/null
++++ b/views/predictions/driverWidget.ejs
+@@ -0,0 +1,16 @@
++<% if (typeof driverPrediction !== 'undefined' && driverPrediction.isAvailable) { %>
++<% const dp = driverPrediction; %>
++<a href="/predictions" class="block mt-4 bg-b-<%= theme %> rounded-2xl p-4 hover:bg-gray-500/15 transition">
++    <p class="text-center font-bold text-base m-0"><%= __('predictions.driver_title') %> - <%= dp.grandPrix.name %></p>
++    <div class="grid grid-cols-2 gap-4 mt-3 text-center">
++        <div>
++            <p class="font-wide text-2xl m-0"><%= predictionFormat.probability(dp.poleProbability) %></p>
++            <p class="text-xs text-t-s-<%= theme %> m-0"><%= __('predictions.pole') %>, <%= predictionFormat.ordinal(dp.poleRank) %> <%= __('predictions.rank_of') %> <%= dp.fieldSize %></p>
++        </div>
++        <div>
++            <p class="font-wide text-2xl m-0"><%= predictionFormat.probability(dp.winProbability) %></p>
++            <p class="text-xs text-t-s-<%= theme %> m-0"><%= __('predictions.win') %>, <%= predictionFormat.ordinal(dp.winRank) %> <%= __('predictions.rank_of') %> <%= dp.fieldSize %></p>
++        </div>
++    </div>
++</a>
++<% } %>
+diff --git a/views/predictions/homeWidget.ejs b/views/predictions/homeWidget.ejs
+new file mode 100644
+index 0000000..4bdba71
+--- /dev/null
++++ b/views/predictions/homeWidget.ejs
+@@ -0,0 +1,32 @@
++<% if (typeof predictionsSummary !== 'undefined') { %>
++<section class="bg-s-<%= theme %> rounded-3xl p-4 md:p-6 mt-4">
++    <% if (!predictionsSummary.isAvailable) { %>
++    <p class="text-sm text-t-s-<%= theme %> m-0"><%= __('predictions.unavailable') %></p>
++    <% } else { %>
++    <% const s = predictionsSummary; %>
++    <div class="flex items-center justify-between mb-4">
++        <a href="/predictions" class="font-bold text-lg hover:underline"><%= __('predictions.title') %> - <%= s.grandPrix.name %></a>
++        <a href="/predictions" class="text-sm text-main-color hover:underline"><%= __('predictions.see_all') %></a>
++    </div>
++    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
++        <% [{ title: __('predictions.pole'), list: s.pole }, { title: __('predictions.win'), list: s.win }].forEach(block => { %>
++        <div>
++            <p class="text-sm font-bold text-t-s-<%= theme %> mt-0 mb-2"><%= block.title %></p>
++            <div class="flex flex-col gap-2">
++                <% block.list.forEach((d, i) => { %>
++                <a href="<%= d.driverId ? '/driver/' + d.driverId : '/predictions' %>" class="flex items-center justify-between p-2 rounded-2xl bg-gray-500/10 hover:bg-gray-500/15 transition">
++                    <span class="flex items-center gap-3">
++                        <span class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs <%= i === 0 ? 'gold text-black' : 'bg-b-' + theme %>"><%= i + 1 %></span>
++                        <img src="<%= predictionFormat.driverPhoto(d) %>" alt="<%= d.lastName %>" class="h-10 w-10 object-cover rounded-full border border-gray-400/20" />
++                        <span class="flex items-center gap-2 font-bold"><span class="inline-block h-4 w-1 rounded-sm <%= d.constructorId ? 'bg-' + d.constructorId : 'bg-gray-500' %>"></span><%= d.lastName %></span>
++                    </span>
++                    <span class="font-wide text-lg pr-2"><%= predictionFormat.probability(d.probability) %></span>
++                </a>
++                <% }) %>
++            </div>
++        </div>
++        <% }) %>
++    </div>
++    <% } %>
++</section>
++<% } %>
+diff --git a/views/predictions/predictions.ejs b/views/predictions/predictions.ejs
+new file mode 100644
+index 0000000..d0c93f6
+--- /dev/null
++++ b/views/predictions/predictions.ejs
+@@ -0,0 +1,274 @@
++<!DOCTYPE html>
++<html lang="<%= __('lang.lang') %>" class="bg-b-<%= theme %>">
++    <head>
++        <%- include('../partials/head.ejs') %>
++        <%- include('../partials/header.ejs') %>
++        <link rel="stylesheet" href="/stylesheets/constructorscolors.css" />
++        <script src="/js/apexcharts.min.js"></script>
++    </head>
++
++    <body class="font-regular text-<%= theme %> bg-b-<%= theme %> flex flex-col min-h-screen">
++        <%# bar widths used by predictionFormat.barWidth: w-0 w-1/12 w-2/12 w-3/12 w-4/12 w-5/12 w-6/12 w-7/12 w-8/12 w-9/12 w-10/12 w-11/12 w-full %> <% const p = predictions; %> <% const isRaceOver = p.isSeasonOver || p.raceResult.length > 0; %>
++        <main class="bg-b-<%= theme %> grow">
++            <div class="px-4 md:pt-4 mb-8 flex flex-col gap-4">
++                <% if (p.isStale) { %>
++                <p class="text-center text-orange-400 text-sm mt-4 md:mt-0"><%= __('predictions.stale') %></p>
++                <% } %>
++
++                <!-- next grand prix -->
++                <div class="block md:grid grid-cols-2 gap-4 items-stretch">
++                    <section class="bg-s-<%= theme %> rounded-3xl p-6 mt-4 md:mt-0 relative overflow-hidden flex flex-col">
++                        <% if (p.grandPrix.circuitLayoutId) { %>
++                        <img src="/img/circuits/<%= p.grandPrix.circuitLayoutId %>.svg" class="absolute inset-0 m-auto h-3/4 opacity-10 pointer-events-none" alt="" />
++                        <% } %>
++                        <div class="z-10 flex flex-col gap-4">
++                            <div class="flex items-center gap-x-3">
++                                <% if (p.grandPrix.countryId) { %>
++                                <img src="/img/countryFlags/<%= p.grandPrix.countryId %>.svg" class="h-6 w-auto shadow-md rounded-sm" alt="" />
++                                <% } %>
++                                <h2 class="font-wide text-lg md:text-2xl m-0"><%= p.grandPrix.name %> <%= p.season %></h2>
++                            </div>
++                            <h1 class="font-wide text-3xl md:text-5xl m-0 leading-tight"><%= isRaceOver ? __('predictions.race_result') : p.isQualifyingDone ? __('predictions.win_question') : __('predictions.pole_question') %></h1>
++                            <p class="text-t-s-<%= theme %> m-0"><%= p.isSeasonOver ? __('predictions.season_over') : isRaceOver ? __('predictions.race_over') : p.isQualifyingDone ? __('predictions.after_qualifying') : p.hasPracticeData ? __('predictions.after_practice') : __('predictions.before_practice') %> <% if (p.isEarlySeason) { %> <%= __('predictions.early_season') %> <% } %></p>
++
++                            <% if (!p.isSeasonOver && p.sessions) { %>
++                            <div>
++                                <h3 class="font-bold text-base mb-2"><%= __('predictions.weekend') %></h3>
++                                <ul class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
++                                    <% const names = { FP1: 'Practice 1', FP2: 'Practice 2', FP3: 'Practice 3', SQ: 'Sprint quali', S: 'Sprint', Q: 'Qualifying', R: 'Race' }; %> <% ['FP1', 'SQ', 'FP2', 'S', 'FP3', 'Q', 'R'].filter(k => p.sessions[k]).forEach(k => { %>
++                                    <% const w = p.weather && p.weather[k]; %>
++                                    <li class="bg-b-<%= theme %> rounded-2xl px-3 py-2" data-session-time="<%= p.sessions[k] %>">
++                                        <span class="block font-bold"><%= names[k] %></span>
++                                        <span class="block text-t-s-<%= theme %> js-local-time"><%= p.sessions[k].replace('T', ' ').replace('Z', ' UTC') %></span>
++                                        <% if (w) { %>
++                                        <span class="block text-xs <%= w.pluie >= p.rainDisplayThreshold ? 'text-sky-400' : 'text-t-s-' + theme %>"><%= w.temperature !== null ? Math.round(w.temperature) + '°C, ' : '' %><%= w.pluie >= p.rainDisplayThreshold ? Math.round(w.pluie * 100) + '% ' + __('predictions.rain_risk') : __('predictions.dry') %></span>
++                                        <% } %>
++                                    </li>
++                                    <% }) %>
++                                </ul>
++                                <p class="text-xs text-t-s-<%= theme %> mt-2 mb-0"><%= __('predictions.local_time') %><% if (p.isScheduleEstimated) { %> <%= __('predictions.estimated_schedule') %><% } %><% if (p.weather) { %> <%= __('predictions.rain_note') %><% } %></p>
++                            </div>
++                            <% } %>
++                        </div>
++                    </section>
++
++                    <!-- most likely grid -->
++                    <section class="bg-s-<%= theme %> rounded-3xl p-6 mt-4 md:mt-0">
++                        <% const slots = isRaceOver ? p.raceResult.map(d => ({ ...d, label: predictionFormat.ordinal(d.place), probability: null })) : p.isQualifyingDone ? [...p.winFavourites].sort((a, b) => (a.grille || 99) - (b.grille || 99)).slice(0, 6).map(d => ({ ...d, label: 'P' + d.grille })) : p.grid.map((d, i) => ({ ...d, label: 'P' + (i + 1) })); %>
++                        <h3 class="font-bold text-lg mb-4"><%= isRaceOver ? __('predictions.race_result') : p.isQualifyingDone ? __('predictions.actual_grid') : __('predictions.likely_grid') %></h3>
++                        <ol class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 list-none p-0 m-0">
++                            <% slots.forEach((d, i) => { %>
++                            <li class="<%= i % 2 === 1 ? 'sm:mt-8' : '' %>">
++                                <a href="<%= d.driverId ? '/driver/' + d.driverId : '#' %>" class="flex items-center gap-2 px-3 py-3 rounded-2xl bg-b-<%= theme %> border-t-4 <%= i === 0 ? 'border-yellow-400' : 'border-gray-500' %> hover:bg-gray-500/15 transition">
++                                    <span class="font-wide text-xs text-t-s-<%= theme %>"><%= d.label %></span>
++                                    <span class="flex flex-col min-w-0 grow">
++                                        <span class="font-bold text-base sm:text-lg leading-tight truncate"><%= d.lastName %></span>
++                                        <span class="flex items-center gap-1 text-xs text-t-s-<%= theme %> truncate"><span class="inline-block h-3 w-1 rounded-sm shrink-0 <%= d.constructorId ? 'bg-' + d.constructorId : 'bg-gray-500' %>"></span><%= d.equipe %></span>
++                                    </span>
++                                    <% if (d.probability !== null) { %>
++                                    <span class="font-wide text-base sm:text-lg"><%= predictionFormat.probability(d.probability) %></span>
++                                    <% } %>
++                                </a>
++                            </li>
++                            <% }) %>
++                        </ol>
++                        <p class="text-xs text-t-s-<%= theme %> mt-4 mb-0"><%= __('predictions.not_a_result') %></p>
++                    </section>
++                </div>
++
++                <!-- every driver -->
++                <% if (!isRaceOver && p.field.length) { %>
++                <section class="bg-s-<%= theme %> rounded-3xl p-4 md:p-6">
++                    <h3 class="font-bold text-lg mb-4"><%= __('predictions.all_drivers') %></h3>
++                    <% const maxPole = Math.max(...p.field.map(d => d.probability || 0)); const maxWin = Math.max(...p.field.map(d => d.winProbability || 0)); %>
++                    <div class="overflow-x-auto">
++                        <table class="w-full text-sm">
++                            <thead>
++                                <tr class="text-left text-t-s-<%= theme %> border-b border-gray-600">
++                                    <th class="py-2 pr-2 font-bold">#</th>
++                                    <th class="py-2 pr-2 font-bold"><%= __('predictions.driver') %></th>
++                                    <th class="py-2 pr-2 font-bold w-1/3"><%= __('predictions.pole') %></th>
++                                    <th class="py-2 font-bold w-1/3"><%= __('predictions.win') %></th>
++                                </tr>
++                            </thead>
++                            <tbody>
++                                <% p.field.forEach((d, i) => { %>
++                                <tr class="border-b border-gray-600/40">
++                                    <td class="py-2 pr-2 font-bold"><%= String(i + 1).padStart(2, '0') %></td>
++                                    <td class="py-2 pr-2">
++                                        <a href="<%= d.driverId ? '/driver/' + d.driverId : '#' %>" class="flex items-center gap-2 hover:underline">
++                                            <span class="inline-block h-5 w-1 rounded-sm <%= d.constructorId ? 'bg-' + d.constructorId : 'bg-gray-500' %>"></span>
++                                            <span class="font-bold"><%= d.lastName %></span>
++                                            <span class="text-t-s-<%= theme %> hidden sm:inline"><%= d.equipe %></span>
++                                        </a>
++                                    </td>
++                                    <td class="py-2 pr-2">
++                                        <span class="flex items-center gap-2">
++                                            <span class="h-2 grow rounded-full bg-gray-500/20 overflow-hidden"><span class="block h-2 rounded-full <%= d.constructorId ? 'bg-' + d.constructorId : 'bg-main-color' %> <%= predictionFormat.barWidth(d.probability, maxPole) %>"></span></span>
++                                            <span class="w-10 text-right font-bold"><%= predictionFormat.probability(d.probability) %></span>
++                                        </span>
++                                    </td>
++                                    <td class="py-2">
++                                        <span class="flex items-center gap-2">
++                                            <span class="h-2 grow rounded-full bg-gray-500/20 overflow-hidden"><span class="block h-2 rounded-full <%= d.constructorId ? 'bg-' + d.constructorId : 'bg-main-color' %> <%= predictionFormat.barWidth(d.winProbability, maxWin) %>"></span></span>
++                                            <span class="w-10 text-right font-bold"><%= predictionFormat.probability(d.winProbability) %></span>
++                                        </span>
++                                    </td>
++                                </tr>
++                                <% }) %>
++                            </tbody>
++                        </table>
++                    </div>
++                </section>
++                <% } %>
++
++                <!-- model vs reality -->
++                <section id="history" class="bg-s-<%= theme %> rounded-3xl p-4 md:p-6">
++                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
++                        <h3 class="font-bold text-lg m-0"><%= __('predictions.history_title') %></h3>
++                        <nav class="flex gap-2">
++                            <% p.historySeasons.forEach(year => { %>
++                            <a href="/predictions?season=<%= year %>#history" class="px-3 py-1 rounded-full text-sm font-bold <%= year === historySeason ? 'bg-main-color text-white' : 'bg-b-' + theme %>"><%= year %></a>
++                            <% }) %>
++                        </nav>
++                    </div>
++                    <p class="text-sm text-t-s-<%= theme %> m-0"><%= __('predictions.history_text') %></p>
++                    <p class="text-sm text-t-s-<%= theme %> mt-1"><%= __('predictions.history_choice') %></p>
++                    <div id="history-chart" class="mt-4"></div>
++                    <div class="overflow-x-auto mt-2">
++                        <table class="w-full text-sm">
++                            <thead>
++                                <tr class="text-left text-t-s-<%= theme %> border-b border-gray-600">
++                                    <th class="py-2 pr-2 font-bold">GP</th>
++                                    <th class="py-2 pr-2 font-bold"><%= __('predictions.pole_sitter') %></th>
++                                    <th class="py-2 pr-2 font-bold text-right"><%= __('predictions.model_gave_header') %></th>
++                                    <th class="py-2 pr-2 font-bold hidden sm:table-cell"><%= __('predictions.favourite') %></th>
++                                    <th class="py-2 font-bold hidden md:table-cell"><%= __('predictions.winner') %></th>
++                                </tr>
++                            </thead>
++                            <tbody>
++                                <% [...p.history[historySeason]].reverse().forEach(gp => { %>
++                                <tr class="border-b border-gray-600/40">
++                                    <td class="py-2 pr-2">
++                                        <span class="flex items-center gap-2">
++                                            <% if (gp.countryId) { %><img src="/img/countryFlags/<%= gp.countryId %>.svg" class="h-4 w-auto rounded-xs" alt="" /><% } %>
++                                            <% if (gp.raceId) { %><a href="/retrogpdetails/<%= historySeason %>/<%= gp.raceId %>" class="hover:underline"><%= gp.name %></a><% } else { %><%= gp.name %><% } %>
++                                            <% if (gp.isWet) { %><span class="text-sky-400 text-xs" title="<%= __('predictions.wet_session') %>">wet</span><% } %>
++                                        </span>
++                                    </td>
++                                    <td class="py-2 pr-2 font-bold"><%= gp.poleSitter ? gp.poleSitter.lastName : '–' %></td>
++                                    <td class="py-2 pr-2 text-right font-bold"><%= predictionFormat.probability(gp.poleSitterProbability) %></td>
++                                    <td class="py-2 pr-2 hidden sm:table-cell"><%= gp.favourite ? gp.favourite.lastName : '–' %></td>
++                                    <td class="py-2 hidden md:table-cell"><%= gp.winner ? gp.winner.lastName : '–' %></td>
++                                </tr>
++                                <% }) %>
++                            </tbody>
++                        </table>
++                    </div>
++                </section>
++
++                <!-- track record -->
++                <section class="bg-s-<%= theme %> rounded-3xl p-4 md:p-6">
++                    <h3 class="font-bold text-lg mb-4"><%= __('predictions.track_record') %></h3>
++                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
++                        <div class="bg-b-<%= theme %> rounded-2xl p-4">
++                            <p class="font-wide text-3xl m-0"><%= p.trackRecord.poleSitterInTopThree %>/<%= p.trackRecord.races %></p>
++                            <p class="text-sm text-t-s-<%= theme %> mt-2 mb-0"><%= __('predictions.top_three') %></p>
++                        </div>
++                        <div class="bg-b-<%= theme %> rounded-2xl p-4">
++                            <p class="font-wide text-3xl m-0"><%= p.trackRecord.favouriteTookPole %>/<%= p.trackRecord.races %></p>
++                            <p class="text-sm text-t-s-<%= theme %> mt-2 mb-0"><%= __('predictions.favourite_hits') %></p>
++                        </div>
++                        <div class="bg-b-<%= theme %> rounded-2xl p-4">
++                            <p class="font-wide text-xl m-0 <%= p.trackRecord.beatsRandom ? 'text-main-color' : 'text-orange-400' %>"><%= p.trackRecord.beatsRandom ? __('predictions.beats_random') : __('predictions.not_proven') %></p>
++                            <p class="text-sm text-t-s-<%= theme %> mt-2 mb-0"><%= p.trackRecord.beatsRandom ? __('predictions.beats_random_text') : __('predictions.not_proven_text') %></p>
++                        </div>
++                        <div class="bg-b-<%= theme %> rounded-2xl p-4">
++                            <% const raceGain = p.trackRecord.raceGain; %>
++                            <p class="font-wide text-xl m-0"><%= __('predictions.race_model') %></p>
++                            <p class="text-sm text-t-s-<%= theme %> mt-2 mb-0"><%= raceGain && raceGain.ic95_bas > 0 ? __('predictions.race_model_proven') : raceGain && raceGain.gain_vs_grille <= 0 ? __('predictions.race_model_none') : __('predictions.race_model_text') %></p>
++                        </div>
++                    </div>
++                </section>
++
++                <!-- forecast log -->
++                <section class="bg-s-<%= theme %> rounded-3xl p-4 md:p-6">
++                    <h3 class="font-bold text-lg mb-1"><%= __('predictions.journal') %></h3>
++                    <p class="text-sm text-t-s-<%= theme %> mt-0 mb-4"><%= __('predictions.journal_text') %></p>
++                    <% if (!p.journal.length) { %>
++                    <p class="text-sm bg-b-<%= theme %> rounded-2xl p-4 m-0"><%= __('predictions.journal_empty') %></p>
++                    <% } else { %>
++                    <div class="overflow-x-auto">
++                        <table class="w-full text-sm">
++                            <thead>
++                                <tr class="text-left text-t-s-<%= theme %> border-b border-gray-600">
++                                    <th class="py-2 pr-2 font-bold">GP</th>
++                                    <th class="py-2 pr-2 font-bold"><%= __('predictions.published') %></th>
++                                    <th class="py-2 pr-2 font-bold"><%= __('predictions.actual') %></th>
++                                    <th class="py-2 pr-2 font-bold text-right"><%= __('predictions.given') %></th>
++                                    <th class="py-2 font-bold text-right"><%= __('predictions.rank') %></th>
++                                </tr>
++                            </thead>
++                            <tbody>
++                                <% p.journal.forEach(e => { %>
++                                <tr class="border-b border-gray-600/40">
++                                    <td class="py-2 pr-2"><%= e.grandPrix.name %> <%= e.season %>, <%= e.type === 'pole' ? __('predictions.pole') : __('predictions.win') %></td>
++                                    <td class="py-2 pr-2 js-local-time" data-session-time="<%= e.publie_utc %>"><%= e.publie_utc %></td>
++                                    <td class="py-2 pr-2 font-bold"><%= e.reel %></td>
++                                    <td class="py-2 pr-2 text-right"><%= predictionFormat.probability(e.proba_du_vainqueur) %></td>
++                                    <td class="py-2 text-right"><%= e.rang_du_vainqueur || '–' %></td>
++                                </tr>
++                                <% }) %>
++                            </tbody>
++                        </table>
++                    </div>
++                    <% } %>
++                </section>
++
++                <!-- method -->
++                <section class="bg-s-<%= theme %> rounded-3xl p-4 md:p-6 text-sm">
++                    <h3 class="font-bold text-lg mb-2"><%= __('predictions.method') %></h3>
++                    <p class="text-t-s-<%= theme %> m-0"><%= __('predictions.method_text') %></p>
++                    <p class="text-t-s-<%= theme %> mt-2 mb-0">
++                        <a href="<%= p.engineRepositoryUrl %>" target="_blank" rel="noopener" class="text-main-color hover:underline"><%= __('predictions.source') %></a>.
++                        <%= __('predictions.updated') %>
++                        <span class="js-local-time" data-session-time="<%= p.updatedAt %>"><%= p.updatedAt %></span>. Weather: <a href="https://open-meteo.com/" target="_blank" rel="noopener" class="hover:underline">Open-Meteo</a> (CC BY 4.0).
++                        <%= __('predictions.not_affiliated') %>
++                    </p>
++                </section>
++            </div>
++        </main>
++        <%- include('../partials/footer.ejs') %>
++
++        <script>
++            // session times are published in UTC: show them in the visitor's time zone.
++            document.querySelectorAll('[data-session-time]').forEach((el) => {
++                const target = el.classList.contains('js-local-time') ? el : el.querySelector('.js-local-time');
++                const date = new Date(el.dataset.sessionTime);
++                if (!target || isNaN(date.getTime())) return;
++                target.textContent = date.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
++            });
++
++            const historyData = <%- JSON.stringify(p.history[historySeason].map(gp => ({ name: gp.name, value: gp.poleSitterProbability === null ? 0 : Math.round(gp.poleSitterProbability * 1000) / 10, color: gp.poleSitterColor || '#058785', pole: gp.poleSitter ? gp.poleSitter.lastName : '' }))) %>;
++            const randomLevel = <%= p.field.length ? Math.round(1000 / p.field.length) / 10 : 4.5 %>;
++            if (document.getElementById('history-chart') && typeof ApexCharts !== 'undefined') {
++                const isDark = '<%= theme %>' === 'dark';
++                const chart = new ApexCharts(document.getElementById('history-chart'), {
++                    chart: { type: 'bar', height: 260, toolbar: { show: false }, animations: { enabled: false }, background: 'transparent', fontFamily: 'F1Regular, sans-serif' },
++                    theme: { mode: isDark ? 'dark' : 'light' },
++                    series: [{ name: '<%= __('predictions.model_gave') %>', data: historyData.map((d) => d.value) }],
++                    colors: historyData.map((d) => d.color),
++                    plotOptions: { bar: { distributed: true, borderRadius: 4, columnWidth: '70%' } },
++                    legend: { show: false },
++                    dataLabels: { enabled: false },
++                    xaxis: { categories: historyData.map((d) => d.name.replace(' GP', '')), labels: { rotate: -60, style: { fontSize: '10px' } } },
++                    yaxis: { max: 100, labels: { formatter: (v) => `${Math.round(v)}%` } },
++                    grid: { borderColor: isDark ? '#444' : '#ddd' },
++                    tooltip: { y: { formatter: (v, o) => `${historyData[o.dataPointIndex].pole}: ${v}%` } },
++                    annotations: { yaxis: [{ y: randomLevel, borderColor: '#999', strokeDashArray: 4, label: { text: 'random', style: { background: 'transparent', color: '#999' } } }] },
++                });
++                chart.render();
++            }
++        </script>
++    </body>
++</html>
+-- 
+2.43.0
+

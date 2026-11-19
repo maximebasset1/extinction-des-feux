@@ -32,15 +32,31 @@ def read_session(folder: Path) -> list[dict]:
     info = folder / "session_info.json"
     if not info.exists():
         return []
-    date = json.loads(info.read_text(encoding="utf-8"))["t0_date"][:10]
+    t0 = (json.loads(info.read_text(encoding="utf-8")) or {}).get("t0_date")
+    if t0 in (None, "None", ""):
+        t0 = None
+    if not t0:  # quelques séances anciennes n'ont pas d'heure de départ : date du premier tour enregistré
+        for f in sorted(folder.glob("*/laptimes.json")):
+            t0 = next((x for x in json.loads(f.read_text(encoding="utf-8")).get("lSD", []) if x not in (None, "None")), None)
+            if t0:
+                break
+    if not t0:
+        return []
+    date = str(t0)[:10]
     rows, wet_laps, all_laps = [], 0, 0
+    rain, track_t, air_t = [], [], []  # météo relevée à chaque tour (pluie oui/non, températures)
     for f in sorted(folder.glob("*/laptimes.json")):
         d = json.loads(f.read_text(encoding="utf-8"))
         t = _num(d.get("time", []))
-        deleted = np.array([x is True for x in d.get("del", [False] * len(t))])
-        comp = d.get("compound", [None] * len(t))
+        dl = d.get("del") or []
+        deleted = np.array([x is True for x in dl], dtype=bool) if len(dl) == len(t) else np.zeros(len(t), dtype=bool)
+        comp = d.get("compound") or []
+        comp = comp if len(comp) == len(t) else [None] * len(t)
         valid = ~np.isnan(t) & ~deleted
         wet_laps += sum(c in WET for c in comp)
+        rain += [x is True for x in d.get("wR", [])]
+        track_t += list(_num(d.get("wTT", [])))
+        air_t += list(_num(d.get("wAT", [])))
         all_laps += len(comp)
         teams = [x for x in d.get("team", []) if x not in (None, "None")]
         segment, lap, set_at = None, best_valid(t, valid), np.nan
@@ -78,8 +94,11 @@ def read_session(folder: Path) -> list[dict]:
             row["race_last_pos"] = float(pos[ok][-1]) if ok.any() else np.nan
         rows.append(row)
     wet = all_laps > 0 and wet_laps / all_laps > 0.3
+    weather = {"rain_share": float(np.mean(rain)) if rain else np.nan,
+               "track_temp": float(np.nanmedian(track_t)) if np.isfinite(track_t).any() else np.nan,
+               "air_temp": float(np.nanmedian(air_t)) if np.isfinite(air_t).any() else np.nan}
     for r in rows:
-        r.update(date=date, wet=wet)
+        r.update(date=date, wet=wet, **weather)
     return rows
 
 
@@ -88,7 +107,7 @@ def race_results(df: pd.DataFrame) -> pd.DataFrame:
     r = df[df["session"] == "Race"].copy()
     r = r.sort_values(["season", "grand_prix", "race_laps", "race_last_pos"], ascending=[True, True, False, True])
     r["finish"] = r.groupby(["season", "grand_prix"]).cumcount() + 1
-    return r[["season", "date", "grand_prix", "driver", "team", "finish", "race_laps"]]
+    return r[["season", "date", "grand_prix", "driver", "team", "finish", "race_laps", "wet", "rain_share"]]
 
 
 def build() -> pd.DataFrame:
@@ -127,7 +146,7 @@ def build() -> pd.DataFrame:
     df["downforce"] = [k[0] for k in kind]
     df["street"] = [k[1] for k in kind]
     cols = ["season", "date", "grand_prix", "session", "driver", "team", "segment", "best_lap",
-            "deficit_pct", "pole", "quali_pos", "set_at", "n_laps", "wet", "downforce", "street", "best_soft", "ideal_lap"]
+            "deficit_pct", "pole", "quali_pos", "set_at", "n_laps", "wet", "rain_share", "track_temp", "air_temp", "downforce", "street", "best_soft", "ideal_lap"]
     return df[cols].sort_values(["date", "session", "deficit_pct"]).reset_index(drop=True)
 
 

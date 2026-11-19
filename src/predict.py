@@ -5,6 +5,9 @@ Protocole (identique pour tous les modèles) :
 - CHOIX du modèle sur le début de saison 2026 (courses 4 à 11), même réglementation que la cible ;
 - TEST sur la fin de saison 2026 (courses 12 et suivantes), jamais utilisée pour choisir ;
 - 2024-2025 sont montrées pour information (autre génération de voitures).
+Les saisons servant à apprendre (2023+, ou depuis 2018 avec ou sans poids dégressif) sont elles
+aussi choisies sur la période de choix : moyenne de tous les modèles, pour ne pas se fier à un seul.
+Le module pluie (weather.py) est jugé à part, sur les qualifs mouillées.
 """
 import sys
 from pathlib import Path
@@ -15,11 +18,12 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
 from config import MAX_DEFICIT_PCT, TARGET_GP, TARGET_SEASON, circuit_type  # noqa: E402
 from features import (  # noqa: E402
-    CANDIDATES_FP, CANDIDATES_PRE, FP_COLUMNS, features_for_race, practice_deficit, qualifying_table,
-    training_table,
+    CANDIDATES_FP, CANDIDATES_PRE, FP_COLUMNS, current_wet_skill, features_for_race, practice_deficit,
+    qualifying_table, training_table,
 )
+import weather  # noqa: E402
 from model import (  # noqa: E402
-    NOISE_LAWS, bootstrap_gain, fit_logit, fit_regression, latest_sigma, logit_probabilities, per_race_logloss,
+    HISTORIES, NOISE_LAWS, bootstrap_gain, fit_logit, fit_regression, latest_sigma, logit_probabilities, per_race_logloss,
     pole_probabilities, probabilities_with, race_loglik_matrix, rolling_logit, rolling_predictions,
     rolling_sigma, scores, season_share_baseline,
 )
@@ -39,10 +43,10 @@ def split(p: pd.DataFrame):
     return info, choice, test
 
 
-def run_method(table: pd.DataFrame, feats: list[str], method: str) -> dict:
+def run_method(table: pd.DataFrame, feats: list[str], method: str, hist: dict) -> dict:
     if method == "logit conditionnel":
-        return {"probs": rolling_logit(table, feats), "sigma": np.nan}
-    pred = rolling_predictions(table, feats)
+        return {"probs": rolling_logit(table, feats, hist=hist), "sigma": np.nan}
+    pred = rolling_predictions(table, feats, hist=hist)
     races, mat = race_loglik_matrix(pred, NOISE_DF)
     sig = rolling_sigma(mat)
     by_race = {(r.season, r.grand_prix): s for r, s in zip(races.itertuples(), sig)}
@@ -51,25 +55,38 @@ def run_method(table: pd.DataFrame, feats: list[str], method: str) -> dict:
 
 def backtest(table: pd.DataFrame):
     rows, store = [], {}
-    for family, candidates in FAMILIES:
-        for name, feats in candidates.items():
-            for method in METHODS:
-                r = run_method(table, feats, method)
-                info, choice, test = split(r["probs"])
-                rows.append({"moment": family, "variables": name, "methode": method,
-                             "log_loss_2024_2025_info": scores(info)["log_loss"],
-                             "log_loss_choix_2026_debut": scores(choice)["log_loss"],
-                             **{f"{k}_test": v for k, v in scores(test).items()}})
-                store[(family, name, method)] = r | {"feats": feats, "method": method,
-                                                    "label": f"{name} ({method})"}
+    for hname, hist in HISTORIES.items():
+        for family, candidates in FAMILIES:
+            for name, feats in candidates.items():
+                for method in METHODS:
+                    r = run_method(table, feats, method, hist)
+                    info, choice, test = split(r["probs"])
+                    rows.append({"historique": hname, "moment": family, "variables": name, "methode": method,
+                                 "log_loss_2024_2025_info": scores(info)["log_loss"],
+                                 "log_loss_choix_2026_debut": scores(choice)["log_loss"],
+                                 **{f"{k}_test": v for k, v in scores(test).items()}})
+                    store[(hname, family, name, method)] = r | {"feats": feats, "method": method, "hist": hist,
+                                                               "hist_name": hname, "label": f"{name} ({method})"}
     res = pd.DataFrame(rows)
     res["choisi"] = ""
+    # 1) quelles saisons pour apprendre ? la moyenne de TOUS les modèles sur la période de choix décide
+    hname = res.groupby("historique")["log_loss_choix_2026_debut"].mean().idxmin()
     chosen = {}
     for family, _ in FAMILIES:
-        sub = res[res["moment"] == family]
+        sub = res[(res["moment"] == family) & (res["historique"] == hname)]
         best = sub.loc[sub["log_loss_choix_2026_debut"].idxmin()]
         res.loc[best.name, "choisi"] = "oui"
-        chosen[family] = store[(family, best["variables"], best["methode"])]
+        chosen[family] = store[(hname, family, best["variables"], best["methode"])] | {
+            "key": (family, best["variables"], best["methode"])}
+    # 2) module pluie : jugé sur les qualifs mouillées (avant 2026 pour choisir, 2026 pour contrôler).
+    #    Il y en a peu : on rejoue le même modèle depuis 2018 pour en avoir une quinzaine au lieu de cinq.
+    long = HISTORIES["depuis 2018"]
+    for family, c in chosen.items():
+        feats_w = c["feats"] + ["pluie_talent"]
+        base_long = store[("depuis 2018",) + c["key"]]["probs"]
+        w_long = run_method(table, feats_w, c["method"], long)
+        c["wet"] = weather.evaluate_module(base_long, w_long["probs"])
+        c["wet"] |= {"feats": feats_w, "hist": long, "sigma": w_long["sigma"]}
     base = {"hasard (1 chance sur 22)": table.assign(
                 p_pole=1 / table.groupby(["season", "grand_prix"])["driver"].transform("size")),
             "part des poles déjà faites": season_share_baseline(table)}
@@ -122,13 +139,21 @@ def entry_list(best: pd.DataFrame) -> pd.DataFrame:
     return q[q["date"] == q["date"].max()].drop_duplicates("driver")[["driver", "team"]]
 
 
-def predict_target(best: pd.DataFrame, table: pd.DataFrame, chosen: dict):
+def predict_target(best: pd.DataFrame, table: pd.DataFrame, chosen: dict, forecast: dict | None = None):
     gp = TARGET_GP.replace(" Grand Prix", "")
     q = qualifying_table(best, MAX_DEFICIT_PCT)
     q = q[~((q["season"] == TARGET_SEASON) & (q["grand_prix"] == gp))]
     done = q.loc[q["season"] == TARGET_SEASON, "race_idx"]
     next_idx = int(done.max()) + 1 if done.notna().any() else 1  # 1re course de la saison : aucune qualif encore
-    f = features_for_race(q, TARGET_SEASON, next_idx, gp, circuit_type(TARGET_SEASON, gp)[0], entry_list(best))
+    fq = (forecast or {}).get("Q") or {}
+    weekend = best[(best["season"] == TARGET_SEASON) & (best["grand_prix"] == gp)]
+    # température attendue pendant la qualif : prévision, sinon celle relevée aux essais du week-end
+    temp = fq.get("temperature")
+    if temp is None and "air_temp" in weekend and weekend["air_temp"].notna().any():
+        temp = float(weekend["air_temp"].median())
+    rain = float(fq.get("pluie") or 0.0)
+    f = features_for_race(q, TARGET_SEASON, next_idx, gp, circuit_type(TARGET_SEASON, gp)[0], entry_list(best), temp)
+    f["pluie_talent"] = f["driver"].map(current_wet_skill(table)).fillna(0.0)
     fp = practice_deficit(best)
     fp = fp[(fp["season"] == TARGET_SEASON) & (fp["grand_prix"] == gp)]
     has_fp = len(fp) > 0
@@ -141,13 +166,19 @@ def predict_target(best: pd.DataFrame, table: pd.DataFrame, chosen: dict):
         if family == "après les essais libres" and not has_fp:
             continue
         tag = "avant" if family.startswith("avant") else "apres"
-        if c["method"] == "logit conditionnel":
-            p = logit_probabilities(f, c["feats"], fit_logit(table, c["feats"]))
-        else:
-            mu = fit_regression(table, c["feats"]).predict(f[c["feats"]])
-            out[f"ecart_predit_{tag}_pct"] = mu.round(3)
-            p = pole_probabilities(mu, c["sigma"], NOISE_DF)
-        out[f"proba_pole_{tag}"] = p
+
+        def probs(feats, sigma, hist):
+            if c["method"] == "logit conditionnel":
+                return logit_probabilities(f, feats, fit_logit(table, feats, hist, TARGET_SEASON))
+            mu = fit_regression(table, feats, hist, TARGET_SEASON).predict(f[feats])
+            return pole_probabilities(mu, sigma, NOISE_DF)
+        dry = probs(c["feats"], c["sigma"], c["hist"])
+        wm = c["wet"]
+        wet = probs(wm["feats"], wm["sigma"], wm["hist"]) if wm["talent"] else dry
+        wet = weather.temper(wet, wm["lambda"])
+        out[f"proba_pole_{tag}_sec"] = dry
+        out[f"proba_pole_{tag}_pluie"] = wet
+        out[f"proba_pole_{tag}"] = (1 - rain) * dry + rain * wet
     main_col = "proba_pole_apres" if has_fp else "proba_pole_avant"
     out = out.sort_values(main_col, ascending=False).reset_index(drop=True)
     sessions = sorted(best.loc[(best["season"] == TARGET_SEASON) & (best["grand_prix"] == gp)
@@ -196,10 +227,10 @@ def cached_backtest(table: pd.DataFrame):
     return value
 
 
-def run(best: pd.DataFrame):
+def run(best: pd.DataFrame, forecast: dict | None = None):
     gp = TARGET_GP.replace(" Grand Prix", "")
     table = training_table(best, MAX_DEFICIT_PCT, exclude=(TARGET_SEASON, gp))
     res, chosen, gains, base = cached_backtest(table)
-    pred, status = predict_target(best, table, chosen)
+    pred, status = predict_target(best, table, chosen, forecast)
     return {"table": table, "res": res, "chosen": chosen, "pred": pred, "status": status,
             "calib": calibration_table(chosen), "gains": gains, "history": history_table(chosen, base)}

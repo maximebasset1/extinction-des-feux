@@ -25,6 +25,23 @@ SIGMA_DEFAULT = 0.30
 # (Version précédente : choix normale / Student laissé aux données, abandonné après relecture.)
 NOISE_LAWS = {"Student (4 ddl)": 4}
 
+# Quelles saisons servent à apprendre ? (comparées dans predict.backtest, choisies sur la période de choix)
+#   start      : première saison utilisée pour l'apprentissage
+#   half_life  : demi-vie en saisons du poids d'une qualif (None = même poids pour toutes)
+HISTORIES = {
+    "2023 et après": {"start": 2023, "half_life": None},
+    "depuis 2018": {"start": 2018, "half_life": None},
+    "depuis 2018, récent d'abord": {"start": 2018, "half_life": 2.0},
+}
+DEFAULT_HISTORY = HISTORIES["2023 et après"]
+
+
+def history_weights(seasons: pd.Series, target_season: int, hist: dict) -> np.ndarray:
+    w = np.where(seasons >= hist["start"], 1.0, 0.0)
+    if hist.get("half_life"):
+        w = w * 0.5 ** ((target_season - seasons.to_numpy()) / hist["half_life"])
+    return w
+
 
 def pole_probabilities(mu: np.ndarray, sigma: float, df: int | None = None, n_grid: int = 4000) -> np.ndarray:
     mu = np.asarray(mu, dtype=float)
@@ -39,23 +56,29 @@ def pole_probabilities(mu: np.ndarray, sigma: float, df: int | None = None, n_gr
     return p / p.sum()
 
 
-def fit_regression(train: pd.DataFrame, features: list[str]) -> LinearRegression:
+def fit_regression(train: pd.DataFrame, features: list[str], hist: dict | None = None,
+                   target_season: int | None = None) -> LinearRegression:
     # on n'apprend pas sur les incidents (crash, pas de tour) : ils ne disent rien du rythme
     ok = train[~train["incident"]]
-    return LinearRegression().fit(ok[features], ok["target"])
+    hist = hist or DEFAULT_HISTORY
+    w = history_weights(ok["season"], target_season or int(ok["season"].max()) + 1, hist)
+    keep = w > 0
+    return LinearRegression().fit(ok.loc[keep, features], ok.loc[keep, "target"], sample_weight=w[keep])
 
 
-def rolling_predictions(table: pd.DataFrame, features: list[str], min_train_races: int = 8) -> pd.DataFrame:
+def rolling_predictions(table: pd.DataFrame, features: list[str], min_train_races: int = 8,
+                        hist: dict | None = None) -> pd.DataFrame:
     """Backtest « comme en vrai » : pour chaque qualif, le modèle n'est entraîné que sur les
-    qualifs précédentes (toutes saisons confondues), puis il prédit celle-ci."""
-    races = table.drop_duplicates(["season", "grand_prix"]).sort_values("date")
+    qualifs précédentes (des saisons retenues par `hist`), puis il prédit celle-ci."""
+    hist = hist or DEFAULT_HISTORY
+    races = table[table["season"] >= hist["start"]].drop_duplicates(["season", "grand_prix"]).sort_values("date")
     out = []
     for i, (_, r) in enumerate(races.iterrows()):
         if i < min_train_races:
             continue
         train = table[table["date"] < r["date"]]
         test = table[(table["season"] == r["season"]) & (table["grand_prix"] == r["grand_prix"])].copy()
-        test["pred"] = fit_regression(train, features).predict(test[features])
+        test["pred"] = fit_regression(train, features, hist, int(r["season"])).predict(test[features])
         out.append(test)
     return pd.concat(out, ignore_index=True)
 
@@ -174,22 +197,50 @@ def _centered(g: pd.DataFrame, features: list[str]) -> np.ndarray:
     return x - x.min(axis=0, keepdims=True)
 
 
-def fit_logit(train: pd.DataFrame, features: list[str]) -> np.ndarray:
-    groups = [(_centered(g, features), g["is_pole"].to_numpy()) for _, g in train.groupby(["season", "grand_prix"])
-              if g["is_pole"].sum() == 1]
+class LogitData:
+    """Toutes les qualifs d'une table, rangées en tableaux (course x pilote x variable) pour un calcul rapide."""
 
-    def nll(w):
-        total, grad = 0.0, np.zeros_like(w)
-        for x, y in groups:
-            s = -x @ w
-            s -= s.max()
-            p = np.exp(s) / np.exp(s).sum()
-            total -= np.log(p[y][0] + 1e-12)
-            grad += x[y][0] - p @ x
-        return total + LOGIT_L2 * w @ w, grad + 2 * LOGIT_L2 * w
+    def __init__(self, table: pd.DataFrame, features: list[str]):
+        keys, xs, ys = [], [], []
+        for (season, gp), g in table.groupby(["season", "grand_prix"], sort=False):
+            if g["is_pole"].sum() != 1:
+                continue
+            keys.append((season, gp, g["date"].iloc[0] if "date" in g else ""))
+            xs.append(_centered(g, features))
+            ys.append(int(np.flatnonzero(g["is_pole"].to_numpy())[0]))
+        n = max((len(x) for x in xs), default=1)
+        self.X = np.zeros((len(xs), n, len(features)))
+        self.mask = np.zeros((len(xs), n), dtype=bool)
+        for i, x in enumerate(xs):
+            self.X[i, :len(x)] = x
+            self.mask[i, :len(x)] = True
+        self.y = np.array(ys, dtype=int)
+        self.season = np.array([k[0] for k in keys])
+        self.date = np.array([k[2] for k in keys])
 
-    res = minimize(nll, np.ones(len(features)), jac=True, method="L-BFGS-B")
-    return res.x
+    def fit(self, select: np.ndarray, weights: np.ndarray, n_features: int) -> np.ndarray:
+        X, m, y, gw = self.X[select], self.mask[select], self.y[select], weights[select]
+        xy = X[np.arange(len(y)), y]
+
+        def nll(w):
+            s = np.where(m, -(X @ w), -np.inf)
+            mx = s.max(axis=1, keepdims=True)
+            e = np.exp(s - mx)
+            lse = mx[:, 0] + np.log(e.sum(axis=1))
+            p = e / e.sum(axis=1, keepdims=True)
+            total = float(gw @ (lse - s[np.arange(len(y)), y]))
+            grad = gw @ (xy - np.einsum("gn,gnf->gf", p, X))
+            return total + LOGIT_L2 * w @ w, grad + 2 * LOGIT_L2 * w
+
+        return minimize(nll, np.ones(n_features), jac=True, method="L-BFGS-B").x
+
+
+def fit_logit(train: pd.DataFrame, features: list[str], hist: dict | None = None,
+              target_season: int | None = None) -> np.ndarray:
+    hist = hist or DEFAULT_HISTORY
+    d = LogitData(train, features)
+    w = history_weights(pd.Series(d.season), target_season or int(d.season.max()) + 1, hist)
+    return d.fit(w > 0, w, len(features))
 
 
 def logit_probabilities(g: pd.DataFrame, features: list[str], w: np.ndarray) -> np.ndarray:
@@ -198,14 +249,19 @@ def logit_probabilities(g: pd.DataFrame, features: list[str], w: np.ndarray) -> 
     return np.exp(s) / np.exp(s).sum()
 
 
-def rolling_logit(table: pd.DataFrame, features: list[str], min_train_races: int = 8) -> pd.DataFrame:
-    races = table.drop_duplicates(["season", "grand_prix"]).sort_values("date")
+def rolling_logit(table: pd.DataFrame, features: list[str], min_train_races: int = 8,
+                  hist: dict | None = None) -> pd.DataFrame:
+    hist = hist or DEFAULT_HISTORY
+    d = LogitData(table, features)
+    races = table[table["season"] >= hist["start"]].drop_duplicates(["season", "grand_prix"]).sort_values("date")
     out = []
     for i, (_, r) in enumerate(races.iterrows()):
         if i < min_train_races:
             continue
-        w = fit_logit(table[table["date"] < r["date"]], features)
+        before = d.date < r["date"]
+        w = history_weights(pd.Series(d.season), int(r["season"]), hist)
+        coef = d.fit(before & (w > 0), w, len(features))
         g = table[(table["season"] == r["season"]) & (table["grand_prix"] == r["grand_prix"])].copy()
-        g["p_pole"] = logit_probabilities(g, features, w)
+        g["p_pole"] = logit_probabilities(g, features, coef)
         out.append(g)
     return pd.concat(out, ignore_index=True)

@@ -69,7 +69,7 @@ def driver_directory(raw_dir: Path) -> dict:
 
 
 def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results: pd.DataFrame,
-           journal_eval: pd.DataFrame, raw_dir: Path, cfg) -> None:
+           journal_eval: pd.DataFrame, raw_dir: Path, cfg, forecast: dict | None = None) -> None:
     people = driver_directory(raw_dir)
     gp = cfg.TARGET_GP.replace(" Grand Prix", "")
     pred = out["pred"]
@@ -81,7 +81,9 @@ def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results
 
     # ---------- prochain GP
     pole = [{**person(r["driver"]), "equipe": r["team"],
-             "avant": r.get("proba_pole_avant"), "apres": r.get("proba_pole_apres")} for _, r in pred.iterrows()]
+             "avant": r.get("proba_pole_avant"), "apres": r.get("proba_pole_apres"),
+             "sec": r.get("proba_pole_apres_sec", r.get("proba_pole_avant_sec")),
+             "pluie": r.get("proba_pole_apres_pluie", r.get("proba_pole_avant_pluie"))} for _, r in pred.iterrows()]
     wins = [{**person(r["driver"]), "equipe": r["team"], "proba": r["proba_victoire"],
              "grille": int(r["grille"]) if "grille" in win and pd.notna(r["grille"]) else None} for _, r in win.iterrows()]
     finished = results[(results["season"] == cfg.TARGET_SEASON) & (results["grand_prix"] == gp)].sort_values("finish")
@@ -100,6 +102,7 @@ def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results
         "modeles": {k: v["label"] for k, v in out["chosen"].items()} | {"course": race["chosen"]},
         "pole": pole, "victoire": wins,
         "debut_saison": bool(done_before < 3),
+        "meteo": forecast,
         "arrivee": [{**person(r.driver), "equipe": r.team, "place": int(r.finish)}
                     for r in finished.itertuples() if pd.notna(r.finish)][:6],
     })
@@ -128,15 +131,21 @@ def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results
     # ---------- fiabilité
     res = out["res"]
     chosen_rows = res[res["choisi"] == "oui"]
+    wet = {family: {"version": c["wet"]["version"], "lambda": c["wet"]["lambda"],
+                    "comparaison": c["wet"]["table"].to_dict("records")} for family, c in out["chosen"].items()}
+    hist_mean = res.groupby("historique")["log_loss_choix_2026_debut"].mean().round(3)
     _write("performance.json", {
+        "pluie": wet,
+        "historiques": {"choisi": next(iter(out["chosen"].values()))["hist_name"],
+                        "log_loss_moyenne_choix": hist_mean.to_dict()},
         "gains": out["gains"].to_dict("records"),
         "modeles_choisis": chosen_rows[["moment", "variables", "methode"]].to_dict("records"),
         "nb_modeles_testes": int((res["moment"] != "référence").sum()),
-        "tous": res[["moment", "variables", "methode", "log_loss_2024_2025_info", "log_loss_choix_2026_debut",
+        "tous": res[["historique", "moment", "variables", "methode", "log_loss_2024_2025_info", "log_loss_choix_2026_debut",
                      "log_loss_test", "poleman_dans_top3_test", "qualifs_test", "choisi"]].to_dict("records"),
         "calibration": out["calib"].to_dict("records"),
         "course": {"scores": race["scores"].to_dict("records"), "gains": race["gains"].to_dict("records"),
-                   "choisi": race["chosen"]},
+                   "choisi": race["chosen"], "pluie": race.get("pluie")},
     })
 
     # ---------- pilotes (saison en cours)

@@ -153,3 +153,29 @@ def test_first_race_of_a_new_season_uses_last_known_entry_list(monkeypatch):
     best = pd.DataFrame({"season": [2026] * 3, "grand_prix": ["Abu Dhabi"] * 3, "session": ["Qualifying"] * 3,
                          "driver": ["AAA", "BBB", "CCC"], "team": ["T1", "T1", "T2"], "date": ["2026-12-05"] * 3})
     assert set(predict.entry_list(best)["driver"]) == {"AAA", "BBB", "CCC"}
+
+
+def test_forecast_summary_takes_the_session_hours():
+    from datetime import datetime, timezone
+    import weather
+    hourly = {"time": ["2026-11-21T03:00", "2026-11-21T04:00", "2026-11-21T05:00", "2026-11-21T06:00"],
+              "precipitation_probability": [80, 10, 30, 90], "precipitation": [2.0, 0.0, 0.1, 3.0],
+              "temperature_2m": [12.0, 11.0, 10.0, 9.0]}
+    s = weather.summarize(hourly, datetime(2026, 11, 21, 4, 0, tzinfo=timezone.utc), 1.0)
+    # la valeur de 05:00 couvre 04:00-05:00 : c'est la seule qui décrit la qualif
+    assert s == {"pluie": 0.3, "pluie_mm": 0.1, "temperature": 10.0}
+    s = weather.summarize(hourly, datetime(2026, 11, 21, 4, 30, tzinfo=timezone.utc), 1.0)
+    assert s["pluie"] == 0.9  # 04:30-05:30 : heures finissant à 05:00 et 06:00
+
+
+def test_tempering_flattens_and_wet_skill_never_uses_the_race_itself():
+    import weather
+    from features import add_wet_skill
+    p = weather.temper(np.array([0.7, 0.2, 0.1]), 0.5)
+    assert p.sum() == pytest.approx(1.0) and p[0] < 0.7 and p[2] > 0.1
+    t = pd.DataFrame({"driver": ["A", "A", "A"], "date": ["2020-01-01", "2020-02-01", "2020-03-01"],
+                      "target": [1.0, 2.0, 0.5], "forme_pilote": [0.5, 0.5, 0.5],
+                      "wet": [True, True, False], "incident": [False, False, False]})
+    t = add_wet_skill(t)
+    assert t["talent_pluie"].tolist() == pytest.approx([0.0, 0.5 / 3, 2.0 / 4])
+    assert t["pluie_talent"].iloc[2] == 0.0  # course sèche : le talent pluie ne joue pas

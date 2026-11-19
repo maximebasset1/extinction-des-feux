@@ -43,6 +43,7 @@ def fetch(season: int) -> list[dict]:
         loc = race["Circuit"]["Location"]
         out.append({"round": int(race["round"]), "gp": ALIASES.get(race["raceName"], race["raceName"]),
                     "city": loc.get("locality"), "country": COUNTRY_FR.get(loc.get("country"), loc.get("country")),
+                    "lat": float(loc["lat"]) if loc.get("lat") else None, "lon": float(loc["long"]) if loc.get("long") else None,
                     "sessions": {k: v for k, v in sessions.items() if v},
                     "approx": "time" not in race or any("time" not in race[k] for k in SESSION_KEYS if race.get(k))})
     return out

@@ -9,7 +9,11 @@ Variables (toutes en % d'écart au plus rapide, plus petit = plus rapide) :
 - forme_equipe   : idem pour le meilleur pilote de l'équipe (= vitesse de la voiture) ;
 - forme_type     : forme du pilote sur les circuits du même type d'appui aérodynamique ;
 - affinite_gp    : écart du pilote sur ce Grand Prix l'an dernier, moins sa moyenne de l'an dernier ;
-- essais         : écart du pilote dans les essais libres de ce week-end (meilleur tour des EL).
+- essais         : écart du pilote dans les essais libres de ce week-end (meilleur tour des EL) ;
+- forme_temp     : forme du pilote lors des qualifs de la saison disputées par une température
+                   proche de celle attendue (± TEMP_WINDOW °C) : certaines voitures n'aiment pas le froid ;
+- pluie_talent   : sur piste mouillée seulement, ce que le pilote gagne ou perd d'habitude sous la pluie
+                   par rapport à sa forme sur le sec (toutes saisons, valeur tirée vers 0 s'il y a peu de cas).
 """
 import sys
 from pathlib import Path
@@ -27,7 +31,10 @@ CANDIDATES_PRE = {
     "+ forme de l'équipe": ["forme_pilote", "forme_equipe"],
     "+ type de circuit": ["forme_pilote", "forme_equipe", "forme_type"],
     "+ affinité avec le GP": ["forme_pilote", "forme_equipe", "forme_type", "affinite_gp"],
+    "forme + température": ["forme_pilote", "forme_equipe", "forme_temp"],
 }
+TEMP_WINDOW = 6.0      # °C
+WET_SHRINK = 2.0       # nombre de qualifs mouillées « fictives » à 0 : prudence quand il y a peu de cas
 FP_COLUMNS = ["essais", "essais_tendres", "essais_ideal"]
 CANDIDATES_FP = {
     "essais libres seuls": ["essais"],
@@ -37,6 +44,7 @@ CANDIDATES_FP = {
     "forme + essais tendres": ["forme_pilote", "forme_equipe", "essais_tendres"],
     "tour idéal en essais": ["essais_ideal"],
     "forme + tendres + tour idéal": ["forme_pilote", "forme_equipe", "essais_tendres", "essais_ideal"],
+    "forme + température + essais": ["forme_pilote", "forme_equipe", "forme_temp", "essais"],
 }
 
 
@@ -87,7 +95,7 @@ def practice_deficit(best: pd.DataFrame) -> pd.DataFrame:
 
 
 def features_for_race(q: pd.DataFrame, season: int, race_idx: int, gp: str, downforce: str,
-                      drivers: pd.DataFrame) -> pd.DataFrame:
+                      drivers: pd.DataFrame, air_temp: float | None = None) -> pd.DataFrame:
     """Variables de chaque pilote de `drivers` (colonnes driver, team) avant la course race_idx."""
     past = q[(q["season"] == season) & (q["race_idx"] < race_idx)].sort_values("race_idx")
     team_best = past.groupby(["race_idx", "team"])["form_value"].min().reset_index()
@@ -98,6 +106,10 @@ def features_for_race(q: pd.DataFrame, season: int, race_idx: int, gp: str, down
         mine = past[past["driver"] == d["driver"]]
         team = team_best[team_best["team"] == d["team"]].sort_values("race_idx")
         same_type = mine[mine["downforce"] == downforce]
+        if air_temp is not None and np.isfinite(air_temp) and "air_temp" in mine:
+            same_temp = mine[(mine["air_temp"] - air_temp).abs() <= TEMP_WINDOW]["form_value"].to_numpy()
+        else:
+            same_temp = np.array([])
         ly = last_year[last_year["driver"] == d["driver"]]
         ly_gp = ly[ly["grand_prix"] == gp_last_year]["form_value"]
         rows.append({
@@ -105,6 +117,7 @@ def features_for_race(q: pd.DataFrame, season: int, race_idx: int, gp: str, down
             "forme_pilote": ewm_mean(mine["form_value"].to_numpy()),
             "forme_equipe": ewm_mean(team["form_value"].to_numpy()),
             "forme_type": ewm_mean(same_type["form_value"].to_numpy()),
+            "forme_temp": ewm_mean(same_temp),
             "affinite_gp": (ly_gp.mean() - ly["form_value"].mean()) if len(ly_gp.dropna()) else np.nan,
             "n_qualifs": int(mine["form_value"].notna().sum()),
         })
@@ -113,9 +126,10 @@ def features_for_race(q: pd.DataFrame, season: int, race_idx: int, gp: str, down
     f["forme_pilote"] = f["forme_pilote"].fillna(f["forme_equipe"])
     f["forme_equipe"] = f["forme_equipe"].fillna(f["forme_pilote"])
     f["forme_type"] = f["forme_type"].fillna(f["forme_pilote"])
+    f["forme_temp"] = f["forme_temp"].fillna(f["forme_pilote"])
     f["affinite_gp"] = f["affinite_gp"].fillna(0.0)
     fallback = f["forme_pilote"].max() if f["forme_pilote"].notna().any() else 1.5
-    for c in ["forme_pilote", "forme_equipe", "forme_type"]:
+    for c in ["forme_pilote", "forme_equipe", "forme_type", "forme_temp"]:
         f[c] = f[c].fillna(fallback)
     return f
 
@@ -128,12 +142,18 @@ def training_table(best: pd.DataFrame, max_deficit: float, min_prior_races: int 
         best = best[~((best["season"] == exclude[0]) & (best["grand_prix"] == exclude[1]))]
     q = qualifying_table(best, max_deficit)
     fp = practice_deficit(best)
+    # température attendue = médiane des essais libres du week-end : ce que l'on connaît avant la qualif
+    pr = best[best["session"].str.startswith("Practice")]
+    fp_temp = pr.groupby(["season", "grand_prix"])["air_temp"].median() if "air_temp" in pr else pd.Series(dtype=float)
     out = []
     for (season, gp, idx), race in q.groupby(["season", "grand_prix", "race_idx"]):
         if idx <= min_prior_races:
             continue
-        f = features_for_race(q, season, idx, gp, race["downforce"].iloc[0], race[["driver", "team"]])
-        f = f.merge(race[["driver", "target", "deficit_pct", "pole", "incident", "wet", "date"]], on="driver")
+        temp = fp_temp.get((season, gp), np.nan)
+        f = features_for_race(q, season, idx, gp, race["downforce"].iloc[0], race[["driver", "team"]], temp)
+        keep = ["driver", "target", "deficit_pct", "pole", "incident", "wet", "date"] + \
+            [c for c in ("rain_share", "air_temp") if c in race]
+        f = f.merge(race[keep], on="driver")
         f["season"], f["grand_prix"], f["race_idx"] = season, gp, idx
         out.append(f)
     t = pd.concat(out, ignore_index=True).merge(fp, on=["season", "grand_prix", "driver"], how="left")
@@ -141,4 +161,29 @@ def training_table(best: pd.DataFrame, max_deficit: float, min_prior_races: int 
     for c in FP_COLUMNS:
         t[c] = t[c].fillna(t.groupby(["season", "grand_prix"])[c].transform("median")).fillna(1.5)
     t["is_pole"] = t["pole"].astype(bool)
-    return t.sort_values(["date", "target"]).reset_index(drop=True)
+    t = t.sort_values(["date", "target"]).reset_index(drop=True)
+    return add_wet_skill(t)
+
+
+def add_wet_skill(t: pd.DataFrame) -> pd.DataFrame:
+    """talent_pluie = moyenne, sur les qualifs mouillées PASSÉES du pilote, de (écart réel - forme sur le sec),
+    tirée vers 0 : somme / (nombre + WET_SHRINK). Négatif = plus fort sous la pluie que sur le sec.
+    pluie_talent = talent_pluie si la qualif est mouillée, 0 sinon."""
+    t = t.sort_values(["date", "target"]).reset_index(drop=True)
+    wet = t["wet"].astype(bool) & ~t["incident"].astype(bool)
+    res = (t["target"] - t["forme_pilote"]).where(wet)
+    g = pd.DataFrame({"driver": t["driver"], "r": res.fillna(0.0), "n": wet.astype(float)})
+    # cumul des qualifs précédentes seulement (shift) : la qualif elle-même n'est jamais utilisée
+    cs = g.groupby("driver")["r"].transform(lambda x: x.cumsum().shift(fill_value=0.0))
+    cn = g.groupby("driver")["n"].transform(lambda x: x.cumsum().shift(fill_value=0.0))
+    t["talent_pluie"] = cs / (cn + WET_SHRINK)
+    t["pluie_talent"] = t["talent_pluie"].where(t["wet"].astype(bool), 0.0)
+    return t
+
+
+def current_wet_skill(t: pd.DataFrame) -> pd.Series:
+    """talent_pluie de chaque pilote après toutes les qualifs connues (pour prédire la prochaine)."""
+    wet = t["wet"].astype(bool) & ~t["incident"].astype(bool)
+    res = (t["target"] - t["forme_pilote"]).where(wet)
+    g = pd.DataFrame({"driver": t["driver"], "r": res.fillna(0.0), "n": wet.astype(float)}).groupby("driver").sum()
+    return g["r"] / (g["n"] + WET_SHRINK)

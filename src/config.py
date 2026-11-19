@@ -43,6 +43,12 @@ TARGET_SEASON, TARGET_GP, TARGET_INFO, SEASON_OVER = _resolve_target()
 
 # Saisons complètes utilisées pour apprendre et tester le modèle
 SEASONS = {
+    # 2018-2022 : autre génération de voitures ; servent seulement à mieux apprendre les poids
+    2018: ['Abu Dhabi Grand Prix', 'Australian Grand Prix', 'Austrian Grand Prix', 'Azerbaijan Grand Prix', 'Bahrain Grand Prix', 'Belgian Grand Prix', 'Brazilian Grand Prix', 'British Grand Prix', 'Canadian Grand Prix', 'Chinese Grand Prix', 'French Grand Prix', 'German Grand Prix', 'Hungarian Grand Prix', 'Italian Grand Prix', 'Japanese Grand Prix', 'Mexican Grand Prix', 'Monaco Grand Prix', 'Russian Grand Prix', 'Singapore Grand Prix', 'Spanish Grand Prix', 'United States Grand Prix'],
+    2019: ['Abu Dhabi Grand Prix', 'Australian Grand Prix', 'Austrian Grand Prix', 'Azerbaijan Grand Prix', 'Bahrain Grand Prix', 'Belgian Grand Prix', 'Brazilian Grand Prix', 'British Grand Prix', 'Canadian Grand Prix', 'Chinese Grand Prix', 'French Grand Prix', 'German Grand Prix', 'Hungarian Grand Prix', 'Italian Grand Prix', 'Japanese Grand Prix', 'Mexican Grand Prix', 'Monaco Grand Prix', 'Russian Grand Prix', 'Singapore Grand Prix', 'Spanish Grand Prix', 'United States Grand Prix'],
+    2020: ['70th Anniversary Grand Prix', 'Abu Dhabi Grand Prix', 'Austrian Grand Prix', 'Bahrain Grand Prix', 'Belgian Grand Prix', 'British Grand Prix', 'Eifel Grand Prix', 'Emilia Romagna Grand Prix', 'Hungarian Grand Prix', 'Italian Grand Prix', 'Portuguese Grand Prix', 'Russian Grand Prix', 'Sakhir Grand Prix', 'Spanish Grand Prix', 'Styrian Grand Prix', 'Turkish Grand Prix', 'Tuscan Grand Prix'],
+    2021: ['Abu Dhabi Grand Prix', 'Austrian Grand Prix', 'Azerbaijan Grand Prix', 'Bahrain Grand Prix', 'Belgian Grand Prix', 'British Grand Prix', 'Dutch Grand Prix', 'Emilia Romagna Grand Prix', 'French Grand Prix', 'Hungarian Grand Prix', 'Italian Grand Prix', 'Mexico City Grand Prix', 'Monaco Grand Prix', 'Portuguese Grand Prix', 'Qatar Grand Prix', 'Russian Grand Prix', 'Saudi Arabian Grand Prix', 'Spanish Grand Prix', 'Styrian Grand Prix', 'São Paulo Grand Prix', 'Turkish Grand Prix', 'United States Grand Prix'],
+    2022: ['Abu Dhabi Grand Prix', 'Australian Grand Prix', 'Austrian Grand Prix', 'Azerbaijan Grand Prix', 'Bahrain Grand Prix', 'Belgian Grand Prix', 'British Grand Prix', 'Canadian Grand Prix', 'Dutch Grand Prix', 'Emilia Romagna Grand Prix', 'French Grand Prix', 'Hungarian Grand Prix', 'Italian Grand Prix', 'Japanese Grand Prix', 'Mexico City Grand Prix', 'Miami Grand Prix', 'Monaco Grand Prix', 'Saudi Arabian Grand Prix', 'Singapore Grand Prix', 'Spanish Grand Prix', 'São Paulo Grand Prix', 'United States Grand Prix'],
     2023: [
         "Bahrain Grand Prix", "Saudi Arabian Grand Prix", "Australian Grand Prix", "Azerbaijan Grand Prix",
         "Miami Grand Prix", "Monaco Grand Prix", "Spanish Grand Prix", "Canadian Grand Prix",
@@ -107,11 +113,18 @@ CIRCUITS = {
     "Singapore": ("high", True), "United States": ("medium", False), "Mexico City": ("high", False),
     "São Paulo": ("medium", False), "Las Vegas": ("low", True), "Qatar": ("high", False),
     "Abu Dhabi": ("medium", False),
+    # anciens Grands Prix (2018-2022)
+    "French": ("medium", False), "German": ("medium", False), "Russian": ("medium", False),
+    "Portuguese": ("medium", False), "Turkish": ("medium", False), "Styrian": ("medium", False),
+    "70th Anniversary": ("medium", False), "Eifel": ("medium", False), "Tuscan": ("high", False),
+    "Sakhir": ("low", False), "Brazilian": ("medium", False), "Mexican": ("high", False),
 }
 
 # Même nom de GP, circuit différent selon la saison
 CIRCUIT_BY_SEASON = {(2026, "Spanish"): ("medium", True)}   # 2026 : nouveau circuit de Madrid
-SAME_CIRCUIT_LAST_YEAR = {(2026, "Barcelona"): "Spanish", (2026, "Spanish"): None}
+SAME_CIRCUIT_LAST_YEAR = {(2026, "Barcelona"): "Spanish", (2026, "Spanish"): None,
+                          (2020, "Styrian"): "Austrian", (2020, "70th Anniversary"): "British",
+                          (2020, "Sakhir"): None, (2022, "São Paulo"): "São Paulo"}
 
 
 def circuit_type(season: int, gp: str) -> tuple:

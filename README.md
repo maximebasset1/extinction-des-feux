@@ -39,6 +39,26 @@ Le site se met à jour tout seul : toutes les 3 heures, GitHub télécharge les 
 - **Le journal des pronostics** est le vrai test : ce qui a été publié avant la séance, comparé au résultat. Un pronostic n'y entre que s'il est calculé au moins 30 minutes avant la séance, avec des horaires officiels, et les lignes ne sont jamais réécrites. Il démarre avec la mise en ligne du site.
 - **L'historique affiché** (« ce que le modèle aurait prévu ») est une reconstitution : le modèle est rejoué course par course avec les seules données d'avant. Le site le dit.
 
+## Météo et saisons anciennes
+
+- **Saisons 2018 à 2022 ajoutées** (192 qualifications au total). Le site compare trois façons d'apprendre : seulement 2023 et après, tout depuis 2018, ou depuis 2018 avec un poids qui diminue avec l'ancienneté. Pour la pole, les trois font jeu égal sur la période de choix (log-loss moyenne 1,325 / 1,324 / 1,324) : la règle retient « depuis 2018, récent d'abord », mais la différence est du bruit. Pour la victoire, partir de 2018 aide nettement.
+- **Météo des séances passées** : chaque tour enregistre la pluie, la température de l'air et de la piste.
+- **Température** : nouvelle variable « forme par température proche » (qualifs de la saison disputées à ± 6 °C de la température attendue). La température attendue est celle des essais libres du week-end, ou la prévision avant le week-end, jamais celle de la qualif elle-même. Elle est retenue pour le pronostic d'avant week-end.
+- **Pluie, modèle de pole** : deux réglages testés (le « talent sous la pluie » de chaque pilote, et une hiérarchie plus ou moins nette sous la pluie). Sur les 13 qualifs mouillées de 2018 à 2025, aucun ne fait mieux que le modèle de base : ils ne sont pas utilisés tant que ce sera le cas.
+- **Pluie, modèle de victoire** : sous la pluie, la place de départ compte moins. Jugé à part sur les 9 courses mouillées de 2018 à 2025 (log-loss 1,685 sans, 1,661 avec) : retenu. Avant la course, il est pondéré par le risque de pluie prévu.
+- **Prévision** : Open-Meteo (gratuit, sans clé, licence CC BY 4.0, cité sur le site) donne la température et le risque de pluie pour la qualif et la course. Ce risque compte toute pluie, même une petite averse : il surestime un peu le risque d'une séance vraiment mouillée.
+
+| Modèle | Période | Avant | Après |
+| --- | --- | --- | --- |
+| Pole, avant le week-end, gain face au hasard | 2024-2025 | +1,28 | +1,23 |
+| Pole, avant le week-end, gain face au hasard | fin 2026 | +0,19 | +0,27 |
+| Pole, après les essais, gain face au hasard | 2024-2025 | +1,42 | +1,40 |
+| Pole, après les essais, gain face au hasard | fin 2026 | +0,39 | +0,42 |
+| Victoire, log-loss (plus bas = mieux) | 2026 | 1,194 | 1,103 |
+
+En clair : la pole ne devient pas mesurablement plus précise (les écarts sont dans le bruit), la victoire oui.
+Le calcul complet (88 variantes) prend environ 20 minutes ; il n'est refait que lorsqu'une nouvelle course entre dans l'historique.
+
 ## Sur ton PC (facultatif)
 
 L'ancienne plateforme Streamlit reste disponible en local :

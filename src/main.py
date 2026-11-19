@@ -44,7 +44,11 @@ def main() -> None:
     results = pd.read_csv(DATA_PROCESSED / "race_results.csv")
 
     step("3/5 Modèle de pole (backtest mis en cache tant que l'historique ne change pas)")
-    out = run(best)
+    import config as cfg
+    import weather
+    forecast = None if args.offline else weather.forecast(cfg.TARGET_INFO)
+    print("Prévision météo :", forecast or "aucune (piste sèche supposée)")
+    out = run(best, forecast)
     pd.set_option("display.width", 200)
     print(out["res"][["moment", "variables", "methode", "log_loss_choix_2026_debut", "log_loss_test", "choisi"]]
           .to_string(index=False))
@@ -56,7 +60,8 @@ def main() -> None:
     pred = out["pred"]
     col = "proba_pole_apres" if "proba_pole_apres" in pred else "proba_pole_avant"
     win = race_model.predict_race(best, results, entry_list(best), quali if len(quali) else None,
-                                  pred.set_index("driver")[col], race["feats"], race["weights"])
+                                  pred.set_index("driver")[col], race["feats"], race["weights"],
+                                  rain=float(((forecast or {}).get("R") or {}).get("pluie") or 0.0))
 
     step("5/5 Enregistrement, journal des prédictions et export du site")
     import config as cfg
@@ -70,7 +75,7 @@ def main() -> None:
                            win, win_stage, race["chosen"])
     print(f"Journal : {added} nouvelles lignes publiées")
     journal_eval = journal.evaluate(best, results)
-    export_site.export(out, race, win, best, results, journal_eval, DATA_RAW, cfg)
+    export_site.export(out, race, win, best, results, journal_eval, DATA_RAW, cfg, forecast)
     RESULTS.mkdir(parents=True, exist_ok=True)
     files = {
         "probabilites_pole.csv": pred, "backtest.csv": out["res"], "gains_vs_references.csv": out["gains"],

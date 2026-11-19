@@ -263,3 +263,4 @@ main > section + section { border-top: 1px solid var(--ligne); }
 .strip > div { display: flex; align-items: flex-end; }
 .gpbar .lab { overflow: hidden; text-overflow: ellipsis; }
 .bars .empty { list-style: none; }
+.session .wx { color: var(--gravier); font-size: .82rem; }

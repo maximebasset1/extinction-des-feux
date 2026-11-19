@@ -9,7 +9,7 @@ const SESSION_ORDER = ["FP1", "SQ", "FP2", "S", "FP3", "Q", "R"];
 const state = { kind: "pole", moment: "apres", next: null, history: null, perf: null, drivers: null, journal: null, season: null, gp: null, showAll: false };
 
 const NUM_FR = { 2: "Deux", 3: "Trois", 4: "Quatre", 5: "Cinq", 6: "Six", 7: "Sept", 8: "Huit", 9: "Neuf" };
-const pct = (p) => (p == null ? "–" : p < 0.01 ? "< 1 %" : `${Math.round(p * 100)} %`);
+const pct = (p) => (p == null ? "–" : p < 0.01 ? "< 1\u00a0%" : `${Math.round(p * 100)}\u00a0%`);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const col = (c) => (/^#[0-9a-f]{6}$/i.test(c || "") ? c : "#888888"); // couleur venue des données : vérifiée
 const SHORT = { "Grande-Bretagne": "G.-Bretagne", "Arabie saoudite": "Arabie s.", "Émilie-Romagne": "Imola",
@@ -54,8 +54,20 @@ async function getJSON(name) {
 /* ---------- prochain Grand Prix */
 function poleList() {
   const n = state.next, hasAfter = n.pole.some((d) => d.apres != null);
-  const key = state.moment === "apres" && hasAfter ? "apres" : "avant";
+  const key = state.moment === "pluie" && hasRainScenario() ? "pluie"
+    : state.moment === "apres" && hasAfter ? "apres" : (state.moment === "pluie" && hasAfter ? "apres" : "avant");
   return { key, list: [...n.pole].sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0)) };
+}
+
+function hasRainScenario() {
+  return state.next.pole.some((d) => d.pluie != null && d.sec != null && Math.abs(d.pluie - d.sec) > 0.005);
+}
+function weatherText(w) {
+  if (!w) return "";
+  const bits = [];
+  if (w.temperature != null) bits.push(`${Math.round(w.temperature)}\u00a0°C`);
+  if (w.pluie != null) bits.push(w.pluie < 0.05 ? "pas de pluie attendue" : `pluie ${Math.round(w.pluie * 100)}\u00a0%`);
+  return bits.join(", ");
 }
 
 function raceOver(n) {
@@ -116,6 +128,9 @@ function renderHero() {
     const { key, list } = poleList();
     $("#titre-gp").textContent = `Qui partira en pole ${inPlace(n.gp_fr)} ?`;
     if (q) sub.push(`${esc(grandPrix(n.gp_fr))} ${n.saison}, qualifications ${when(q)}${n.horaires_estimes ? " (horaire encore estimé)" : ""}.`);
+    const wq = n.meteo && n.meteo.Q;
+    if (wq && wq.pluie != null) sub.push(wq.pluie < 0.05 ? `Météo prévue : piste sèche${wq.temperature != null ? `, ${Math.round(wq.temperature)}\u00a0°C` : ""}.`
+      : `Météo prévue : ${Math.round(wq.pluie * 100)}\u00a0% de risque de pluie pendant la qualif, intégré au pronostic.`);
     sub.push(n.statut.startsWith("avant") ? "Pronostic établi avant les essais libres ; il sera mis à jour après chaque séance."
       : `Pronostic mis à jour ${esc(n.statut)}.`);
     const rows = list.map((d) => ({ ...d, p: d[key] }));
@@ -149,6 +164,7 @@ function renderWeekend() {
     return `<div class="session${done ? " done" : ""}${next || live ? " next" : ""}">
       <b>${SESSION_NAMES[k]}</b>
       <span>${fmtDate(s[k], { weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+      ${!done && state.next.meteo && state.next.meteo[k] ? `<span class="wx">${esc(weatherText(state.next.meteo[k]))}</span>` : ""}
       ${live ? '<span class="soon">en cours</span>' : cd ? `<span class="soon">${cd}</span>` : done ? "<span>terminée</span>" : ""}
     </div>`;
   }).join("");
@@ -161,13 +177,23 @@ function renderWeekend() {
 function renderBars() {
   const n = state.next;
   const hasAfter = n.pole.some((d) => d.apres != null);
-  $("#moment-switch").hidden = state.kind !== "pole" || !hasAfter;
+  const rainOk = hasRainScenario();
+  $("#moment-switch").hidden = state.kind !== "pole" || (!hasAfter && !rainOk);
+  $('[data-moment="apres"]').hidden = !hasAfter;
+  $('[data-moment="pluie"]').hidden = !rainOk;
+  if (state.moment === "pluie" && !rainOk) {
+    state.moment = hasAfter ? "apres" : "avant";
+    document.querySelectorAll("[data-moment]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.moment === state.moment)));
+  }
   let rows, explain;
   if (state.kind === "pole") {
     const { key, list } = poleList();
     rows = list.map((d) => ({ ...d, p: d[key] }));
-    explain = key === "apres" ? "Probabilité de faire la pole, en tenant compte des essais libres déjà disputés."
+    explain = key === "pluie" ? "Si la qualif se court sur piste mouillée : certains pilotes sont plus à l'aise que d'habitude, et le hasard pèse plus lourd."
+      : key === "apres" ? "Probabilité de faire la pole, en tenant compte des essais libres déjà disputés."
       : "Probabilité de faire la pole, d'après la forme des derniers Grands Prix.";
+    const wq = n.meteo && n.meteo.Q;
+    if (key !== "pluie" && wq && wq.pluie >= 0.05) explain += ` Le risque de pluie prévu (${Math.round(wq.pluie * 100)}\u00a0%, même une petite averse compte) est déjà pris en compte.`;
   } else {
     rows = [...n.victoire].sort((a, b) => b.proba - a.proba).map((d) => ({ ...d, p: d.proba }));
     explain = n.qualif_disputee ? "Probabilité de gagner la course, d'après la grille de départ."
@@ -290,6 +316,20 @@ function renderVerdicts() {
       ? { big: "Fin 2026 : confirmé", txt: "Sur les dernières courses de 2026, jamais utilisées pour le régler, le modèle fait mieux que le hasard." }
       : { big: "Fin 2026 : rien de prouvé", meh: true, txt: "Sur les dernières courses de 2026, encore peu nombreuses et très imprévisibles, on ne peut pas encore affirmer que le modèle fait mieux que le hasard." },
   ];
+  const wet = state.perf.pluie && state.perf.pluie["avant le week-end"];
+  if (wet) {
+    const rows = wet.comparaison || [], base = rows.find((r) => r.version === "aucun"), pick = rows.find((r) => r.choisi === "oui");
+    const n = base ? base.qualifs_choix : 0;
+    items.push(pick && pick.version !== "aucun" && base && pick.log_loss_pluie_choix < base.log_loss_pluie_choix
+      ? { big: "Pluie : mieux armé", txt: `Sur ${esc(n)} qualifs mouillées depuis 2018, tenir compte de la pluie a rendu les pronostics plus justes. Le risque de pluie prévu est intégré avant chaque qualif.` }
+      : { big: "Pluie : pas de gain", meh: true, txt: `Sur ${n} qualifs mouillées depuis 2018, aucun réglage spécial pluie n'a fait mieux que le modèle de base : il reste utilisé tel quel.` });
+  }
+  const race = state.perf.course && (state.perf.course.gains || []).find((g) => g.periode === "2026");
+  if (race) items.push(race.ic95_bas > 0
+    ? { big: "Course : mieux que la grille", txt: "Pour la victoire, le modèle fait mieux que la simple règle « on gagne souvent en partant devant »." }
+    : { big: "Course : la grille dit presque tout", meh: true, txt: race.gain_vs_grille > 0
+      ? "Pour la victoire, partir devant explique l'essentiel. Le modèle fait un peu mieux que cette simple règle, sans que ce soit encore prouvé."
+      : "Pour la victoire, partir devant explique l'essentiel : le modèle ne fait pas mieux que cette simple règle." });
   $("#verdicts").innerHTML = items.map((v) => `<div class="verdict${v.meh ? " meh" : ""}"><p>${v.big}</p><p>${v.txt}</p></div>`).join("");
 }
 
@@ -381,7 +421,10 @@ async function main() {
     $("#grid").classList.remove("waiting");
     return;
   }
-  if (!state.next.pole.some((d) => d.apres != null)) state.moment = "avant";
+  if (!state.next.pole.some((d) => d.apres != null)) {
+    state.moment = "avant";
+    document.querySelectorAll("[data-moment]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.moment === "avant")));
+  }
   const seasons = Object.keys(state.history.saisons).sort();
   state.season = seasons[seasons.length - 1];
   const gps = seasonGPs(); state.gp = gps.length ? gps[gps.length - 1].gp : null;

@@ -58,6 +58,7 @@
         <div class="seg" role="group" aria-label="Moment du pronostic" id="moment-switch" hidden>
           <button type="button" data-moment="apres" aria-pressed="true">Après les essais</button>
           <button type="button" data-moment="avant" aria-pressed="false">Avant le week-end</button>
+          <button type="button" data-moment="pluie" aria-pressed="false">Sous la pluie</button>
         </div>
       </div>
     </div>
@@ -94,13 +95,14 @@
   <section id="methode" aria-labelledby="titre-methode">
     <h2 id="titre-methode">Comment ça marche</h2>
     <ol class="steps">
-      <li><h3>On récupère les chronos</h3><p>Tous les tours des qualifications, des essais libres et des courses depuis 2023, issus du chronométrage officiel.</p></li>
-      <li><h3>On mesure la forme</h3><p>Pour chaque pilote : son écart au poleman lors des derniers Grands Prix, la vitesse de sa voiture, et son rythme dans les essais du week-end. Uniquement des courses déjà disputées.</p></li>
+      <li><h3>On récupère les chronos</h3><p>Tous les tours des qualifications, des essais libres et des courses depuis 2018, issus du chronométrage officiel.</p></li>
+      <li><h3>On mesure la forme</h3><p>Pour chaque pilote : son écart au poleman lors des derniers Grands Prix, la vitesse de sa voiture, et son rythme dans les essais du week-end. Uniquement des courses déjà disputées, depuis 2018.</p></li>
+      <li><h3>On regarde le ciel</h3><p>La prévision météo du circuit donne le risque de pluie pendant la qualif et la course. Sous la pluie, certains pilotes font mieux que d'habitude et le hasard pèse plus lourd&nbsp;: le modèle mélange alors les scénarios sec et mouillé.</p></li>
       <li><h3>On en tire des chances</h3><p>Un modèle statistique transforme ces écarts en probabilités, en tenant compte des imprévus : tour raté, trafic, drapeau jaune.</p></li>
       <li><h3>On vérifie, toujours</h3><p>Le modèle est réentraîné après chaque course et comparé au hasard. S'il ne fait pas mieux, on le dit.</p></li>
     </ol>
     <div class="fine">
-      <p><strong>Ce que le site ne sait pas faire&nbsp;:</strong> la pluie, les pénalités de grille et les abandons échappent au modèle. Une probabilité de 20&nbsp;% veut dire que, sur cent week-ends identiques, ce pilote ferait la pole environ vingt fois&nbsp;: le favori ne gagne pas toujours.</p>
+      <p><strong>Ce que le site ne sait pas faire&nbsp;:</strong> les pénalités de grille et les abandons échappent au modèle, et la pluie reste difficile à prévoir&nbsp;: peu de qualifs mouillées pour apprendre, et une prévision qui peut se tromper. Une probabilité de 20&nbsp;% veut dire que, sur cent week-ends identiques, ce pilote ferait la pole environ vingt fois&nbsp;: le favori ne gagne pas toujours.</p>
       <p>Site non officiel, sans lien avec la Formule&nbsp;1, la FIA ou les équipes. Ce n'est pas un outil de paris sportifs.</p>
     </div>
   </section>
@@ -108,7 +110,7 @@
 
 <footer class="foot">
   <p id="foot-update"></p>
-  <p>Données&nbsp;: chronométrage officiel via <a href="https://github.com/TracingInsights">TracingInsights</a> et <a href="https://docs.fastf1.dev/">FastF1</a>. Calendrier&nbsp;: <a href="https://jolpi.ca">Jolpica</a>. Projet étudiant de Maxime Basset.</p>
+  <p>Données&nbsp;: chronométrage officiel via <a href="https://github.com/TracingInsights">TracingInsights</a> et <a href="https://docs.fastf1.dev/">FastF1</a>. Calendrier&nbsp;: <a href="https://jolpi.ca">Jolpica</a>. Météo&nbsp;: <a href="https://open-meteo.com/">Open-Meteo</a> (licence CC BY 4.0). Projet étudiant de Maxime Basset.</p>
   <p><a id="foot-code" href="#">Code source</a></p>
 </footer>
 </body>

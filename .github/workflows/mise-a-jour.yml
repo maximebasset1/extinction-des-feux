@@ -1,0 +1,100 @@
+# Met à jour les pronostics plusieurs fois par jour, puis publie le site sur GitHub Pages.
+# Gratuit pour un dépôt public. Aucun secret n'est nécessaire.
+name: Mise à jour des pronostics
+
+on:
+  schedule:
+    - cron: "17 */3 * * 1-4"   # du lundi au jeudi : toutes les 3 heures (heure UTC)
+    - cron: "17 * * * 5,6,0"   # du vendredi au dimanche (week-ends de course) : toutes les heures
+  workflow_dispatch:          # bouton « Run workflow » dans l'onglet Actions
+  push:
+    branches: [main]
+    paths: ["site/**", "src/**", "scripts/**", "data/calendar.json", "requirements-ci.txt", ".github/workflows/**"]
+
+permissions: {}   # aucun droit par défaut : chaque tâche reçoit seulement ce dont elle a besoin
+
+concurrency:
+  group: mise-a-jour
+  cancel-in-progress: false
+
+jobs:
+  calcul:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write   # enregistrer les nouvelles données et le journal des pronostics
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+
+      - name: Installer les bibliothèques
+        run: pip install -r requirements-ci.txt
+
+      - name: Reprendre les données déjà téléchargées
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/raw
+            data/processed/cache_backtest.pkl
+          key: donnees-aucune
+          restore-keys: donnees-
+
+      - name: Mettre à jour le calendrier
+        run: python scripts/update_calendar.py
+
+      - name: Télécharger, réentraîner, prédire
+        run: python src/main.py
+
+      - name: Repérer les données téléchargées
+        if: always()
+        id: inventaire
+        run: |
+          mkdir -p data/raw
+          sig=$( (find data/raw -type f ! -name '*.part' -printf '%P %s\n' | sort; sha256sum data/processed/cache_backtest.pkl 2>/dev/null) | sha256sum | cut -c1-16)
+          echo "cle=donnees-$sig" >> "$GITHUB_OUTPUT"
+
+      - name: Garder les données pour la prochaine fois
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/raw
+            data/processed/cache_backtest.pkl
+          key: ${{ steps.inventaire.outputs.cle }}
+
+      - name: Vérifier
+        run: python -m pytest tests -q
+
+      - name: Enregistrer les nouvelles données et le journal
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data/calendar.json data/journal data/processed/best_laps.csv data/processed/race_results.csv
+          if git diff --cached --quiet; then
+            echo "Rien de nouveau."
+          else
+            git commit -m "Mise à jour automatique des pronostics"
+            git pull --rebase --quiet && git push
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  publication:
+    needs: calcul
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write      # publier le site
+      id-token: write   # prouver à Pages que la publication vient bien de ce dépôt
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - id: deploiement
+        uses: actions/deploy-pages@v4

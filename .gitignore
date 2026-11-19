@@ -1,0 +1,7 @@
+data/raw/
+data/processed/cache_backtest.pkl
+__pycache__/
+.pytest_cache/
+.venv/
+reports/
+site/data/

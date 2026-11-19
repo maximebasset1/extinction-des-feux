@@ -1,0 +1,7 @@
+# Tient à jour les actions GitHub utilisées par le site (correctifs de sécurité).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

@@ -1,0 +1,4 @@
+# Version locale optionnelle (application Streamlit sur ton PC)
+-r requirements.txt
+streamlit>=1.46
+altair>=5.0

@@ -1,0 +1,104 @@
+"""Lance tout le calcul et écrit les résultats lus par le site (reports/results/).
+
+    python src/main.py             télécharge ce qui manque (et toujours le week-end cible), puis calcule
+    python src/main.py --offline   calcule avec les données déjà présentes
+    python src/main.py --open      ouvre aussi le rapport HTML à la fin
+
+Le site (app.py) lit les fichiers produits ; son bouton « Recharger » relance ce script.
+"""
+import argparse
+import json
+import sys
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).parent))
+import build_dataset  # noqa: E402
+import fetch_data  # noqa: E402
+import plots  # noqa: E402
+import race_model  # noqa: E402
+import report  # noqa: E402
+from config import DATA_PROCESSED, RESULTS, TARGET_GP, TARGET_SEASON  # noqa: E402
+from predict import entry_list, run  # noqa: E402
+
+
+def step(msg: str) -> None:
+    print(f"\n=== {msg}", flush=True)
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--offline", action="store_true")
+    ap.add_argument("--refresh", action="store_true", help="(conservé pour compatibilité : même effet que sans option)")
+    ap.add_argument("--open", action="store_true")
+    args = ap.parse_args()
+
+    if not args.offline:
+        step("1/5 Téléchargement (seuls les fichiers manquants et le week-end cible)")
+        fetch_data.main()
+    step("2/5 Mise en forme des données")
+    build_dataset.main()
+    best = pd.read_csv(DATA_PROCESSED / "best_laps.csv")
+    results = pd.read_csv(DATA_PROCESSED / "race_results.csv")
+
+    step("3/5 Modèle de pole (backtest mis en cache tant que l'historique ne change pas)")
+    out = run(best)
+    pd.set_option("display.width", 200)
+    print(out["res"][["moment", "variables", "methode", "log_loss_choix_2026_debut", "log_loss_test", "choisi"]]
+          .to_string(index=False))
+
+    step("4/5 Modèle de victoire en course")
+    race = race_model.evaluate(best, results)
+    gp = TARGET_GP.replace(" Grand Prix", "")
+    quali = best[(best["season"] == TARGET_SEASON) & (best["grand_prix"] == gp) & (best["session"] == "Qualifying")]
+    pred = out["pred"]
+    col = "proba_pole_apres" if "proba_pole_apres" in pred else "proba_pole_avant"
+    win = race_model.predict_race(best, results, entry_list(best), quali if len(quali) else None,
+                                  pred.set_index("driver")[col], race["feats"], race["weights"])
+
+    step("5/5 Enregistrement, journal des prédictions et export du site")
+    import config as cfg
+    import export_site
+    import journal
+    from config import DATA_RAW
+    col = "proba_pole_apres" if "proba_pole_apres" in pred else "proba_pole_avant"
+    win_stage = "après la qualif" if len(quali) else f"avant la qualif ({out['status']})"
+    added = journal.record(TARGET_SEASON, gp, cfg.TARGET_INFO, pred, col, out["status"],
+                           out["chosen"]["après les essais libres" if col.endswith("apres") else "avant le week-end"]["label"],
+                           win, win_stage, race["chosen"])
+    print(f"Journal : {added} nouvelles lignes publiées")
+    journal_eval = journal.evaluate(best, results)
+    export_site.export(out, race, win, best, results, journal_eval, DATA_RAW, cfg)
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    files = {
+        "probabilites_pole.csv": pred, "backtest.csv": out["res"], "gains_vs_references.csv": out["gains"],
+        "calibration.csv": out["calib"], "historique_pole.csv": out["history"],
+        "probabilites_victoire.csv": win, "course_scores.csv": race["scores"], "course_gains.csv": race["gains"],
+        "historique_course.csv": race["history"][["season", "date", "grand_prix", "race_idx", "driver", "team",
+                                                  "grille", "finish", "p_win"]],
+    }
+    for name, df in files.items():
+        df.to_csv(RESULTS / name, index=False)
+    meta = {
+        "calcule_le": datetime.now().strftime("%d/%m/%Y à %H h %M"),
+        "grand_prix": gp, "saison": TARGET_SEASON, "statut": out["status"],
+        "qualif_disputee": bool(len(quali)),
+        "modele_pole": {k: v["label"] for k, v in out["chosen"].items()},
+        "modele_course": race["chosen"],
+    }
+    (RESULTS / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    plots.pole_chances(pred, out["status"], out["res"])
+    plots.backtest_chart(out["res"])
+    plots.calibration_chart(out["calib"])
+    plots.season_heatmap(best, pred)
+    page = report.build(pred, out["status"], out["res"], out["chosen"])
+    print(f"Terminé. Statut : {out['status']}. Rapport : {page}")
+    if args.open:
+        import webbrowser
+        webbrowser.open(page.as_uri())
+
+
+if __name__ == "__main__":
+    main()

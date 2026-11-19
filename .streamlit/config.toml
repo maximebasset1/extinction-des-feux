@@ -1,0 +1,7 @@
+# Évite la question « Email » du premier lancement et l'envoi de statistiques
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true
+port = 8501

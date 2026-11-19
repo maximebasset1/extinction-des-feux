@@ -1,0 +1,165 @@
+"""Exporte les résultats en JSON pour le site statique (site/data/).
+
+Le site n'exécute aucun calcul : il lit ces fichiers. C'est ce qui le rend gratuit à héberger
+et sûr (aucun serveur, aucune base de données, rien à pirater).
+"""
+import json
+import re
+import math
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+SITE_DATA = ROOT / "site" / "data"
+
+GP_FR = {"Las Vegas": "Las Vegas", "Qatar": "Qatar", "Abu Dhabi": "Abou Dabi", "Australian": "Australie",
+         "Chinese": "Chine", "Japanese": "Japon", "Bahrain": "Bahreïn", "Saudi Arabian": "Arabie saoudite",
+         "Miami": "Miami", "Emilia Romagna": "Émilie-Romagne", "Monaco": "Monaco", "Spanish": "Espagne",
+         "Barcelona": "Barcelone", "Canadian": "Canada", "Austrian": "Autriche", "British": "Grande-Bretagne",
+         "Belgian": "Belgique", "Hungarian": "Hongrie", "Dutch": "Pays-Bas", "Italian": "Italie",
+         "Azerbaijan": "Azerbaïdjan", "Singapore": "Singapour", "United States": "États-Unis",
+         "Mexico City": "Mexique", "São Paulo": "São Paulo", "Portuguese": "Portugal", "Turkish": "Turquie"}
+
+
+def gp_fr(season: int, gp: str) -> str:
+    if season == 2026 and gp == "Spanish":
+        return "Espagne (Madrid)"
+    return GP_FR.get(gp, gp)
+
+
+def _clean(obj):
+    """JSON strict : pas de NaN (remplacés par null), nombres numpy convertis."""
+    if isinstance(obj, dict):
+        return {str(k): _clean(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_clean(v) for v in obj]
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating, float)):
+        return None if math.isnan(obj) else round(float(obj), 5)
+    if isinstance(obj, (np.bool_,)):
+        return bool(obj)
+    return obj
+
+
+def _write(name: str, data) -> None:
+    SITE_DATA.mkdir(parents=True, exist_ok=True)
+    (SITE_DATA / name).write_text(json.dumps(_clean(data), ensure_ascii=False, separators=(",", ":"), allow_nan=False), encoding="utf-8")
+
+
+def driver_directory(raw_dir: Path) -> dict:
+    """Nom complet et couleur d'équipe de chaque pilote, d'après les fichiers officiels (le plus récent gagne)."""
+    out = {}
+    files = sorted(raw_dir.glob("*/*/Qualifying/drivers.json"), key=lambda p: (p.parts[-4], p.stat().st_mtime))
+    for f in files:
+        try:
+            for d in json.loads(f.read_text(encoding="utf-8"))["drivers"]:
+                color = str(d.get("tc") or "").lstrip("#")
+                if not re.fullmatch(r"[0-9A-Fa-f]{6}", color):  # donnée externe : seulement une couleur hexadécimale
+                    color = "888888"
+                out[d["driver"]] = {"nom": f"{d.get('fn', '')} {d.get('ln', '')}".strip() or d["driver"],
+                                    "prenom": d.get("fn", ""), "famille": d.get("ln", d["driver"]),
+                                    "equipe": d.get("team"), "couleur": "#" + color}
+        except Exception:
+            continue
+    return out
+
+
+def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results: pd.DataFrame,
+           journal_eval: pd.DataFrame, raw_dir: Path, cfg) -> None:
+    people = driver_directory(raw_dir)
+    gp = cfg.TARGET_GP.replace(" Grand Prix", "")
+    pred = out["pred"]
+
+    def person(code):
+        p = people.get(code, {})
+        return {"code": code, "nom": p.get("nom", code), "famille": p.get("famille", code),
+                "couleur": p.get("couleur", "#888888")}
+
+    # ---------- prochain GP
+    pole = [{**person(r["driver"]), "equipe": r["team"],
+             "avant": r.get("proba_pole_avant"), "apres": r.get("proba_pole_apres")} for _, r in pred.iterrows()]
+    wins = [{**person(r["driver"]), "equipe": r["team"], "proba": r["proba_victoire"],
+             "grille": int(r["grille"]) if "grille" in win and pd.notna(r["grille"]) else None} for _, r in win.iterrows()]
+    finished = results[(results["season"] == cfg.TARGET_SEASON) & (results["grand_prix"] == gp)].sort_values("finish")
+    done_before = best[(best["season"] == cfg.TARGET_SEASON) & (best["session"] == "Qualifying")
+                       & (best["grand_prix"] != gp)]["grand_prix"].nunique()
+    quali = best[(best["season"] == cfg.TARGET_SEASON) & (best["grand_prix"] == gp) & (best["session"] == "Qualifying")]
+    pole_sitter = quali.loc[quali["pole"], "driver"].tolist()
+    _write("next.json", {
+        "maj_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "saison": cfg.TARGET_SEASON, "gp": gp, "gp_fr": gp_fr(cfg.TARGET_SEASON, gp),
+        "ville": cfg.TARGET_INFO.get("city"), "pays": cfg.TARGET_INFO.get("country"),
+        "manche": cfg.TARGET_INFO.get("round"), "sessions": cfg.TARGET_INFO.get("sessions", {}),
+        "horaires_estimes": cfg.TARGET_INFO.get("approx", False), "saison_terminee": cfg.SEASON_OVER,
+        "statut": out["status"], "qualif_disputee": bool(len(quali)),
+        "poleman": person(pole_sitter[0]) if pole_sitter else None,
+        "modeles": {k: v["label"] for k, v in out["chosen"].items()} | {"course": race["chosen"]},
+        "pole": pole, "victoire": wins,
+        "debut_saison": bool(done_before < 3),
+        "arrivee": [{**person(r.driver), "equipe": r.team, "place": int(r.finish)}
+                    for r in finished.itertuples() if pd.notna(r.finish)][:6],
+    })
+
+    # ---------- historique : prédit (avant la séance) vs réel
+    h = out["history"].copy()
+    hr = race["history"][["season", "grand_prix", "driver", "grille", "finish", "p_win"]]
+    h = h.merge(hr, on=["season", "grand_prix", "driver"], how="left")
+    qpos = best[best["session"] == "Qualifying"][["season", "grand_prix", "driver", "quali_pos"]]
+    h = h.merge(qpos, on=["season", "grand_prix", "driver"], how="left")
+    seasons = {}
+    for (season, g), d in h.groupby(["season", "grand_prix"], sort=False):
+        d = d.sort_values("p_apres" if d["p_apres"].notna().any() else "p_avant", ascending=False)
+        winner = d.loc[d["finish"] == 1, "driver"]
+        seasons.setdefault(int(season), []).append({
+            "gp": g, "gp_fr": gp_fr(int(season), g), "date": d["date"].iloc[0], "pluie": bool(d["wet"].iloc[0]),
+            "poleman": d.loc[d["is_pole"], "driver"].iloc[0] if d["is_pole"].any() else None,
+            "vainqueur": winner.iloc[0] if len(winner) else None,
+            "pilotes": [{"code": r.driver, "equipe": r.team, "avant": r.p_avant, "apres": r.p_apres,
+                         "ref": r.p_reference, "qualif": r.quali_pos, "victoire": r.p_win, "arrivee": r.finish}
+                        for r in d.itertuples()]})
+    for s in seasons:
+        seasons[s].sort(key=lambda x: x["date"])
+    _write("history.json", {"saisons": seasons, "pilotes": people})
+
+    # ---------- fiabilité
+    res = out["res"]
+    chosen_rows = res[res["choisi"] == "oui"]
+    _write("performance.json", {
+        "gains": out["gains"].to_dict("records"),
+        "modeles_choisis": chosen_rows[["moment", "variables", "methode"]].to_dict("records"),
+        "nb_modeles_testes": int((res["moment"] != "référence").sum()),
+        "tous": res[["moment", "variables", "methode", "log_loss_2024_2025_info", "log_loss_choix_2026_debut",
+                     "log_loss_test", "poleman_dans_top3_test", "qualifs_test", "choisi"]].to_dict("records"),
+        "calibration": out["calib"].to_dict("records"),
+        "course": {"scores": race["scores"].to_dict("records"), "gains": race["gains"].to_dict("records"),
+                   "choisi": race["chosen"]},
+    })
+
+    # ---------- pilotes (saison en cours)
+    # saison la plus récente avec au moins une qualif (en début d'année : la saison précédente)
+    allq = best[(best["session"] == "Qualifying") & (best["season"] <= cfg.TARGET_SEASON)]
+    season_d = int(allq["season"].max())
+    q = allq[allq["season"] == season_d].sort_values("date")
+    order = q.drop_duplicates("grand_prix")[["grand_prix", "date"]]
+    res_s = results[results["season"] == season_d]
+    drivers = []
+    for code, d in q.groupby("driver"):
+        drivers.append({**person(code), "equipe": d["team"].iloc[-1],
+                        "poles": int(d["pole"].sum()),
+                        "victoires": int(((res_s["driver"] == code) & (res_s["finish"] == 1)).sum()),
+                        "podiums": int(((res_s["driver"] == code) & (res_s["finish"] <= 3)).sum()),
+                        "ecarts": {r.grand_prix: r.deficit_pct for r in d.itertuples()}})
+    drivers.sort(key=lambda x: (-x["poles"], -x["victoires"], -x["podiums"]))
+    _write("drivers.json", {"saison": season_d,
+                            "gps": [{"gp": g, "gp_fr": gp_fr(season_d, g), "date": dt} for g, dt in order.values],
+                            "pilotes": drivers})
+
+    # ---------- journal des prédictions publiées
+    ev = journal_eval.to_dict("records") if len(journal_eval) else []
+    for e in ev:
+        e["gp_fr"] = gp_fr(int(e["season"]), e["grand_prix"])
+    _write("journal.json", {"evaluations": ev})

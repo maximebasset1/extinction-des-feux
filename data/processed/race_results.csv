@@ -1,0 +1,1828 @@
+season,date,grand_prix,driver,team,finish,race_laps
+2023,2023-11-26,Abu Dhabi,VER,Red Bull Racing,1,58.0
+2023,2023-11-26,Abu Dhabi,PER,Red Bull Racing,2,58.0
+2023,2023-11-26,Abu Dhabi,LEC,Ferrari,3,58.0
+2023,2023-11-26,Abu Dhabi,RUS,Mercedes,4,58.0
+2023,2023-11-26,Abu Dhabi,NOR,McLaren,5,58.0
+2023,2023-11-26,Abu Dhabi,PIA,McLaren,6,58.0
+2023,2023-11-26,Abu Dhabi,ALO,Aston Martin,7,58.0
+2023,2023-11-26,Abu Dhabi,TSU,AlphaTauri,8,58.0
+2023,2023-11-26,Abu Dhabi,HAM,Mercedes,9,58.0
+2023,2023-11-26,Abu Dhabi,STR,Aston Martin,10,58.0
+2023,2023-11-26,Abu Dhabi,RIC,AlphaTauri,11,58.0
+2023,2023-11-26,Abu Dhabi,OCO,Alpine,12,58.0
+2023,2023-11-26,Abu Dhabi,GAS,Alpine,13,58.0
+2023,2023-11-26,Abu Dhabi,ALB,Williams,14,58.0
+2023,2023-11-26,Abu Dhabi,HUL,Haas F1 Team,15,58.0
+2023,2023-11-26,Abu Dhabi,SAR,Williams,16,58.0
+2023,2023-11-26,Abu Dhabi,ZHO,Alfa Romeo,17,58.0
+2023,2023-11-26,Abu Dhabi,SAI,Ferrari,18,57.0
+2023,2023-11-26,Abu Dhabi,BOT,Alfa Romeo,19,57.0
+2023,2023-11-26,Abu Dhabi,MAG,Haas F1 Team,20,57.0
+2023,2023-04-02,Australian,VER,Red Bull Racing,1,58.0
+2023,2023-04-02,Australian,HAM,Mercedes,2,58.0
+2023,2023-04-02,Australian,ALO,Aston Martin,3,58.0
+2023,2023-04-02,Australian,SAI,Ferrari,4,58.0
+2023,2023-04-02,Australian,STR,Aston Martin,5,58.0
+2023,2023-04-02,Australian,PER,Red Bull Racing,6,58.0
+2023,2023-04-02,Australian,NOR,McLaren,7,58.0
+2023,2023-04-02,Australian,HUL,Haas F1 Team,8,58.0
+2023,2023-04-02,Australian,PIA,McLaren,9,58.0
+2023,2023-04-02,Australian,ZHO,Alfa Romeo,10,58.0
+2023,2023-04-02,Australian,TSU,AlphaTauri,11,58.0
+2023,2023-04-02,Australian,BOT,Alfa Romeo,12,58.0
+2023,2023-04-02,Australian,GAS,Alpine,13,57.0
+2023,2023-04-02,Australian,OCO,Alpine,14,57.0
+2023,2023-04-02,Australian,DEV,AlphaTauri,15,57.0
+2023,2023-04-02,Australian,SAR,Williams,16,57.0
+2023,2023-04-02,Australian,MAG,Haas F1 Team,17,53.0
+2023,2023-04-02,Australian,RUS,Mercedes,18,18.0
+2023,2023-04-02,Australian,ALB,Williams,19,7.0
+2023,2023-04-02,Australian,LEC,Ferrari,20,1.0
+2023,2023-07-02,Austrian,VER,Red Bull Racing,1,71.0
+2023,2023-07-02,Austrian,LEC,Ferrari,2,71.0
+2023,2023-07-02,Austrian,PER,Red Bull Racing,3,71.0
+2023,2023-07-02,Austrian,SAI,Ferrari,4,71.0
+2023,2023-07-02,Austrian,NOR,McLaren,5,71.0
+2023,2023-07-02,Austrian,ALO,Aston Martin,6,71.0
+2023,2023-07-02,Austrian,HAM,Mercedes,7,71.0
+2023,2023-07-02,Austrian,RUS,Mercedes,8,71.0
+2023,2023-07-02,Austrian,GAS,Alpine,9,71.0
+2023,2023-07-02,Austrian,STR,Aston Martin,10,71.0
+2023,2023-07-02,Austrian,ALB,Williams,11,71.0
+2023,2023-07-02,Austrian,OCO,Alpine,12,70.0
+2023,2023-07-02,Austrian,SAR,Williams,13,70.0
+2023,2023-07-02,Austrian,ZHO,Alfa Romeo,14,70.0
+2023,2023-07-02,Austrian,DEV,AlphaTauri,15,70.0
+2023,2023-07-02,Austrian,BOT,Alfa Romeo,16,70.0
+2023,2023-07-02,Austrian,TSU,AlphaTauri,17,70.0
+2023,2023-07-02,Austrian,PIA,McLaren,18,70.0
+2023,2023-07-02,Austrian,MAG,Haas F1 Team,19,70.0
+2023,2023-07-02,Austrian,HUL,Haas F1 Team,20,13.0
+2023,2023-04-30,Azerbaijan,PER,Red Bull Racing,1,51.0
+2023,2023-04-30,Azerbaijan,VER,Red Bull Racing,2,51.0
+2023,2023-04-30,Azerbaijan,LEC,Ferrari,3,51.0
+2023,2023-04-30,Azerbaijan,ALO,Aston Martin,4,51.0
+2023,2023-04-30,Azerbaijan,SAI,Ferrari,5,51.0
+2023,2023-04-30,Azerbaijan,HAM,Mercedes,6,51.0
+2023,2023-04-30,Azerbaijan,STR,Aston Martin,7,51.0
+2023,2023-04-30,Azerbaijan,RUS,Mercedes,8,51.0
+2023,2023-04-30,Azerbaijan,NOR,McLaren,9,51.0
+2023,2023-04-30,Azerbaijan,TSU,AlphaTauri,10,51.0
+2023,2023-04-30,Azerbaijan,PIA,McLaren,11,51.0
+2023,2023-04-30,Azerbaijan,ALB,Williams,12,51.0
+2023,2023-04-30,Azerbaijan,MAG,Haas F1 Team,13,51.0
+2023,2023-04-30,Azerbaijan,GAS,Alpine,14,51.0
+2023,2023-04-30,Azerbaijan,OCO,Alpine,15,51.0
+2023,2023-04-30,Azerbaijan,SAR,Williams,16,51.0
+2023,2023-04-30,Azerbaijan,HUL,Haas F1 Team,17,50.0
+2023,2023-04-30,Azerbaijan,BOT,Alfa Romeo,18,50.0
+2023,2023-04-30,Azerbaijan,ZHO,Alfa Romeo,19,36.0
+2023,2023-04-30,Azerbaijan,DEV,AlphaTauri,20,10.0
+2023,2023-03-05,Bahrain,VER,Red Bull Racing,1,57.0
+2023,2023-03-05,Bahrain,PER,Red Bull Racing,2,57.0
+2023,2023-03-05,Bahrain,ALO,Aston Martin,3,57.0
+2023,2023-03-05,Bahrain,SAI,Ferrari,4,57.0
+2023,2023-03-05,Bahrain,HAM,Mercedes,5,57.0
+2023,2023-03-05,Bahrain,STR,Aston Martin,6,57.0
+2023,2023-03-05,Bahrain,RUS,Mercedes,7,57.0
+2023,2023-03-05,Bahrain,BOT,Alfa Romeo,8,57.0
+2023,2023-03-05,Bahrain,GAS,Alpine,9,57.0
+2023,2023-03-05,Bahrain,ALB,Williams,10,57.0
+2023,2023-03-05,Bahrain,TSU,AlphaTauri,11,57.0
+2023,2023-03-05,Bahrain,SAR,Williams,12,56.0
+2023,2023-03-05,Bahrain,MAG,Haas F1 Team,13,56.0
+2023,2023-03-05,Bahrain,DEV,AlphaTauri,14,56.0
+2023,2023-03-05,Bahrain,HUL,Haas F1 Team,15,56.0
+2023,2023-03-05,Bahrain,ZHO,Alfa Romeo,16,56.0
+2023,2023-03-05,Bahrain,NOR,McLaren,17,55.0
+2023,2023-03-05,Bahrain,OCO,Alpine,18,41.0
+2023,2023-03-05,Bahrain,LEC,Ferrari,19,40.0
+2023,2023-03-05,Bahrain,PIA,McLaren,20,13.0
+2023,2023-07-30,Belgian,VER,Red Bull Racing,1,44.0
+2023,2023-07-30,Belgian,PER,Red Bull Racing,2,44.0
+2023,2023-07-30,Belgian,LEC,Ferrari,3,44.0
+2023,2023-07-30,Belgian,HAM,Mercedes,4,44.0
+2023,2023-07-30,Belgian,ALO,Aston Martin,5,44.0
+2023,2023-07-30,Belgian,RUS,Mercedes,6,44.0
+2023,2023-07-30,Belgian,NOR,McLaren,7,44.0
+2023,2023-07-30,Belgian,OCO,Alpine,8,44.0
+2023,2023-07-30,Belgian,STR,Aston Martin,9,44.0
+2023,2023-07-30,Belgian,TSU,AlphaTauri,10,44.0
+2023,2023-07-30,Belgian,GAS,Alpine,11,44.0
+2023,2023-07-30,Belgian,BOT,Alfa Romeo,12,44.0
+2023,2023-07-30,Belgian,ZHO,Alfa Romeo,13,44.0
+2023,2023-07-30,Belgian,ALB,Williams,14,44.0
+2023,2023-07-30,Belgian,MAG,Haas F1 Team,15,44.0
+2023,2023-07-30,Belgian,RIC,AlphaTauri,16,44.0
+2023,2023-07-30,Belgian,SAR,Williams,17,44.0
+2023,2023-07-30,Belgian,HUL,Haas F1 Team,18,44.0
+2023,2023-07-30,Belgian,SAI,Ferrari,19,23.0
+2023,2023-07-30,Belgian,PIA,McLaren,20,1.0
+2023,2023-07-09,British,VER,Red Bull Racing,1,52.0
+2023,2023-07-09,British,NOR,McLaren,2,52.0
+2023,2023-07-09,British,HAM,Mercedes,3,52.0
+2023,2023-07-09,British,PIA,McLaren,4,52.0
+2023,2023-07-09,British,RUS,Mercedes,5,52.0
+2023,2023-07-09,British,PER,Red Bull Racing,6,52.0
+2023,2023-07-09,British,ALO,Aston Martin,7,52.0
+2023,2023-07-09,British,ALB,Williams,8,52.0
+2023,2023-07-09,British,LEC,Ferrari,9,52.0
+2023,2023-07-09,British,SAI,Ferrari,10,52.0
+2023,2023-07-09,British,STR,Aston Martin,11,52.0
+2023,2023-07-09,British,SAR,Williams,12,52.0
+2023,2023-07-09,British,BOT,Alfa Romeo,13,52.0
+2023,2023-07-09,British,HUL,Haas F1 Team,14,52.0
+2023,2023-07-09,British,ZHO,Alfa Romeo,15,52.0
+2023,2023-07-09,British,TSU,AlphaTauri,16,52.0
+2023,2023-07-09,British,DEV,AlphaTauri,17,52.0
+2023,2023-07-09,British,GAS,Alpine,18,46.0
+2023,2023-07-09,British,MAG,Haas F1 Team,19,32.0
+2023,2023-07-09,British,OCO,Alpine,20,9.0
+2023,2023-06-18,Canadian,VER,Red Bull Racing,1,70.0
+2023,2023-06-18,Canadian,ALO,Aston Martin,2,70.0
+2023,2023-06-18,Canadian,HAM,Mercedes,3,70.0
+2023,2023-06-18,Canadian,LEC,Ferrari,4,70.0
+2023,2023-06-18,Canadian,SAI,Ferrari,5,70.0
+2023,2023-06-18,Canadian,PER,Red Bull Racing,6,70.0
+2023,2023-06-18,Canadian,ALB,Williams,7,70.0
+2023,2023-06-18,Canadian,OCO,Alpine,8,70.0
+2023,2023-06-18,Canadian,NOR,McLaren,9,70.0
+2023,2023-06-18,Canadian,STR,Aston Martin,10,70.0
+2023,2023-06-18,Canadian,BOT,Alfa Romeo,11,70.0
+2023,2023-06-18,Canadian,PIA,McLaren,12,70.0
+2023,2023-06-18,Canadian,GAS,Alpine,13,70.0
+2023,2023-06-18,Canadian,TSU,AlphaTauri,14,70.0
+2023,2023-06-18,Canadian,HUL,Haas F1 Team,15,69.0
+2023,2023-06-18,Canadian,ZHO,Alfa Romeo,16,69.0
+2023,2023-06-18,Canadian,MAG,Haas F1 Team,17,69.0
+2023,2023-06-18,Canadian,DEV,AlphaTauri,18,69.0
+2023,2023-06-18,Canadian,RUS,Mercedes,19,54.0
+2023,2023-06-18,Canadian,SAR,Williams,20,7.0
+2023,2023-08-27,Dutch,VER,Red Bull Racing,1,72.0
+2023,2023-08-27,Dutch,ALO,Aston Martin,2,72.0
+2023,2023-08-27,Dutch,PER,Red Bull Racing,3,72.0
+2023,2023-08-27,Dutch,GAS,Alpine,4,72.0
+2023,2023-08-27,Dutch,SAI,Ferrari,5,72.0
+2023,2023-08-27,Dutch,HAM,Mercedes,6,72.0
+2023,2023-08-27,Dutch,NOR,McLaren,7,72.0
+2023,2023-08-27,Dutch,ALB,Williams,8,72.0
+2023,2023-08-27,Dutch,PIA,McLaren,9,72.0
+2023,2023-08-27,Dutch,OCO,Alpine,10,72.0
+2023,2023-08-27,Dutch,STR,Aston Martin,11,72.0
+2023,2023-08-27,Dutch,HUL,Haas F1 Team,12,72.0
+2023,2023-08-27,Dutch,TSU,AlphaTauri,13,72.0
+2023,2023-08-27,Dutch,LAW,AlphaTauri,14,72.0
+2023,2023-08-27,Dutch,MAG,Haas F1 Team,15,72.0
+2023,2023-08-27,Dutch,BOT,Alfa Romeo,16,72.0
+2023,2023-08-27,Dutch,RUS,Mercedes,17,72.0
+2023,2023-08-27,Dutch,ZHO,Alfa Romeo,18,63.0
+2023,2023-08-27,Dutch,LEC,Ferrari,19,41.0
+2023,2023-08-27,Dutch,SAR,Williams,20,15.0
+2023,2023-07-23,Hungarian,VER,Red Bull Racing,1,70.0
+2023,2023-07-23,Hungarian,NOR,McLaren,2,70.0
+2023,2023-07-23,Hungarian,PER,Red Bull Racing,3,70.0
+2023,2023-07-23,Hungarian,HAM,Mercedes,4,70.0
+2023,2023-07-23,Hungarian,PIA,McLaren,5,70.0
+2023,2023-07-23,Hungarian,LEC,Ferrari,6,70.0
+2023,2023-07-23,Hungarian,RUS,Mercedes,7,70.0
+2023,2023-07-23,Hungarian,SAI,Ferrari,8,70.0
+2023,2023-07-23,Hungarian,ALO,Aston Martin,9,70.0
+2023,2023-07-23,Hungarian,STR,Aston Martin,10,69.0
+2023,2023-07-23,Hungarian,ALB,Williams,11,69.0
+2023,2023-07-23,Hungarian,BOT,Alfa Romeo,12,69.0
+2023,2023-07-23,Hungarian,RIC,AlphaTauri,13,69.0
+2023,2023-07-23,Hungarian,HUL,Haas F1 Team,14,69.0
+2023,2023-07-23,Hungarian,TSU,AlphaTauri,15,69.0
+2023,2023-07-23,Hungarian,ZHO,Alfa Romeo,16,69.0
+2023,2023-07-23,Hungarian,MAG,Haas F1 Team,17,69.0
+2023,2023-07-23,Hungarian,SAR,Williams,18,67.0
+2023,2023-07-23,Hungarian,OCO,Alpine,19,2.0
+2023,2023-07-23,Hungarian,GAS,Alpine,20,1.0
+2023,2023-09-03,Italian,VER,Red Bull Racing,1,51.0
+2023,2023-09-03,Italian,PER,Red Bull Racing,2,51.0
+2023,2023-09-03,Italian,SAI,Ferrari,3,51.0
+2023,2023-09-03,Italian,LEC,Ferrari,4,51.0
+2023,2023-09-03,Italian,RUS,Mercedes,5,51.0
+2023,2023-09-03,Italian,HAM,Mercedes,6,51.0
+2023,2023-09-03,Italian,ALB,Williams,7,51.0
+2023,2023-09-03,Italian,NOR,McLaren,8,51.0
+2023,2023-09-03,Italian,ALO,Aston Martin,9,51.0
+2023,2023-09-03,Italian,BOT,Alfa Romeo,10,51.0
+2023,2023-09-03,Italian,PIA,McLaren,11,51.0
+2023,2023-09-03,Italian,LAW,AlphaTauri,12,51.0
+2023,2023-09-03,Italian,SAR,Williams,13,51.0
+2023,2023-09-03,Italian,ZHO,Alfa Romeo,14,51.0
+2023,2023-09-03,Italian,GAS,Alpine,15,51.0
+2023,2023-09-03,Italian,STR,Aston Martin,16,51.0
+2023,2023-09-03,Italian,HUL,Haas F1 Team,17,51.0
+2023,2023-09-03,Italian,MAG,Haas F1 Team,18,51.0
+2023,2023-09-03,Italian,OCO,Alpine,19,39.0
+2023,2023-09-03,Italian,TSU,AlphaTauri,20,1.0
+2023,2023-09-24,Japanese,VER,Red Bull Racing,1,53.0
+2023,2023-09-24,Japanese,NOR,McLaren,2,53.0
+2023,2023-09-24,Japanese,PIA,McLaren,3,53.0
+2023,2023-09-24,Japanese,LEC,Ferrari,4,53.0
+2023,2023-09-24,Japanese,HAM,Mercedes,5,53.0
+2023,2023-09-24,Japanese,SAI,Ferrari,6,53.0
+2023,2023-09-24,Japanese,RUS,Mercedes,7,53.0
+2023,2023-09-24,Japanese,ALO,Aston Martin,8,53.0
+2023,2023-09-24,Japanese,OCO,Alpine,9,53.0
+2023,2023-09-24,Japanese,GAS,Alpine,10,53.0
+2023,2023-09-24,Japanese,LAW,AlphaTauri,11,52.0
+2023,2023-09-24,Japanese,TSU,AlphaTauri,12,52.0
+2023,2023-09-24,Japanese,ZHO,Alfa Romeo,13,52.0
+2023,2023-09-24,Japanese,HUL,Haas F1 Team,14,52.0
+2023,2023-09-24,Japanese,MAG,Haas F1 Team,15,52.0
+2023,2023-09-24,Japanese,ALB,Williams,16,26.0
+2023,2023-09-24,Japanese,SAR,Williams,17,22.0
+2023,2023-09-24,Japanese,STR,Aston Martin,18,20.0
+2023,2023-09-24,Japanese,PER,Red Bull Racing,19,15.0
+2023,2023-09-24,Japanese,BOT,Alfa Romeo,20,7.0
+2023,2023-11-19,Las Vegas,VER,Red Bull Racing,1,50.0
+2023,2023-11-19,Las Vegas,LEC,Ferrari,2,50.0
+2023,2023-11-19,Las Vegas,PER,Red Bull Racing,3,50.0
+2023,2023-11-19,Las Vegas,RUS,Mercedes,4,50.0
+2023,2023-11-19,Las Vegas,OCO,Alpine,5,50.0
+2023,2023-11-19,Las Vegas,STR,Aston Martin,6,50.0
+2023,2023-11-19,Las Vegas,SAI,Ferrari,7,50.0
+2023,2023-11-19,Las Vegas,HAM,Mercedes,8,50.0
+2023,2023-11-19,Las Vegas,ALO,Aston Martin,9,50.0
+2023,2023-11-19,Las Vegas,PIA,McLaren,10,50.0
+2023,2023-11-19,Las Vegas,GAS,Alpine,11,50.0
+2023,2023-11-19,Las Vegas,ALB,Williams,12,50.0
+2023,2023-11-19,Las Vegas,MAG,Haas F1 Team,13,50.0
+2023,2023-11-19,Las Vegas,RIC,AlphaTauri,14,50.0
+2023,2023-11-19,Las Vegas,ZHO,Alfa Romeo,15,50.0
+2023,2023-11-19,Las Vegas,SAR,Williams,16,50.0
+2023,2023-11-19,Las Vegas,BOT,Alfa Romeo,17,50.0
+2023,2023-11-19,Las Vegas,TSU,AlphaTauri,18,47.0
+2023,2023-11-19,Las Vegas,HUL,Haas F1 Team,19,46.0
+2023,2023-11-19,Las Vegas,NOR,McLaren,20,3.0
+2023,2023-10-29,Mexico City,VER,Red Bull Racing,1,71.0
+2023,2023-10-29,Mexico City,HAM,Mercedes,2,71.0
+2023,2023-10-29,Mexico City,LEC,Ferrari,3,71.0
+2023,2023-10-29,Mexico City,SAI,Ferrari,4,71.0
+2023,2023-10-29,Mexico City,NOR,McLaren,5,71.0
+2023,2023-10-29,Mexico City,RUS,Mercedes,6,71.0
+2023,2023-10-29,Mexico City,RIC,AlphaTauri,7,71.0
+2023,2023-10-29,Mexico City,PIA,McLaren,8,71.0
+2023,2023-10-29,Mexico City,ALB,Williams,9,71.0
+2023,2023-10-29,Mexico City,OCO,Alpine,10,71.0
+2023,2023-10-29,Mexico City,GAS,Alpine,11,71.0
+2023,2023-10-29,Mexico City,SAR,Williams,12,71.0
+2023,2023-10-29,Mexico City,TSU,AlphaTauri,13,71.0
+2023,2023-10-29,Mexico City,HUL,Haas F1 Team,14,71.0
+2023,2023-10-29,Mexico City,BOT,Alfa Romeo,15,71.0
+2023,2023-10-29,Mexico City,ZHO,Alfa Romeo,16,71.0
+2023,2023-10-29,Mexico City,STR,Aston Martin,17,66.0
+2023,2023-10-29,Mexico City,ALO,Aston Martin,18,47.0
+2023,2023-10-29,Mexico City,MAG,Haas F1 Team,19,32.0
+2023,2023-10-29,Mexico City,PER,Red Bull Racing,20,1.0
+2023,2023-05-07,Miami,VER,Red Bull Racing,1,57.0
+2023,2023-05-07,Miami,PER,Red Bull Racing,2,57.0
+2023,2023-05-07,Miami,ALO,Aston Martin,3,57.0
+2023,2023-05-07,Miami,RUS,Mercedes,4,57.0
+2023,2023-05-07,Miami,SAI,Ferrari,5,57.0
+2023,2023-05-07,Miami,HAM,Mercedes,6,57.0
+2023,2023-05-07,Miami,LEC,Ferrari,7,57.0
+2023,2023-05-07,Miami,GAS,Alpine,8,57.0
+2023,2023-05-07,Miami,OCO,Alpine,9,57.0
+2023,2023-05-07,Miami,MAG,Haas F1 Team,10,57.0
+2023,2023-05-07,Miami,TSU,AlphaTauri,11,57.0
+2023,2023-05-07,Miami,STR,Aston Martin,12,57.0
+2023,2023-05-07,Miami,BOT,Alfa Romeo,13,57.0
+2023,2023-05-07,Miami,ALB,Williams,14,57.0
+2023,2023-05-07,Miami,HUL,Haas F1 Team,15,57.0
+2023,2023-05-07,Miami,ZHO,Alfa Romeo,16,57.0
+2023,2023-05-07,Miami,NOR,McLaren,17,57.0
+2023,2023-05-07,Miami,DEV,AlphaTauri,18,57.0
+2023,2023-05-07,Miami,PIA,McLaren,19,56.0
+2023,2023-05-07,Miami,SAR,Williams,20,56.0
+2023,2023-05-28,Monaco,VER,Red Bull Racing,1,78.0
+2023,2023-05-28,Monaco,ALO,Aston Martin,2,78.0
+2023,2023-05-28,Monaco,OCO,Alpine,3,78.0
+2023,2023-05-28,Monaco,HAM,Mercedes,4,78.0
+2023,2023-05-28,Monaco,RUS,Mercedes,5,78.0
+2023,2023-05-28,Monaco,LEC,Ferrari,6,78.0
+2023,2023-05-28,Monaco,GAS,Alpine,7,78.0
+2023,2023-05-28,Monaco,SAI,Ferrari,8,78.0
+2023,2023-05-28,Monaco,NOR,McLaren,9,77.0
+2023,2023-05-28,Monaco,PIA,McLaren,10,77.0
+2023,2023-05-28,Monaco,BOT,Alfa Romeo,11,77.0
+2023,2023-05-28,Monaco,DEV,AlphaTauri,12,77.0
+2023,2023-05-28,Monaco,ZHO,Alfa Romeo,13,77.0
+2023,2023-05-28,Monaco,ALB,Williams,14,77.0
+2023,2023-05-28,Monaco,TSU,AlphaTauri,15,76.0
+2023,2023-05-28,Monaco,HUL,Haas F1 Team,16,76.0
+2023,2023-05-28,Monaco,PER,Red Bull Racing,17,76.0
+2023,2023-05-28,Monaco,SAR,Williams,18,76.0
+2023,2023-05-28,Monaco,MAG,Haas F1 Team,19,71.0
+2023,2023-05-28,Monaco,STR,Aston Martin,20,54.0
+2023,2023-10-08,Qatar,VER,Red Bull Racing,1,57.0
+2023,2023-10-08,Qatar,PIA,McLaren,2,57.0
+2023,2023-10-08,Qatar,NOR,McLaren,3,57.0
+2023,2023-10-08,Qatar,RUS,Mercedes,4,57.0
+2023,2023-10-08,Qatar,LEC,Ferrari,5,57.0
+2023,2023-10-08,Qatar,ALO,Aston Martin,6,57.0
+2023,2023-10-08,Qatar,OCO,Alpine,7,57.0
+2023,2023-10-08,Qatar,BOT,Alfa Romeo,8,57.0
+2023,2023-10-08,Qatar,STR,Aston Martin,9,57.0
+2023,2023-10-08,Qatar,GAS,Alpine,10,57.0
+2023,2023-10-08,Qatar,PER,Red Bull Racing,11,57.0
+2023,2023-10-08,Qatar,ZHO,Alfa Romeo,12,57.0
+2023,2023-10-08,Qatar,ALB,Williams,13,57.0
+2023,2023-10-08,Qatar,MAG,Haas F1 Team,14,56.0
+2023,2023-10-08,Qatar,TSU,AlphaTauri,15,56.0
+2023,2023-10-08,Qatar,HUL,Haas F1 Team,16,56.0
+2023,2023-10-08,Qatar,LAW,AlphaTauri,17,56.0
+2023,2023-10-08,Qatar,SAR,Williams,18,40.0
+2023,2023-10-08,Qatar,HAM,Mercedes,19,1.0
+2023,2023-03-19,Saudi Arabian,PER,Red Bull Racing,1,50.0
+2023,2023-03-19,Saudi Arabian,VER,Red Bull Racing,2,50.0
+2023,2023-03-19,Saudi Arabian,ALO,Aston Martin,3,50.0
+2023,2023-03-19,Saudi Arabian,RUS,Mercedes,4,50.0
+2023,2023-03-19,Saudi Arabian,HAM,Mercedes,5,50.0
+2023,2023-03-19,Saudi Arabian,SAI,Ferrari,6,50.0
+2023,2023-03-19,Saudi Arabian,LEC,Ferrari,7,50.0
+2023,2023-03-19,Saudi Arabian,OCO,Alpine,8,50.0
+2023,2023-03-19,Saudi Arabian,GAS,Alpine,9,50.0
+2023,2023-03-19,Saudi Arabian,MAG,Haas F1 Team,10,50.0
+2023,2023-03-19,Saudi Arabian,TSU,AlphaTauri,11,50.0
+2023,2023-03-19,Saudi Arabian,HUL,Haas F1 Team,12,50.0
+2023,2023-03-19,Saudi Arabian,ZHO,Alfa Romeo,13,50.0
+2023,2023-03-19,Saudi Arabian,DEV,AlphaTauri,14,50.0
+2023,2023-03-19,Saudi Arabian,PIA,McLaren,15,50.0
+2023,2023-03-19,Saudi Arabian,SAR,Williams,16,50.0
+2023,2023-03-19,Saudi Arabian,NOR,McLaren,17,50.0
+2023,2023-03-19,Saudi Arabian,BOT,Alfa Romeo,18,49.0
+2023,2023-03-19,Saudi Arabian,ALB,Williams,19,27.0
+2023,2023-03-19,Saudi Arabian,STR,Aston Martin,20,17.0
+2023,2023-09-17,Singapore,SAI,Ferrari,1,62.0
+2023,2023-09-17,Singapore,NOR,McLaren,2,62.0
+2023,2023-09-17,Singapore,HAM,Mercedes,3,62.0
+2023,2023-09-17,Singapore,RUS,Mercedes,4,62.0
+2023,2023-09-17,Singapore,LEC,Ferrari,5,62.0
+2023,2023-09-17,Singapore,VER,Red Bull Racing,6,62.0
+2023,2023-09-17,Singapore,GAS,Alpine,7,62.0
+2023,2023-09-17,Singapore,PIA,McLaren,8,62.0
+2023,2023-09-17,Singapore,PER,Red Bull Racing,9,62.0
+2023,2023-09-17,Singapore,LAW,AlphaTauri,10,62.0
+2023,2023-09-17,Singapore,MAG,Haas F1 Team,11,62.0
+2023,2023-09-17,Singapore,ALB,Williams,12,62.0
+2023,2023-09-17,Singapore,ZHO,Alfa Romeo,13,62.0
+2023,2023-09-17,Singapore,HUL,Haas F1 Team,14,62.0
+2023,2023-09-17,Singapore,SAR,Williams,15,62.0
+2023,2023-09-17,Singapore,ALO,Aston Martin,16,62.0
+2023,2023-09-17,Singapore,BOT,Alfa Romeo,17,52.0
+2023,2023-09-17,Singapore,OCO,Alpine,18,43.0
+2023,2023-09-17,Singapore,TSU,AlphaTauri,19,1.0
+2023,2023-06-04,Spanish,VER,Red Bull Racing,1,66.0
+2023,2023-06-04,Spanish,HAM,Mercedes,2,66.0
+2023,2023-06-04,Spanish,RUS,Mercedes,3,66.0
+2023,2023-06-04,Spanish,PER,Red Bull Racing,4,66.0
+2023,2023-06-04,Spanish,SAI,Ferrari,5,66.0
+2023,2023-06-04,Spanish,STR,Aston Martin,6,66.0
+2023,2023-06-04,Spanish,ALO,Aston Martin,7,66.0
+2023,2023-06-04,Spanish,OCO,Alpine,8,66.0
+2023,2023-06-04,Spanish,TSU,AlphaTauri,9,66.0
+2023,2023-06-04,Spanish,ZHO,Alfa Romeo,10,66.0
+2023,2023-06-04,Spanish,GAS,Alpine,11,66.0
+2023,2023-06-04,Spanish,LEC,Ferrari,12,66.0
+2023,2023-06-04,Spanish,PIA,McLaren,13,65.0
+2023,2023-06-04,Spanish,DEV,AlphaTauri,14,65.0
+2023,2023-06-04,Spanish,HUL,Haas F1 Team,15,65.0
+2023,2023-06-04,Spanish,ALB,Williams,16,65.0
+2023,2023-06-04,Spanish,NOR,McLaren,17,65.0
+2023,2023-06-04,Spanish,MAG,Haas F1 Team,18,65.0
+2023,2023-06-04,Spanish,BOT,Alfa Romeo,19,65.0
+2023,2023-06-04,Spanish,SAR,Williams,20,65.0
+2023,2023-11-05,São Paulo,VER,Red Bull Racing,1,71.0
+2023,2023-11-05,São Paulo,NOR,McLaren,2,71.0
+2023,2023-11-05,São Paulo,ALO,Aston Martin,3,71.0
+2023,2023-11-05,São Paulo,PER,Red Bull Racing,4,71.0
+2023,2023-11-05,São Paulo,STR,Aston Martin,5,71.0
+2023,2023-11-05,São Paulo,SAI,Ferrari,6,71.0
+2023,2023-11-05,São Paulo,GAS,Alpine,7,71.0
+2023,2023-11-05,São Paulo,HAM,Mercedes,8,71.0
+2023,2023-11-05,São Paulo,TSU,AlphaTauri,9,71.0
+2023,2023-11-05,São Paulo,OCO,Alpine,10,70.0
+2023,2023-11-05,São Paulo,SAR,Williams,11,70.0
+2023,2023-11-05,São Paulo,HUL,Haas F1 Team,12,70.0
+2023,2023-11-05,São Paulo,RIC,AlphaTauri,13,70.0
+2023,2023-11-05,São Paulo,PIA,McLaren,14,69.0
+2023,2023-11-05,São Paulo,RUS,Mercedes,15,57.0
+2023,2023-11-05,São Paulo,BOT,Alfa Romeo,16,39.0
+2023,2023-11-05,São Paulo,ZHO,Alfa Romeo,17,22.0
+2023,2023-11-05,São Paulo,ALB,Williams,18,1.0
+2023,2023-11-05,São Paulo,LEC,Ferrari,19,1.0
+2023,2023-11-05,São Paulo,MAG,Haas F1 Team,20,1.0
+2023,2023-10-22,United States,VER,Red Bull Racing,1,56.0
+2023,2023-10-22,United States,HAM,Mercedes,2,56.0
+2023,2023-10-22,United States,NOR,McLaren,3,56.0
+2023,2023-10-22,United States,SAI,Ferrari,4,56.0
+2023,2023-10-22,United States,PER,Red Bull Racing,5,56.0
+2023,2023-10-22,United States,LEC,Ferrari,6,56.0
+2023,2023-10-22,United States,RUS,Mercedes,7,56.0
+2023,2023-10-22,United States,GAS,Alpine,8,56.0
+2023,2023-10-22,United States,STR,Aston Martin,9,56.0
+2023,2023-10-22,United States,TSU,AlphaTauri,10,56.0
+2023,2023-10-22,United States,ALB,Williams,11,56.0
+2023,2023-10-22,United States,SAR,Williams,12,56.0
+2023,2023-10-22,United States,HUL,Haas F1 Team,13,56.0
+2023,2023-10-22,United States,BOT,Alfa Romeo,14,56.0
+2023,2023-10-22,United States,ZHO,Alfa Romeo,15,55.0
+2023,2023-10-22,United States,MAG,Haas F1 Team,16,55.0
+2023,2023-10-22,United States,RIC,AlphaTauri,17,55.0
+2023,2023-10-22,United States,ALO,Aston Martin,18,49.0
+2023,2023-10-22,United States,PIA,McLaren,19,10.0
+2023,2023-10-22,United States,OCO,Alpine,20,6.0
+2024,2024-12-08,Abu Dhabi,NOR,McLaren,1,58.0
+2024,2024-12-08,Abu Dhabi,SAI,Ferrari,2,58.0
+2024,2024-12-08,Abu Dhabi,LEC,Ferrari,3,58.0
+2024,2024-12-08,Abu Dhabi,HAM,Mercedes,4,58.0
+2024,2024-12-08,Abu Dhabi,RUS,Mercedes,5,58.0
+2024,2024-12-08,Abu Dhabi,VER,Red Bull Racing,6,58.0
+2024,2024-12-08,Abu Dhabi,GAS,Alpine,7,58.0
+2024,2024-12-08,Abu Dhabi,HUL,Haas F1 Team,8,58.0
+2024,2024-12-08,Abu Dhabi,ALO,Aston Martin,9,58.0
+2024,2024-12-08,Abu Dhabi,PIA,McLaren,10,58.0
+2024,2024-12-08,Abu Dhabi,ALB,Williams,11,57.0
+2024,2024-12-08,Abu Dhabi,STR,Aston Martin,12,57.0
+2024,2024-12-08,Abu Dhabi,TSU,RB,13,57.0
+2024,2024-12-08,Abu Dhabi,ZHO,Kick Sauber,14,57.0
+2024,2024-12-08,Abu Dhabi,DOO,Alpine,15,57.0
+2024,2024-12-08,Abu Dhabi,MAG,Haas F1 Team,16,57.0
+2024,2024-12-08,Abu Dhabi,LAW,RB,17,56.0
+2024,2024-12-08,Abu Dhabi,BOT,Kick Sauber,18,30.0
+2024,2024-12-08,Abu Dhabi,COL,Williams,19,26.0
+2024,2024-12-08,Abu Dhabi,PER,Red Bull Racing,20,1.0
+2024,2024-03-24,Australian,SAI,Ferrari,1,58.0
+2024,2024-03-24,Australian,LEC,Ferrari,2,58.0
+2024,2024-03-24,Australian,NOR,McLaren,3,58.0
+2024,2024-03-24,Australian,PIA,McLaren,4,58.0
+2024,2024-03-24,Australian,PER,Red Bull Racing,5,58.0
+2024,2024-03-24,Australian,ALO,Aston Martin,6,58.0
+2024,2024-03-24,Australian,STR,Aston Martin,7,58.0
+2024,2024-03-24,Australian,TSU,RB,8,58.0
+2024,2024-03-24,Australian,HUL,Haas F1 Team,9,58.0
+2024,2024-03-24,Australian,RUS,Mercedes,10,57.0
+2024,2024-03-24,Australian,MAG,Haas F1 Team,11,57.0
+2024,2024-03-24,Australian,ALB,Williams,12,57.0
+2024,2024-03-24,Australian,RIC,RB,13,57.0
+2024,2024-03-24,Australian,GAS,Alpine,14,57.0
+2024,2024-03-24,Australian,BOT,Kick Sauber,15,57.0
+2024,2024-03-24,Australian,ZHO,Kick Sauber,16,57.0
+2024,2024-03-24,Australian,OCO,Alpine,17,57.0
+2024,2024-03-24,Australian,HAM,Mercedes,18,16.0
+2024,2024-03-24,Australian,VER,Red Bull Racing,19,4.0
+2024,2024-06-30,Austrian,RUS,Mercedes,1,71.0
+2024,2024-06-30,Austrian,PIA,McLaren,2,71.0
+2024,2024-06-30,Austrian,SAI,Ferrari,3,71.0
+2024,2024-06-30,Austrian,HAM,Mercedes,4,71.0
+2024,2024-06-30,Austrian,VER,Red Bull Racing,5,71.0
+2024,2024-06-30,Austrian,HUL,Haas F1 Team,6,71.0
+2024,2024-06-30,Austrian,PER,Red Bull Racing,7,71.0
+2024,2024-06-30,Austrian,MAG,Haas F1 Team,8,71.0
+2024,2024-06-30,Austrian,RIC,RB,9,71.0
+2024,2024-06-30,Austrian,GAS,Alpine,10,71.0
+2024,2024-06-30,Austrian,LEC,Ferrari,11,71.0
+2024,2024-06-30,Austrian,OCO,Alpine,12,71.0
+2024,2024-06-30,Austrian,STR,Aston Martin,13,70.0
+2024,2024-06-30,Austrian,ALB,Williams,14,70.0
+2024,2024-06-30,Austrian,TSU,RB,15,70.0
+2024,2024-06-30,Austrian,BOT,Kick Sauber,16,70.0
+2024,2024-06-30,Austrian,ZHO,Kick Sauber,17,70.0
+2024,2024-06-30,Austrian,ALO,Aston Martin,18,70.0
+2024,2024-06-30,Austrian,SAR,Williams,19,69.0
+2024,2024-06-30,Austrian,NOR,McLaren,20,64.0
+2024,2024-09-15,Azerbaijan,PIA,McLaren,1,51.0
+2024,2024-09-15,Azerbaijan,LEC,Ferrari,2,51.0
+2024,2024-09-15,Azerbaijan,RUS,Mercedes,3,51.0
+2024,2024-09-15,Azerbaijan,NOR,McLaren,4,51.0
+2024,2024-09-15,Azerbaijan,VER,Red Bull Racing,5,51.0
+2024,2024-09-15,Azerbaijan,ALO,Aston Martin,6,51.0
+2024,2024-09-15,Azerbaijan,ALB,Williams,7,51.0
+2024,2024-09-15,Azerbaijan,COL,Williams,8,51.0
+2024,2024-09-15,Azerbaijan,HAM,Mercedes,9,51.0
+2024,2024-09-15,Azerbaijan,BEA,Haas F1 Team,10,51.0
+2024,2024-09-15,Azerbaijan,HUL,Haas F1 Team,11,51.0
+2024,2024-09-15,Azerbaijan,GAS,Alpine,12,51.0
+2024,2024-09-15,Azerbaijan,RIC,RB,13,51.0
+2024,2024-09-15,Azerbaijan,ZHO,Kick Sauber,14,51.0
+2024,2024-09-15,Azerbaijan,PER,Red Bull Racing,15,50.0
+2024,2024-09-15,Azerbaijan,SAI,Ferrari,16,50.0
+2024,2024-09-15,Azerbaijan,OCO,Alpine,17,50.0
+2024,2024-09-15,Azerbaijan,BOT,Kick Sauber,18,50.0
+2024,2024-09-15,Azerbaijan,STR,Aston Martin,19,45.0
+2024,2024-09-15,Azerbaijan,TSU,RB,20,14.0
+2024,2024-03-02,Bahrain,VER,Red Bull Racing,1,57.0
+2024,2024-03-02,Bahrain,PER,Red Bull Racing,2,57.0
+2024,2024-03-02,Bahrain,SAI,Ferrari,3,57.0
+2024,2024-03-02,Bahrain,LEC,Ferrari,4,57.0
+2024,2024-03-02,Bahrain,RUS,Mercedes,5,57.0
+2024,2024-03-02,Bahrain,NOR,McLaren,6,57.0
+2024,2024-03-02,Bahrain,HAM,Mercedes,7,57.0
+2024,2024-03-02,Bahrain,PIA,McLaren,8,57.0
+2024,2024-03-02,Bahrain,ALO,Aston Martin,9,57.0
+2024,2024-03-02,Bahrain,STR,Aston Martin,10,57.0
+2024,2024-03-02,Bahrain,ZHO,Kick Sauber,11,56.0
+2024,2024-03-02,Bahrain,MAG,Haas F1 Team,12,56.0
+2024,2024-03-02,Bahrain,RIC,RB,13,56.0
+2024,2024-03-02,Bahrain,TSU,RB,14,56.0
+2024,2024-03-02,Bahrain,ALB,Williams,15,56.0
+2024,2024-03-02,Bahrain,HUL,Haas F1 Team,16,56.0
+2024,2024-03-02,Bahrain,OCO,Alpine,17,56.0
+2024,2024-03-02,Bahrain,GAS,Alpine,18,56.0
+2024,2024-03-02,Bahrain,BOT,Kick Sauber,19,56.0
+2024,2024-03-02,Bahrain,SAR,Williams,20,55.0
+2024,2024-07-28,Belgian,RUS,Mercedes,1,44.0
+2024,2024-07-28,Belgian,HAM,Mercedes,2,44.0
+2024,2024-07-28,Belgian,PIA,McLaren,3,44.0
+2024,2024-07-28,Belgian,LEC,Ferrari,4,44.0
+2024,2024-07-28,Belgian,VER,Red Bull Racing,5,44.0
+2024,2024-07-28,Belgian,NOR,McLaren,6,44.0
+2024,2024-07-28,Belgian,SAI,Ferrari,7,44.0
+2024,2024-07-28,Belgian,PER,Red Bull Racing,8,44.0
+2024,2024-07-28,Belgian,ALO,Aston Martin,9,44.0
+2024,2024-07-28,Belgian,OCO,Alpine,10,44.0
+2024,2024-07-28,Belgian,RIC,RB,11,44.0
+2024,2024-07-28,Belgian,STR,Aston Martin,12,44.0
+2024,2024-07-28,Belgian,ALB,Williams,13,44.0
+2024,2024-07-28,Belgian,GAS,Alpine,14,44.0
+2024,2024-07-28,Belgian,MAG,Haas F1 Team,15,44.0
+2024,2024-07-28,Belgian,BOT,Kick Sauber,16,44.0
+2024,2024-07-28,Belgian,TSU,RB,17,44.0
+2024,2024-07-28,Belgian,SAR,Williams,18,44.0
+2024,2024-07-28,Belgian,HUL,Haas F1 Team,19,44.0
+2024,2024-07-28,Belgian,ZHO,Kick Sauber,20,5.0
+2024,2024-07-07,British,HAM,Mercedes,1,52.0
+2024,2024-07-07,British,VER,Red Bull Racing,2,52.0
+2024,2024-07-07,British,NOR,McLaren,3,52.0
+2024,2024-07-07,British,PIA,McLaren,4,52.0
+2024,2024-07-07,British,SAI,Ferrari,5,52.0
+2024,2024-07-07,British,HUL,Haas F1 Team,6,52.0
+2024,2024-07-07,British,STR,Aston Martin,7,52.0
+2024,2024-07-07,British,ALO,Aston Martin,8,52.0
+2024,2024-07-07,British,ALB,Williams,9,52.0
+2024,2024-07-07,British,TSU,RB,10,52.0
+2024,2024-07-07,British,SAR,Williams,11,52.0
+2024,2024-07-07,British,MAG,Haas F1 Team,12,52.0
+2024,2024-07-07,British,RIC,RB,13,51.0
+2024,2024-07-07,British,LEC,Ferrari,14,51.0
+2024,2024-07-07,British,BOT,Kick Sauber,15,51.0
+2024,2024-07-07,British,OCO,Alpine,16,50.0
+2024,2024-07-07,British,PER,Red Bull Racing,17,50.0
+2024,2024-07-07,British,ZHO,Kick Sauber,18,50.0
+2024,2024-07-07,British,RUS,Mercedes,19,33.0
+2024,2024-07-07,British,GAS,Alpine,20,1.0
+2024,2024-06-09,Canadian,VER,Red Bull Racing,1,70.0
+2024,2024-06-09,Canadian,NOR,McLaren,2,70.0
+2024,2024-06-09,Canadian,RUS,Mercedes,3,70.0
+2024,2024-06-09,Canadian,HAM,Mercedes,4,70.0
+2024,2024-06-09,Canadian,PIA,McLaren,5,70.0
+2024,2024-06-09,Canadian,ALO,Aston Martin,6,70.0
+2024,2024-06-09,Canadian,STR,Aston Martin,7,70.0
+2024,2024-06-09,Canadian,RIC,RB,8,70.0
+2024,2024-06-09,Canadian,GAS,Alpine,9,70.0
+2024,2024-06-09,Canadian,OCO,Alpine,10,70.0
+2024,2024-06-09,Canadian,HUL,Haas F1 Team,11,70.0
+2024,2024-06-09,Canadian,MAG,Haas F1 Team,12,70.0
+2024,2024-06-09,Canadian,BOT,Kick Sauber,13,70.0
+2024,2024-06-09,Canadian,TSU,RB,14,70.0
+2024,2024-06-09,Canadian,ZHO,Kick Sauber,15,69.0
+2024,2024-06-09,Canadian,ALB,Williams,16,53.0
+2024,2024-06-09,Canadian,SAI,Ferrari,17,53.0
+2024,2024-06-09,Canadian,PER,Red Bull Racing,18,52.0
+2024,2024-06-09,Canadian,LEC,Ferrari,19,41.0
+2024,2024-06-09,Canadian,SAR,Williams,20,24.0
+2024,2024-04-21,Chinese,VER,Red Bull Racing,1,56.0
+2024,2024-04-21,Chinese,NOR,McLaren,2,56.0
+2024,2024-04-21,Chinese,PER,Red Bull Racing,3,56.0
+2024,2024-04-21,Chinese,LEC,Ferrari,4,56.0
+2024,2024-04-21,Chinese,SAI,Ferrari,5,56.0
+2024,2024-04-21,Chinese,RUS,Mercedes,6,56.0
+2024,2024-04-21,Chinese,ALO,Aston Martin,7,56.0
+2024,2024-04-21,Chinese,PIA,McLaren,8,56.0
+2024,2024-04-21,Chinese,HAM,Mercedes,9,56.0
+2024,2024-04-21,Chinese,HUL,Haas F1 Team,10,56.0
+2024,2024-04-21,Chinese,OCO,Alpine,11,56.0
+2024,2024-04-21,Chinese,ALB,Williams,12,56.0
+2024,2024-04-21,Chinese,GAS,Alpine,13,56.0
+2024,2024-04-21,Chinese,ZHO,Kick Sauber,14,56.0
+2024,2024-04-21,Chinese,MAG,Haas F1 Team,15,56.0
+2024,2024-04-21,Chinese,STR,Aston Martin,16,56.0
+2024,2024-04-21,Chinese,SAR,Williams,17,56.0
+2024,2024-04-21,Chinese,RIC,RB,18,33.0
+2024,2024-04-21,Chinese,TSU,RB,19,27.0
+2024,2024-04-21,Chinese,BOT,Kick Sauber,20,20.0
+2024,2024-08-25,Dutch,NOR,McLaren,1,72.0
+2024,2024-08-25,Dutch,VER,Red Bull Racing,2,72.0
+2024,2024-08-25,Dutch,LEC,Ferrari,3,72.0
+2024,2024-08-25,Dutch,PIA,McLaren,4,72.0
+2024,2024-08-25,Dutch,SAI,Ferrari,5,72.0
+2024,2024-08-25,Dutch,PER,Red Bull Racing,6,72.0
+2024,2024-08-25,Dutch,RUS,Mercedes,7,72.0
+2024,2024-08-25,Dutch,HAM,Mercedes,8,72.0
+2024,2024-08-25,Dutch,GAS,Alpine,9,71.0
+2024,2024-08-25,Dutch,ALO,Aston Martin,10,71.0
+2024,2024-08-25,Dutch,HUL,Haas F1 Team,11,71.0
+2024,2024-08-25,Dutch,STR,Aston Martin,12,71.0
+2024,2024-08-25,Dutch,RIC,RB,13,71.0
+2024,2024-08-25,Dutch,ALB,Williams,14,71.0
+2024,2024-08-25,Dutch,OCO,Alpine,15,71.0
+2024,2024-08-25,Dutch,SAR,Williams,16,71.0
+2024,2024-08-25,Dutch,TSU,RB,17,71.0
+2024,2024-08-25,Dutch,MAG,Haas F1 Team,18,71.0
+2024,2024-08-25,Dutch,BOT,Kick Sauber,19,70.0
+2024,2024-08-25,Dutch,ZHO,Kick Sauber,20,70.0
+2024,2024-05-19,Emilia Romagna,VER,Red Bull Racing,1,63.0
+2024,2024-05-19,Emilia Romagna,NOR,McLaren,2,63.0
+2024,2024-05-19,Emilia Romagna,LEC,Ferrari,3,63.0
+2024,2024-05-19,Emilia Romagna,PIA,McLaren,4,63.0
+2024,2024-05-19,Emilia Romagna,SAI,Ferrari,5,63.0
+2024,2024-05-19,Emilia Romagna,HAM,Mercedes,6,63.0
+2024,2024-05-19,Emilia Romagna,RUS,Mercedes,7,63.0
+2024,2024-05-19,Emilia Romagna,PER,Red Bull Racing,8,63.0
+2024,2024-05-19,Emilia Romagna,STR,Aston Martin,9,63.0
+2024,2024-05-19,Emilia Romagna,TSU,RB,10,62.0
+2024,2024-05-19,Emilia Romagna,HUL,Haas F1 Team,11,62.0
+2024,2024-05-19,Emilia Romagna,MAG,Haas F1 Team,12,62.0
+2024,2024-05-19,Emilia Romagna,RIC,RB,13,62.0
+2024,2024-05-19,Emilia Romagna,OCO,Alpine,14,62.0
+2024,2024-05-19,Emilia Romagna,ZHO,Kick Sauber,15,62.0
+2024,2024-05-19,Emilia Romagna,GAS,Alpine,16,62.0
+2024,2024-05-19,Emilia Romagna,SAR,Williams,17,62.0
+2024,2024-05-19,Emilia Romagna,BOT,Kick Sauber,18,62.0
+2024,2024-05-19,Emilia Romagna,ALO,Aston Martin,19,62.0
+2024,2024-05-19,Emilia Romagna,ALB,Williams,20,51.0
+2024,2024-07-21,Hungarian,PIA,McLaren,1,70.0
+2024,2024-07-21,Hungarian,NOR,McLaren,2,70.0
+2024,2024-07-21,Hungarian,HAM,Mercedes,3,70.0
+2024,2024-07-21,Hungarian,LEC,Ferrari,4,70.0
+2024,2024-07-21,Hungarian,VER,Red Bull Racing,5,70.0
+2024,2024-07-21,Hungarian,SAI,Ferrari,6,70.0
+2024,2024-07-21,Hungarian,PER,Red Bull Racing,7,70.0
+2024,2024-07-21,Hungarian,RUS,Mercedes,8,70.0
+2024,2024-07-21,Hungarian,TSU,RB,9,70.0
+2024,2024-07-21,Hungarian,STR,Aston Martin,10,70.0
+2024,2024-07-21,Hungarian,ALO,Aston Martin,11,70.0
+2024,2024-07-21,Hungarian,RIC,RB,12,69.0
+2024,2024-07-21,Hungarian,HUL,Haas F1 Team,13,69.0
+2024,2024-07-21,Hungarian,ALB,Williams,14,69.0
+2024,2024-07-21,Hungarian,MAG,Haas F1 Team,15,69.0
+2024,2024-07-21,Hungarian,BOT,Kick Sauber,16,69.0
+2024,2024-07-21,Hungarian,SAR,Williams,17,69.0
+2024,2024-07-21,Hungarian,OCO,Alpine,18,69.0
+2024,2024-07-21,Hungarian,ZHO,Kick Sauber,19,69.0
+2024,2024-07-21,Hungarian,GAS,Alpine,20,33.0
+2024,2024-09-01,Italian,LEC,Ferrari,1,53.0
+2024,2024-09-01,Italian,PIA,McLaren,2,53.0
+2024,2024-09-01,Italian,NOR,McLaren,3,53.0
+2024,2024-09-01,Italian,SAI,Ferrari,4,53.0
+2024,2024-09-01,Italian,HAM,Mercedes,5,53.0
+2024,2024-09-01,Italian,VER,Red Bull Racing,6,53.0
+2024,2024-09-01,Italian,RUS,Mercedes,7,53.0
+2024,2024-09-01,Italian,PER,Red Bull Racing,8,53.0
+2024,2024-09-01,Italian,MAG,Haas F1 Team,9,53.0
+2024,2024-09-01,Italian,ALB,Williams,10,53.0
+2024,2024-09-01,Italian,ALO,Aston Martin,11,53.0
+2024,2024-09-01,Italian,RIC,RB,12,53.0
+2024,2024-09-01,Italian,COL,Williams,13,53.0
+2024,2024-09-01,Italian,OCO,Alpine,14,52.0
+2024,2024-09-01,Italian,GAS,Alpine,15,52.0
+2024,2024-09-01,Italian,BOT,Kick Sauber,16,52.0
+2024,2024-09-01,Italian,HUL,Haas F1 Team,17,52.0
+2024,2024-09-01,Italian,ZHO,Kick Sauber,18,52.0
+2024,2024-09-01,Italian,STR,Aston Martin,19,52.0
+2024,2024-09-01,Italian,TSU,RB,20,7.0
+2024,2024-04-07,Japanese,VER,Red Bull Racing,1,53.0
+2024,2024-04-07,Japanese,PER,Red Bull Racing,2,53.0
+2024,2024-04-07,Japanese,SAI,Ferrari,3,53.0
+2024,2024-04-07,Japanese,LEC,Ferrari,4,53.0
+2024,2024-04-07,Japanese,NOR,McLaren,5,53.0
+2024,2024-04-07,Japanese,ALO,Aston Martin,6,53.0
+2024,2024-04-07,Japanese,RUS,Mercedes,7,53.0
+2024,2024-04-07,Japanese,PIA,McLaren,8,53.0
+2024,2024-04-07,Japanese,HAM,Mercedes,9,53.0
+2024,2024-04-07,Japanese,TSU,RB,10,52.0
+2024,2024-04-07,Japanese,HUL,Haas F1 Team,11,52.0
+2024,2024-04-07,Japanese,STR,Aston Martin,12,52.0
+2024,2024-04-07,Japanese,MAG,Haas F1 Team,13,52.0
+2024,2024-04-07,Japanese,BOT,Kick Sauber,14,52.0
+2024,2024-04-07,Japanese,OCO,Alpine,15,52.0
+2024,2024-04-07,Japanese,GAS,Alpine,16,52.0
+2024,2024-04-07,Japanese,SAR,Williams,17,52.0
+2024,2024-04-07,Japanese,ZHO,Kick Sauber,18,12.0
+2024,2024-04-07,Japanese,ALB,Williams,19,1.0
+2024,2024-04-07,Japanese,RIC,RB,20,1.0
+2024,2024-11-24,Las Vegas,RUS,Mercedes,1,50.0
+2024,2024-11-24,Las Vegas,HAM,Mercedes,2,50.0
+2024,2024-11-24,Las Vegas,SAI,Ferrari,3,50.0
+2024,2024-11-24,Las Vegas,LEC,Ferrari,4,50.0
+2024,2024-11-24,Las Vegas,VER,Red Bull Racing,5,50.0
+2024,2024-11-24,Las Vegas,NOR,McLaren,6,50.0
+2024,2024-11-24,Las Vegas,PIA,McLaren,7,50.0
+2024,2024-11-24,Las Vegas,HUL,Haas F1 Team,8,50.0
+2024,2024-11-24,Las Vegas,TSU,RB,9,50.0
+2024,2024-11-24,Las Vegas,PER,Red Bull Racing,10,50.0
+2024,2024-11-24,Las Vegas,ALO,Aston Martin,11,50.0
+2024,2024-11-24,Las Vegas,MAG,Haas F1 Team,12,50.0
+2024,2024-11-24,Las Vegas,ZHO,Kick Sauber,13,50.0
+2024,2024-11-24,Las Vegas,COL,Williams,14,50.0
+2024,2024-11-24,Las Vegas,STR,Aston Martin,15,50.0
+2024,2024-11-24,Las Vegas,LAW,RB,16,50.0
+2024,2024-11-24,Las Vegas,OCO,Alpine,17,49.0
+2024,2024-11-24,Las Vegas,BOT,Kick Sauber,18,49.0
+2024,2024-11-24,Las Vegas,ALB,Williams,19,25.0
+2024,2024-11-24,Las Vegas,GAS,Alpine,20,15.0
+2024,2024-10-27,Mexico City,SAI,Ferrari,1,71.0
+2024,2024-10-27,Mexico City,NOR,McLaren,2,71.0
+2024,2024-10-27,Mexico City,LEC,Ferrari,3,71.0
+2024,2024-10-27,Mexico City,HAM,Mercedes,4,71.0
+2024,2024-10-27,Mexico City,RUS,Mercedes,5,71.0
+2024,2024-10-27,Mexico City,VER,Red Bull Racing,6,71.0
+2024,2024-10-27,Mexico City,MAG,Haas F1 Team,7,71.0
+2024,2024-10-27,Mexico City,PIA,McLaren,8,71.0
+2024,2024-10-27,Mexico City,HUL,Haas F1 Team,9,70.0
+2024,2024-10-27,Mexico City,GAS,Alpine,10,70.0
+2024,2024-10-27,Mexico City,STR,Aston Martin,11,70.0
+2024,2024-10-27,Mexico City,COL,Williams,12,70.0
+2024,2024-10-27,Mexico City,OCO,Alpine,13,70.0
+2024,2024-10-27,Mexico City,BOT,Kick Sauber,14,70.0
+2024,2024-10-27,Mexico City,ZHO,Kick Sauber,15,70.0
+2024,2024-10-27,Mexico City,LAW,RB,16,70.0
+2024,2024-10-27,Mexico City,PER,Red Bull Racing,17,70.0
+2024,2024-10-27,Mexico City,ALO,Aston Martin,18,15.0
+2024,2024-10-27,Mexico City,ALB,Williams,19,1.0
+2024,2024-10-27,Mexico City,TSU,RB,20,1.0
+2024,2024-05-05,Miami,NOR,McLaren,1,57.0
+2024,2024-05-05,Miami,VER,Red Bull Racing,2,57.0
+2024,2024-05-05,Miami,LEC,Ferrari,3,57.0
+2024,2024-05-05,Miami,SAI,Ferrari,4,57.0
+2024,2024-05-05,Miami,PER,Red Bull Racing,5,57.0
+2024,2024-05-05,Miami,HAM,Mercedes,6,57.0
+2024,2024-05-05,Miami,TSU,RB,7,57.0
+2024,2024-05-05,Miami,RUS,Mercedes,8,57.0
+2024,2024-05-05,Miami,ALO,Aston Martin,9,57.0
+2024,2024-05-05,Miami,OCO,Alpine,10,57.0
+2024,2024-05-05,Miami,HUL,Haas F1 Team,11,57.0
+2024,2024-05-05,Miami,GAS,Alpine,12,57.0
+2024,2024-05-05,Miami,STR,Aston Martin,13,57.0
+2024,2024-05-05,Miami,PIA,McLaren,14,57.0
+2024,2024-05-05,Miami,ZHO,Kick Sauber,15,57.0
+2024,2024-05-05,Miami,RIC,RB,16,57.0
+2024,2024-05-05,Miami,BOT,Kick Sauber,17,57.0
+2024,2024-05-05,Miami,MAG,Haas F1 Team,18,57.0
+2024,2024-05-05,Miami,ALB,Williams,19,57.0
+2024,2024-05-05,Miami,SAR,Williams,20,28.0
+2024,2024-05-26,Monaco,LEC,Ferrari,1,78.0
+2024,2024-05-26,Monaco,PIA,McLaren,2,78.0
+2024,2024-05-26,Monaco,SAI,Ferrari,3,78.0
+2024,2024-05-26,Monaco,NOR,McLaren,4,78.0
+2024,2024-05-26,Monaco,RUS,Mercedes,5,78.0
+2024,2024-05-26,Monaco,VER,Red Bull Racing,6,78.0
+2024,2024-05-26,Monaco,HAM,Mercedes,7,78.0
+2024,2024-05-26,Monaco,TSU,RB,8,77.0
+2024,2024-05-26,Monaco,ALB,Williams,9,77.0
+2024,2024-05-26,Monaco,GAS,Alpine,10,77.0
+2024,2024-05-26,Monaco,ALO,Aston Martin,11,76.0
+2024,2024-05-26,Monaco,RIC,RB,12,76.0
+2024,2024-05-26,Monaco,BOT,Kick Sauber,13,76.0
+2024,2024-05-26,Monaco,STR,Aston Martin,14,76.0
+2024,2024-05-26,Monaco,SAR,Williams,15,76.0
+2024,2024-05-26,Monaco,ZHO,Kick Sauber,16,76.0
+2024,2024-05-26,Monaco,HUL,Haas F1 Team,17,1.0
+2024,2024-05-26,Monaco,MAG,Haas F1 Team,18,1.0
+2024,2024-05-26,Monaco,OCO,Alpine,19,1.0
+2024,2024-05-26,Monaco,PER,Red Bull Racing,20,1.0
+2024,2024-12-01,Qatar,VER,Red Bull Racing,1,57.0
+2024,2024-12-01,Qatar,LEC,Ferrari,2,57.0
+2024,2024-12-01,Qatar,PIA,McLaren,3,57.0
+2024,2024-12-01,Qatar,RUS,Mercedes,4,57.0
+2024,2024-12-01,Qatar,GAS,Alpine,5,57.0
+2024,2024-12-01,Qatar,SAI,Ferrari,6,57.0
+2024,2024-12-01,Qatar,ALO,Aston Martin,7,57.0
+2024,2024-12-01,Qatar,ZHO,Kick Sauber,8,57.0
+2024,2024-12-01,Qatar,MAG,Haas F1 Team,9,57.0
+2024,2024-12-01,Qatar,NOR,McLaren,10,57.0
+2024,2024-12-01,Qatar,BOT,Kick Sauber,11,57.0
+2024,2024-12-01,Qatar,HAM,Mercedes,12,57.0
+2024,2024-12-01,Qatar,TSU,RB,13,57.0
+2024,2024-12-01,Qatar,LAW,RB,14,57.0
+2024,2024-12-01,Qatar,ALB,Williams,15,56.0
+2024,2024-12-01,Qatar,HUL,Haas F1 Team,16,40.0
+2024,2024-12-01,Qatar,PER,Red Bull Racing,17,39.0
+2024,2024-12-01,Qatar,STR,Aston Martin,18,8.0
+2024,2024-12-01,Qatar,COL,Williams,19,1.0
+2024,2024-12-01,Qatar,OCO,Alpine,20,1.0
+2024,2024-03-09,Saudi Arabian,VER,Red Bull Racing,1,50.0
+2024,2024-03-09,Saudi Arabian,PER,Red Bull Racing,2,50.0
+2024,2024-03-09,Saudi Arabian,LEC,Ferrari,3,50.0
+2024,2024-03-09,Saudi Arabian,PIA,McLaren,4,50.0
+2024,2024-03-09,Saudi Arabian,ALO,Aston Martin,5,50.0
+2024,2024-03-09,Saudi Arabian,RUS,Mercedes,6,50.0
+2024,2024-03-09,Saudi Arabian,BEA,Ferrari,7,50.0
+2024,2024-03-09,Saudi Arabian,NOR,McLaren,8,50.0
+2024,2024-03-09,Saudi Arabian,HAM,Mercedes,9,50.0
+2024,2024-03-09,Saudi Arabian,HUL,Haas F1 Team,10,50.0
+2024,2024-03-09,Saudi Arabian,MAG,Haas F1 Team,11,50.0
+2024,2024-03-09,Saudi Arabian,ALB,Williams,12,50.0
+2024,2024-03-09,Saudi Arabian,OCO,Alpine,13,49.0
+2024,2024-03-09,Saudi Arabian,TSU,RB,14,49.0
+2024,2024-03-09,Saudi Arabian,SAR,Williams,15,49.0
+2024,2024-03-09,Saudi Arabian,RIC,RB,16,49.0
+2024,2024-03-09,Saudi Arabian,BOT,Kick Sauber,17,49.0
+2024,2024-03-09,Saudi Arabian,ZHO,Kick Sauber,18,49.0
+2024,2024-03-09,Saudi Arabian,STR,Aston Martin,19,6.0
+2024,2024-03-09,Saudi Arabian,GAS,Alpine,20,1.0
+2024,2024-09-22,Singapore,NOR,McLaren,1,62.0
+2024,2024-09-22,Singapore,VER,Red Bull Racing,2,62.0
+2024,2024-09-22,Singapore,PIA,McLaren,3,62.0
+2024,2024-09-22,Singapore,RUS,Mercedes,4,62.0
+2024,2024-09-22,Singapore,LEC,Ferrari,5,62.0
+2024,2024-09-22,Singapore,HAM,Mercedes,6,62.0
+2024,2024-09-22,Singapore,SAI,Ferrari,7,62.0
+2024,2024-09-22,Singapore,ALO,Aston Martin,8,61.0
+2024,2024-09-22,Singapore,HUL,Haas F1 Team,9,61.0
+2024,2024-09-22,Singapore,PER,Red Bull Racing,10,61.0
+2024,2024-09-22,Singapore,COL,Williams,11,61.0
+2024,2024-09-22,Singapore,TSU,RB,12,61.0
+2024,2024-09-22,Singapore,OCO,Alpine,13,61.0
+2024,2024-09-22,Singapore,STR,Aston Martin,14,61.0
+2024,2024-09-22,Singapore,ZHO,Kick Sauber,15,61.0
+2024,2024-09-22,Singapore,BOT,Kick Sauber,16,61.0
+2024,2024-09-22,Singapore,GAS,Alpine,17,61.0
+2024,2024-09-22,Singapore,RIC,RB,18,61.0
+2024,2024-09-22,Singapore,MAG,Haas F1 Team,19,57.0
+2024,2024-09-22,Singapore,ALB,Williams,20,15.0
+2024,2024-06-23,Spanish,VER,Red Bull Racing,1,66.0
+2024,2024-06-23,Spanish,NOR,McLaren,2,66.0
+2024,2024-06-23,Spanish,HAM,Mercedes,3,66.0
+2024,2024-06-23,Spanish,RUS,Mercedes,4,66.0
+2024,2024-06-23,Spanish,LEC,Ferrari,5,66.0
+2024,2024-06-23,Spanish,SAI,Ferrari,6,66.0
+2024,2024-06-23,Spanish,PIA,McLaren,7,66.0
+2024,2024-06-23,Spanish,PER,Red Bull Racing,8,66.0
+2024,2024-06-23,Spanish,GAS,Alpine,9,66.0
+2024,2024-06-23,Spanish,OCO,Alpine,10,66.0
+2024,2024-06-23,Spanish,HUL,Haas F1 Team,11,66.0
+2024,2024-06-23,Spanish,ALO,Aston Martin,12,65.0
+2024,2024-06-23,Spanish,ZHO,Kick Sauber,13,65.0
+2024,2024-06-23,Spanish,STR,Aston Martin,14,65.0
+2024,2024-06-23,Spanish,RIC,RB,15,65.0
+2024,2024-06-23,Spanish,BOT,Kick Sauber,16,65.0
+2024,2024-06-23,Spanish,MAG,Haas F1 Team,17,65.0
+2024,2024-06-23,Spanish,ALB,Williams,18,65.0
+2024,2024-06-23,Spanish,TSU,RB,19,65.0
+2024,2024-06-23,Spanish,SAR,Williams,20,64.0
+2024,2024-11-03,São Paulo,VER,Red Bull Racing,1,69.0
+2024,2024-11-03,São Paulo,OCO,Alpine,2,69.0
+2024,2024-11-03,São Paulo,GAS,Alpine,3,69.0
+2024,2024-11-03,São Paulo,RUS,Mercedes,4,69.0
+2024,2024-11-03,São Paulo,LEC,Ferrari,5,69.0
+2024,2024-11-03,São Paulo,NOR,McLaren,6,69.0
+2024,2024-11-03,São Paulo,PIA,McLaren,7,69.0
+2024,2024-11-03,São Paulo,TSU,RB,8,69.0
+2024,2024-11-03,São Paulo,LAW,RB,9,69.0
+2024,2024-11-03,São Paulo,HAM,Mercedes,10,69.0
+2024,2024-11-03,São Paulo,PER,Red Bull Racing,11,69.0
+2024,2024-11-03,São Paulo,BEA,Haas F1 Team,12,69.0
+2024,2024-11-03,São Paulo,BOT,Kick Sauber,13,69.0
+2024,2024-11-03,São Paulo,ALO,Aston Martin,14,69.0
+2024,2024-11-03,São Paulo,ZHO,Kick Sauber,15,69.0
+2024,2024-11-03,São Paulo,SAI,Ferrari,16,39.0
+2024,2024-11-03,São Paulo,COL,Williams,17,30.0
+2024,2024-11-03,São Paulo,HUL,Haas F1 Team,18,30.0
+2024,2024-11-03,São Paulo,STR,Aston Martin,19,1.0
+2024,2024-10-20,United States,LEC,Ferrari,1,56.0
+2024,2024-10-20,United States,SAI,Ferrari,2,56.0
+2024,2024-10-20,United States,NOR,McLaren,3,56.0
+2024,2024-10-20,United States,VER,Red Bull Racing,4,56.0
+2024,2024-10-20,United States,PIA,McLaren,5,56.0
+2024,2024-10-20,United States,RUS,Mercedes,6,56.0
+2024,2024-10-20,United States,PER,Red Bull Racing,7,56.0
+2024,2024-10-20,United States,HUL,Haas F1 Team,8,56.0
+2024,2024-10-20,United States,LAW,RB,9,56.0
+2024,2024-10-20,United States,COL,Williams,10,56.0
+2024,2024-10-20,United States,MAG,Haas F1 Team,11,56.0
+2024,2024-10-20,United States,GAS,Alpine,12,56.0
+2024,2024-10-20,United States,ALO,Aston Martin,13,55.0
+2024,2024-10-20,United States,TSU,RB,14,55.0
+2024,2024-10-20,United States,STR,Aston Martin,15,55.0
+2024,2024-10-20,United States,ALB,Williams,16,55.0
+2024,2024-10-20,United States,BOT,Kick Sauber,17,55.0
+2024,2024-10-20,United States,OCO,Alpine,18,55.0
+2024,2024-10-20,United States,ZHO,Kick Sauber,19,55.0
+2024,2024-10-20,United States,HAM,Mercedes,20,2.0
+2025,2025-12-07,Abu Dhabi,VER,Red Bull Racing,1,58.0
+2025,2025-12-07,Abu Dhabi,PIA,McLaren,2,58.0
+2025,2025-12-07,Abu Dhabi,NOR,McLaren,3,58.0
+2025,2025-12-07,Abu Dhabi,LEC,Ferrari,4,58.0
+2025,2025-12-07,Abu Dhabi,RUS,Mercedes,5,58.0
+2025,2025-12-07,Abu Dhabi,ALO,Aston Martin,6,58.0
+2025,2025-12-07,Abu Dhabi,OCO,Haas F1 Team,7,58.0
+2025,2025-12-07,Abu Dhabi,HAM,Ferrari,8,58.0
+2025,2025-12-07,Abu Dhabi,STR,Aston Martin,9,58.0
+2025,2025-12-07,Abu Dhabi,BEA,Haas F1 Team,10,58.0
+2025,2025-12-07,Abu Dhabi,HUL,Kick Sauber,11,58.0
+2025,2025-12-07,Abu Dhabi,BOR,Kick Sauber,12,58.0
+2025,2025-12-07,Abu Dhabi,SAI,Williams,13,58.0
+2025,2025-12-07,Abu Dhabi,TSU,Red Bull Racing,14,58.0
+2025,2025-12-07,Abu Dhabi,ANT,Mercedes,15,58.0
+2025,2025-12-07,Abu Dhabi,ALB,Williams,16,58.0
+2025,2025-12-07,Abu Dhabi,HAD,Racing Bulls,17,57.0
+2025,2025-12-07,Abu Dhabi,LAW,Racing Bulls,18,57.0
+2025,2025-12-07,Abu Dhabi,GAS,Alpine,19,57.0
+2025,2025-12-07,Abu Dhabi,COL,Alpine,20,57.0
+2025,2025-03-16,Australian,NOR,McLaren,1,57.0
+2025,2025-03-16,Australian,VER,Red Bull Racing,2,57.0
+2025,2025-03-16,Australian,RUS,Mercedes,3,57.0
+2025,2025-03-16,Australian,ANT,Mercedes,4,57.0
+2025,2025-03-16,Australian,ALB,Williams,5,57.0
+2025,2025-03-16,Australian,STR,Aston Martin,6,57.0
+2025,2025-03-16,Australian,HUL,Kick Sauber,7,57.0
+2025,2025-03-16,Australian,LEC,Ferrari,8,57.0
+2025,2025-03-16,Australian,PIA,McLaren,9,57.0
+2025,2025-03-16,Australian,HAM,Ferrari,10,57.0
+2025,2025-03-16,Australian,GAS,Alpine,11,57.0
+2025,2025-03-16,Australian,TSU,Racing Bulls,12,57.0
+2025,2025-03-16,Australian,OCO,Haas F1 Team,13,57.0
+2025,2025-03-16,Australian,BEA,Haas F1 Team,14,57.0
+2025,2025-03-16,Australian,LAW,Red Bull Racing,15,47.0
+2025,2025-03-16,Australian,BOR,Kick Sauber,16,46.0
+2025,2025-03-16,Australian,ALO,Aston Martin,17,33.0
+2025,2025-03-16,Australian,DOO,Alpine,18,1.0
+2025,2025-03-16,Australian,HAD,Racing Bulls,19,1.0
+2025,2025-03-16,Australian,SAI,Williams,20,1.0
+2025,2025-06-29,Austrian,NOR,McLaren,1,70.0
+2025,2025-06-29,Austrian,PIA,McLaren,2,70.0
+2025,2025-06-29,Austrian,LEC,Ferrari,3,70.0
+2025,2025-06-29,Austrian,HAM,Ferrari,4,70.0
+2025,2025-06-29,Austrian,RUS,Mercedes,5,70.0
+2025,2025-06-29,Austrian,LAW,Racing Bulls,6,70.0
+2025,2025-06-29,Austrian,ALO,Aston Martin,7,69.0
+2025,2025-06-29,Austrian,BOR,Kick Sauber,8,69.0
+2025,2025-06-29,Austrian,HUL,Kick Sauber,9,69.0
+2025,2025-06-29,Austrian,OCO,Haas F1 Team,10,69.0
+2025,2025-06-29,Austrian,BEA,Haas F1 Team,11,69.0
+2025,2025-06-29,Austrian,HAD,Racing Bulls,12,69.0
+2025,2025-06-29,Austrian,GAS,Alpine,13,69.0
+2025,2025-06-29,Austrian,STR,Aston Martin,14,69.0
+2025,2025-06-29,Austrian,COL,Alpine,15,69.0
+2025,2025-06-29,Austrian,TSU,Red Bull Racing,16,68.0
+2025,2025-06-29,Austrian,ALB,Williams,17,15.0
+2025,2025-06-29,Austrian,ANT,Mercedes,18,1.0
+2025,2025-06-29,Austrian,SAI,Williams,19,1.0
+2025,2025-06-29,Austrian,VER,Red Bull Racing,20,1.0
+2025,2025-09-21,Azerbaijan,VER,Red Bull Racing,1,51.0
+2025,2025-09-21,Azerbaijan,RUS,Mercedes,2,51.0
+2025,2025-09-21,Azerbaijan,SAI,Williams,3,51.0
+2025,2025-09-21,Azerbaijan,ANT,Mercedes,4,51.0
+2025,2025-09-21,Azerbaijan,LAW,Racing Bulls,5,51.0
+2025,2025-09-21,Azerbaijan,TSU,Red Bull Racing,6,51.0
+2025,2025-09-21,Azerbaijan,NOR,McLaren,7,51.0
+2025,2025-09-21,Azerbaijan,HAM,Ferrari,8,51.0
+2025,2025-09-21,Azerbaijan,LEC,Ferrari,9,51.0
+2025,2025-09-21,Azerbaijan,HAD,Racing Bulls,10,51.0
+2025,2025-09-21,Azerbaijan,ALB,Williams,11,51.0
+2025,2025-09-21,Azerbaijan,BOR,Kick Sauber,12,51.0
+2025,2025-09-21,Azerbaijan,BEA,Haas F1 Team,13,51.0
+2025,2025-09-21,Azerbaijan,OCO,Haas F1 Team,14,51.0
+2025,2025-09-21,Azerbaijan,ALO,Aston Martin,15,51.0
+2025,2025-09-21,Azerbaijan,HUL,Kick Sauber,16,51.0
+2025,2025-09-21,Azerbaijan,STR,Aston Martin,17,51.0
+2025,2025-09-21,Azerbaijan,GAS,Alpine,18,50.0
+2025,2025-09-21,Azerbaijan,COL,Alpine,19,50.0
+2025,2025-09-21,Azerbaijan,PIA,McLaren,20,1.0
+2025,2025-04-13,Bahrain,PIA,McLaren,1,57.0
+2025,2025-04-13,Bahrain,RUS,Mercedes,2,57.0
+2025,2025-04-13,Bahrain,NOR,McLaren,3,57.0
+2025,2025-04-13,Bahrain,LEC,Ferrari,4,57.0
+2025,2025-04-13,Bahrain,HAM,Ferrari,5,57.0
+2025,2025-04-13,Bahrain,VER,Red Bull Racing,6,57.0
+2025,2025-04-13,Bahrain,GAS,Alpine,7,57.0
+2025,2025-04-13,Bahrain,OCO,Haas F1 Team,8,57.0
+2025,2025-04-13,Bahrain,TSU,Red Bull Racing,9,57.0
+2025,2025-04-13,Bahrain,BEA,Haas F1 Team,10,57.0
+2025,2025-04-13,Bahrain,ANT,Mercedes,11,57.0
+2025,2025-04-13,Bahrain,ALB,Williams,12,57.0
+2025,2025-04-13,Bahrain,LAW,Racing Bulls,13,57.0
+2025,2025-04-13,Bahrain,DOO,Alpine,14,57.0
+2025,2025-04-13,Bahrain,HUL,Kick Sauber,15,57.0
+2025,2025-04-13,Bahrain,HAD,Racing Bulls,16,57.0
+2025,2025-04-13,Bahrain,ALO,Aston Martin,17,57.0
+2025,2025-04-13,Bahrain,STR,Aston Martin,18,57.0
+2025,2025-04-13,Bahrain,BOR,Kick Sauber,19,57.0
+2025,2025-04-13,Bahrain,SAI,Williams,20,45.0
+2025,2025-07-27,Belgian,PIA,McLaren,1,44.0
+2025,2025-07-27,Belgian,NOR,McLaren,2,44.0
+2025,2025-07-27,Belgian,LEC,Ferrari,3,44.0
+2025,2025-07-27,Belgian,VER,Red Bull Racing,4,44.0
+2025,2025-07-27,Belgian,RUS,Mercedes,5,44.0
+2025,2025-07-27,Belgian,ALB,Williams,6,44.0
+2025,2025-07-27,Belgian,HAM,Ferrari,7,44.0
+2025,2025-07-27,Belgian,LAW,Racing Bulls,8,44.0
+2025,2025-07-27,Belgian,BOR,Kick Sauber,9,44.0
+2025,2025-07-27,Belgian,GAS,Alpine,10,44.0
+2025,2025-07-27,Belgian,BEA,Haas F1 Team,11,44.0
+2025,2025-07-27,Belgian,HUL,Kick Sauber,12,44.0
+2025,2025-07-27,Belgian,TSU,Red Bull Racing,13,44.0
+2025,2025-07-27,Belgian,STR,Aston Martin,14,44.0
+2025,2025-07-27,Belgian,OCO,Haas F1 Team,15,44.0
+2025,2025-07-27,Belgian,ANT,Mercedes,16,44.0
+2025,2025-07-27,Belgian,ALO,Aston Martin,17,44.0
+2025,2025-07-27,Belgian,SAI,Williams,18,44.0
+2025,2025-07-27,Belgian,COL,Alpine,19,44.0
+2025,2025-07-27,Belgian,HAD,Racing Bulls,20,43.0
+2025,2025-07-06,British,NOR,McLaren,1,52.0
+2025,2025-07-06,British,PIA,McLaren,2,52.0
+2025,2025-07-06,British,HUL,Kick Sauber,3,52.0
+2025,2025-07-06,British,HAM,Ferrari,4,52.0
+2025,2025-07-06,British,VER,Red Bull Racing,5,52.0
+2025,2025-07-06,British,GAS,Alpine,6,52.0
+2025,2025-07-06,British,STR,Aston Martin,7,52.0
+2025,2025-07-06,British,ALB,Williams,8,52.0
+2025,2025-07-06,British,ALO,Aston Martin,9,52.0
+2025,2025-07-06,British,RUS,Mercedes,10,52.0
+2025,2025-07-06,British,BEA,Haas F1 Team,11,52.0
+2025,2025-07-06,British,SAI,Williams,12,52.0
+2025,2025-07-06,British,OCO,Haas F1 Team,13,52.0
+2025,2025-07-06,British,LEC,Ferrari,14,52.0
+2025,2025-07-06,British,TSU,Red Bull Racing,15,51.0
+2025,2025-07-06,British,ANT,Mercedes,16,23.0
+2025,2025-07-06,British,HAD,Racing Bulls,17,18.0
+2025,2025-07-06,British,BOR,Kick Sauber,18,4.0
+2025,2025-07-06,British,COL,Alpine,19,1.0
+2025,2025-07-06,British,LAW,Racing Bulls,20,1.0
+2025,2025-06-15,Canadian,RUS,Mercedes,1,70.0
+2025,2025-06-15,Canadian,VER,Red Bull Racing,2,70.0
+2025,2025-06-15,Canadian,ANT,Mercedes,3,70.0
+2025,2025-06-15,Canadian,PIA,McLaren,4,70.0
+2025,2025-06-15,Canadian,LEC,Ferrari,5,70.0
+2025,2025-06-15,Canadian,HAM,Ferrari,6,70.0
+2025,2025-06-15,Canadian,ALO,Aston Martin,7,70.0
+2025,2025-06-15,Canadian,HUL,Kick Sauber,8,70.0
+2025,2025-06-15,Canadian,OCO,Haas F1 Team,9,69.0
+2025,2025-06-15,Canadian,SAI,Williams,10,69.0
+2025,2025-06-15,Canadian,BEA,Haas F1 Team,11,69.0
+2025,2025-06-15,Canadian,TSU,Red Bull Racing,12,69.0
+2025,2025-06-15,Canadian,COL,Alpine,13,69.0
+2025,2025-06-15,Canadian,BOR,Kick Sauber,14,69.0
+2025,2025-06-15,Canadian,GAS,Alpine,15,69.0
+2025,2025-06-15,Canadian,HAD,Racing Bulls,16,69.0
+2025,2025-06-15,Canadian,STR,Aston Martin,17,69.0
+2025,2025-06-15,Canadian,NOR,McLaren,18,67.0
+2025,2025-06-15,Canadian,LAW,Racing Bulls,19,54.0
+2025,2025-06-15,Canadian,ALB,Williams,20,47.0
+2025,2025-03-23,Chinese,PIA,McLaren,1,56.0
+2025,2025-03-23,Chinese,NOR,McLaren,2,56.0
+2025,2025-03-23,Chinese,RUS,Mercedes,3,56.0
+2025,2025-03-23,Chinese,VER,Red Bull Racing,4,56.0
+2025,2025-03-23,Chinese,LEC,Ferrari,5,56.0
+2025,2025-03-23,Chinese,HAM,Ferrari,6,56.0
+2025,2025-03-23,Chinese,OCO,Haas F1 Team,7,56.0
+2025,2025-03-23,Chinese,ANT,Mercedes,8,56.0
+2025,2025-03-23,Chinese,ALB,Williams,9,56.0
+2025,2025-03-23,Chinese,BEA,Haas F1 Team,10,56.0
+2025,2025-03-23,Chinese,GAS,Alpine,11,56.0
+2025,2025-03-23,Chinese,STR,Aston Martin,12,56.0
+2025,2025-03-23,Chinese,SAI,Williams,13,56.0
+2025,2025-03-23,Chinese,DOO,Alpine,14,56.0
+2025,2025-03-23,Chinese,HAD,Racing Bulls,15,56.0
+2025,2025-03-23,Chinese,LAW,Red Bull Racing,16,56.0
+2025,2025-03-23,Chinese,BOR,Kick Sauber,17,55.0
+2025,2025-03-23,Chinese,HUL,Kick Sauber,18,55.0
+2025,2025-03-23,Chinese,TSU,Racing Bulls,19,55.0
+2025,2025-03-23,Chinese,ALO,Aston Martin,20,4.0
+2025,2025-08-31,Dutch,PIA,McLaren,1,72.0
+2025,2025-08-31,Dutch,VER,Red Bull Racing,2,72.0
+2025,2025-08-31,Dutch,HAD,Racing Bulls,3,72.0
+2025,2025-08-31,Dutch,RUS,Mercedes,4,72.0
+2025,2025-08-31,Dutch,ALB,Williams,5,72.0
+2025,2025-08-31,Dutch,ANT,Mercedes,6,72.0
+2025,2025-08-31,Dutch,BEA,Haas F1 Team,7,72.0
+2025,2025-08-31,Dutch,STR,Aston Martin,8,72.0
+2025,2025-08-31,Dutch,ALO,Aston Martin,9,72.0
+2025,2025-08-31,Dutch,TSU,Red Bull Racing,10,72.0
+2025,2025-08-31,Dutch,OCO,Haas F1 Team,11,72.0
+2025,2025-08-31,Dutch,COL,Alpine,12,72.0
+2025,2025-08-31,Dutch,LAW,Racing Bulls,13,72.0
+2025,2025-08-31,Dutch,SAI,Williams,14,72.0
+2025,2025-08-31,Dutch,HUL,Kick Sauber,15,72.0
+2025,2025-08-31,Dutch,BOR,Kick Sauber,16,72.0
+2025,2025-08-31,Dutch,GAS,Alpine,17,72.0
+2025,2025-08-31,Dutch,NOR,McLaren,18,65.0
+2025,2025-08-31,Dutch,LEC,Ferrari,19,52.0
+2025,2025-08-31,Dutch,HAM,Ferrari,20,23.0
+2025,2025-05-18,Emilia Romagna,VER,Red Bull Racing,1,63.0
+2025,2025-05-18,Emilia Romagna,NOR,McLaren,2,63.0
+2025,2025-05-18,Emilia Romagna,PIA,McLaren,3,63.0
+2025,2025-05-18,Emilia Romagna,HAM,Ferrari,4,63.0
+2025,2025-05-18,Emilia Romagna,ALB,Williams,5,63.0
+2025,2025-05-18,Emilia Romagna,LEC,Ferrari,6,63.0
+2025,2025-05-18,Emilia Romagna,RUS,Mercedes,7,63.0
+2025,2025-05-18,Emilia Romagna,SAI,Williams,8,63.0
+2025,2025-05-18,Emilia Romagna,HAD,Racing Bulls,9,63.0
+2025,2025-05-18,Emilia Romagna,TSU,Red Bull Racing,10,63.0
+2025,2025-05-18,Emilia Romagna,ALO,Aston Martin,11,63.0
+2025,2025-05-18,Emilia Romagna,HUL,Kick Sauber,12,63.0
+2025,2025-05-18,Emilia Romagna,GAS,Alpine,13,63.0
+2025,2025-05-18,Emilia Romagna,LAW,Racing Bulls,14,63.0
+2025,2025-05-18,Emilia Romagna,STR,Aston Martin,15,63.0
+2025,2025-05-18,Emilia Romagna,COL,Alpine,16,63.0
+2025,2025-05-18,Emilia Romagna,BEA,Haas F1 Team,17,63.0
+2025,2025-05-18,Emilia Romagna,BOR,Kick Sauber,18,63.0
+2025,2025-05-18,Emilia Romagna,ANT,Mercedes,19,45.0
+2025,2025-05-18,Emilia Romagna,OCO,Haas F1 Team,20,28.0
+2025,2025-08-03,Hungarian,NOR,McLaren,1,70.0
+2025,2025-08-03,Hungarian,PIA,McLaren,2,70.0
+2025,2025-08-03,Hungarian,RUS,Mercedes,3,70.0
+2025,2025-08-03,Hungarian,LEC,Ferrari,4,70.0
+2025,2025-08-03,Hungarian,ALO,Aston Martin,5,70.0
+2025,2025-08-03,Hungarian,BOR,Kick Sauber,6,70.0
+2025,2025-08-03,Hungarian,STR,Aston Martin,7,70.0
+2025,2025-08-03,Hungarian,LAW,Racing Bulls,8,70.0
+2025,2025-08-03,Hungarian,VER,Red Bull Racing,9,70.0
+2025,2025-08-03,Hungarian,ANT,Mercedes,10,69.0
+2025,2025-08-03,Hungarian,HAD,Racing Bulls,11,69.0
+2025,2025-08-03,Hungarian,HAM,Ferrari,12,69.0
+2025,2025-08-03,Hungarian,HUL,Kick Sauber,13,69.0
+2025,2025-08-03,Hungarian,SAI,Williams,14,69.0
+2025,2025-08-03,Hungarian,ALB,Williams,15,69.0
+2025,2025-08-03,Hungarian,OCO,Haas F1 Team,16,69.0
+2025,2025-08-03,Hungarian,GAS,Alpine,17,69.0
+2025,2025-08-03,Hungarian,TSU,Red Bull Racing,18,69.0
+2025,2025-08-03,Hungarian,COL,Alpine,19,69.0
+2025,2025-08-03,Hungarian,BEA,Haas F1 Team,20,48.0
+2025,2025-09-07,Italian,VER,Red Bull Racing,1,53.0
+2025,2025-09-07,Italian,NOR,McLaren,2,53.0
+2025,2025-09-07,Italian,PIA,McLaren,3,53.0
+2025,2025-09-07,Italian,LEC,Ferrari,4,53.0
+2025,2025-09-07,Italian,RUS,Mercedes,5,53.0
+2025,2025-09-07,Italian,HAM,Ferrari,6,53.0
+2025,2025-09-07,Italian,ALB,Williams,7,53.0
+2025,2025-09-07,Italian,ANT,Mercedes,8,53.0
+2025,2025-09-07,Italian,BOR,Kick Sauber,9,53.0
+2025,2025-09-07,Italian,HAD,Racing Bulls,10,53.0
+2025,2025-09-07,Italian,SAI,Williams,11,53.0
+2025,2025-09-07,Italian,BEA,Haas F1 Team,12,53.0
+2025,2025-09-07,Italian,TSU,Red Bull Racing,13,53.0
+2025,2025-09-07,Italian,LAW,Racing Bulls,14,53.0
+2025,2025-09-07,Italian,OCO,Haas F1 Team,15,52.0
+2025,2025-09-07,Italian,GAS,Alpine,16,52.0
+2025,2025-09-07,Italian,COL,Alpine,17,52.0
+2025,2025-09-07,Italian,STR,Aston Martin,18,52.0
+2025,2025-09-07,Italian,ALO,Aston Martin,19,24.0
+2025,2025-09-07,Italian,HUL,Kick Sauber,20,1.0
+2025,2025-04-06,Japanese,VER,Red Bull Racing,1,53.0
+2025,2025-04-06,Japanese,NOR,McLaren,2,53.0
+2025,2025-04-06,Japanese,PIA,McLaren,3,53.0
+2025,2025-04-06,Japanese,LEC,Ferrari,4,53.0
+2025,2025-04-06,Japanese,RUS,Mercedes,5,53.0
+2025,2025-04-06,Japanese,ANT,Mercedes,6,53.0
+2025,2025-04-06,Japanese,HAM,Ferrari,7,53.0
+2025,2025-04-06,Japanese,HAD,Racing Bulls,8,53.0
+2025,2025-04-06,Japanese,ALB,Williams,9,53.0
+2025,2025-04-06,Japanese,BEA,Haas F1 Team,10,53.0
+2025,2025-04-06,Japanese,ALO,Aston Martin,11,53.0
+2025,2025-04-06,Japanese,TSU,Red Bull Racing,12,53.0
+2025,2025-04-06,Japanese,GAS,Alpine,13,53.0
+2025,2025-04-06,Japanese,SAI,Williams,14,53.0
+2025,2025-04-06,Japanese,DOO,Alpine,15,53.0
+2025,2025-04-06,Japanese,HUL,Kick Sauber,16,53.0
+2025,2025-04-06,Japanese,LAW,Racing Bulls,17,53.0
+2025,2025-04-06,Japanese,OCO,Haas F1 Team,18,53.0
+2025,2025-04-06,Japanese,BOR,Kick Sauber,19,53.0
+2025,2025-04-06,Japanese,STR,Aston Martin,20,52.0
+2025,2025-11-23,Las Vegas,VER,Red Bull Racing,1,50.0
+2025,2025-11-23,Las Vegas,NOR,McLaren,2,50.0
+2025,2025-11-23,Las Vegas,RUS,Mercedes,3,50.0
+2025,2025-11-23,Las Vegas,ANT,Mercedes,4,50.0
+2025,2025-11-23,Las Vegas,PIA,McLaren,5,50.0
+2025,2025-11-23,Las Vegas,LEC,Ferrari,6,50.0
+2025,2025-11-23,Las Vegas,SAI,Williams,7,50.0
+2025,2025-11-23,Las Vegas,HAD,Racing Bulls,8,50.0
+2025,2025-11-23,Las Vegas,HUL,Kick Sauber,9,50.0
+2025,2025-11-23,Las Vegas,HAM,Ferrari,10,50.0
+2025,2025-11-23,Las Vegas,OCO,Haas F1 Team,11,50.0
+2025,2025-11-23,Las Vegas,BEA,Haas F1 Team,12,50.0
+2025,2025-11-23,Las Vegas,ALO,Aston Martin,13,50.0
+2025,2025-11-23,Las Vegas,TSU,Red Bull Racing,14,50.0
+2025,2025-11-23,Las Vegas,GAS,Alpine,15,50.0
+2025,2025-11-23,Las Vegas,LAW,Racing Bulls,16,49.0
+2025,2025-11-23,Las Vegas,COL,Alpine,17,49.0
+2025,2025-11-23,Las Vegas,ALB,Williams,18,35.0
+2025,2025-11-23,Las Vegas,BOR,Kick Sauber,19,2.0
+2025,2025-11-23,Las Vegas,STR,Aston Martin,20,1.0
+2025,2025-10-26,Mexico City,NOR,McLaren,1,71.0
+2025,2025-10-26,Mexico City,LEC,Ferrari,2,71.0
+2025,2025-10-26,Mexico City,VER,Red Bull Racing,3,71.0
+2025,2025-10-26,Mexico City,BEA,Haas F1 Team,4,71.0
+2025,2025-10-26,Mexico City,PIA,McLaren,5,71.0
+2025,2025-10-26,Mexico City,ANT,Mercedes,6,71.0
+2025,2025-10-26,Mexico City,RUS,Mercedes,7,71.0
+2025,2025-10-26,Mexico City,HAM,Ferrari,8,71.0
+2025,2025-10-26,Mexico City,OCO,Haas F1 Team,9,71.0
+2025,2025-10-26,Mexico City,BOR,Kick Sauber,10,71.0
+2025,2025-10-26,Mexico City,TSU,Red Bull Racing,11,71.0
+2025,2025-10-26,Mexico City,ALB,Williams,12,70.0
+2025,2025-10-26,Mexico City,HAD,Racing Bulls,13,70.0
+2025,2025-10-26,Mexico City,STR,Aston Martin,14,70.0
+2025,2025-10-26,Mexico City,GAS,Alpine,15,70.0
+2025,2025-10-26,Mexico City,COL,Alpine,16,70.0
+2025,2025-10-26,Mexico City,SAI,Williams,17,68.0
+2025,2025-10-26,Mexico City,ALO,Aston Martin,18,34.0
+2025,2025-10-26,Mexico City,HUL,Kick Sauber,19,25.0
+2025,2025-10-26,Mexico City,LAW,Racing Bulls,20,5.0
+2025,2025-05-04,Miami,PIA,McLaren,1,57.0
+2025,2025-05-04,Miami,NOR,McLaren,2,57.0
+2025,2025-05-04,Miami,RUS,Mercedes,3,57.0
+2025,2025-05-04,Miami,VER,Red Bull Racing,4,57.0
+2025,2025-05-04,Miami,ALB,Williams,5,57.0
+2025,2025-05-04,Miami,ANT,Mercedes,6,57.0
+2025,2025-05-04,Miami,LEC,Ferrari,7,57.0
+2025,2025-05-04,Miami,HAM,Ferrari,8,57.0
+2025,2025-05-04,Miami,SAI,Williams,9,57.0
+2025,2025-05-04,Miami,TSU,Red Bull Racing,10,57.0
+2025,2025-05-04,Miami,HAD,Racing Bulls,11,57.0
+2025,2025-05-04,Miami,OCO,Haas F1 Team,12,57.0
+2025,2025-05-04,Miami,GAS,Alpine,13,57.0
+2025,2025-05-04,Miami,HUL,Kick Sauber,14,56.0
+2025,2025-05-04,Miami,ALO,Aston Martin,15,56.0
+2025,2025-05-04,Miami,STR,Aston Martin,16,56.0
+2025,2025-05-04,Miami,LAW,Racing Bulls,17,36.0
+2025,2025-05-04,Miami,BOR,Kick Sauber,18,31.0
+2025,2025-05-04,Miami,BEA,Haas F1 Team,19,28.0
+2025,2025-05-04,Miami,DOO,Alpine,20,1.0
+2025,2025-05-25,Monaco,NOR,McLaren,1,78.0
+2025,2025-05-25,Monaco,LEC,Ferrari,2,78.0
+2025,2025-05-25,Monaco,PIA,McLaren,3,78.0
+2025,2025-05-25,Monaco,VER,Red Bull Racing,4,78.0
+2025,2025-05-25,Monaco,HAM,Ferrari,5,78.0
+2025,2025-05-25,Monaco,HAD,Racing Bulls,6,77.0
+2025,2025-05-25,Monaco,OCO,Haas F1 Team,7,77.0
+2025,2025-05-25,Monaco,LAW,Racing Bulls,8,77.0
+2025,2025-05-25,Monaco,ALB,Williams,9,76.0
+2025,2025-05-25,Monaco,SAI,Williams,10,76.0
+2025,2025-05-25,Monaco,RUS,Mercedes,11,76.0
+2025,2025-05-25,Monaco,BEA,Haas F1 Team,12,76.0
+2025,2025-05-25,Monaco,COL,Alpine,13,76.0
+2025,2025-05-25,Monaco,BOR,Kick Sauber,14,76.0
+2025,2025-05-25,Monaco,STR,Aston Martin,15,76.0
+2025,2025-05-25,Monaco,HUL,Kick Sauber,16,76.0
+2025,2025-05-25,Monaco,TSU,Red Bull Racing,17,76.0
+2025,2025-05-25,Monaco,ANT,Mercedes,18,75.0
+2025,2025-05-25,Monaco,ALO,Aston Martin,19,37.0
+2025,2025-05-25,Monaco,GAS,Alpine,20,8.0
+2025,2025-11-30,Qatar,VER,Red Bull Racing,1,57.0
+2025,2025-11-30,Qatar,PIA,McLaren,2,57.0
+2025,2025-11-30,Qatar,SAI,Williams,3,57.0
+2025,2025-11-30,Qatar,NOR,McLaren,4,57.0
+2025,2025-11-30,Qatar,ANT,Mercedes,5,57.0
+2025,2025-11-30,Qatar,RUS,Mercedes,6,57.0
+2025,2025-11-30,Qatar,ALO,Aston Martin,7,57.0
+2025,2025-11-30,Qatar,LEC,Ferrari,8,57.0
+2025,2025-11-30,Qatar,LAW,Racing Bulls,9,57.0
+2025,2025-11-30,Qatar,TSU,Red Bull Racing,10,57.0
+2025,2025-11-30,Qatar,ALB,Williams,11,57.0
+2025,2025-11-30,Qatar,HAM,Ferrari,12,57.0
+2025,2025-11-30,Qatar,BOR,Kick Sauber,13,57.0
+2025,2025-11-30,Qatar,COL,Alpine,14,56.0
+2025,2025-11-30,Qatar,OCO,Haas F1 Team,15,56.0
+2025,2025-11-30,Qatar,GAS,Alpine,16,56.0
+2025,2025-11-30,Qatar,STR,Aston Martin,17,55.0
+2025,2025-11-30,Qatar,HAD,Racing Bulls,18,55.0
+2025,2025-11-30,Qatar,BEA,Haas F1 Team,19,41.0
+2025,2025-11-30,Qatar,HUL,Kick Sauber,20,7.0
+2025,2025-04-20,Saudi Arabian,PIA,McLaren,1,50.0
+2025,2025-04-20,Saudi Arabian,VER,Red Bull Racing,2,50.0
+2025,2025-04-20,Saudi Arabian,LEC,Ferrari,3,50.0
+2025,2025-04-20,Saudi Arabian,NOR,McLaren,4,50.0
+2025,2025-04-20,Saudi Arabian,RUS,Mercedes,5,50.0
+2025,2025-04-20,Saudi Arabian,ANT,Mercedes,6,50.0
+2025,2025-04-20,Saudi Arabian,HAM,Ferrari,7,50.0
+2025,2025-04-20,Saudi Arabian,SAI,Williams,8,50.0
+2025,2025-04-20,Saudi Arabian,ALB,Williams,9,50.0
+2025,2025-04-20,Saudi Arabian,HAD,Racing Bulls,10,50.0
+2025,2025-04-20,Saudi Arabian,LAW,Racing Bulls,11,50.0
+2025,2025-04-20,Saudi Arabian,ALO,Aston Martin,12,50.0
+2025,2025-04-20,Saudi Arabian,BEA,Haas F1 Team,13,50.0
+2025,2025-04-20,Saudi Arabian,OCO,Haas F1 Team,14,50.0
+2025,2025-04-20,Saudi Arabian,HUL,Kick Sauber,15,49.0
+2025,2025-04-20,Saudi Arabian,STR,Aston Martin,16,49.0
+2025,2025-04-20,Saudi Arabian,DOO,Alpine,17,49.0
+2025,2025-04-20,Saudi Arabian,BOR,Kick Sauber,18,49.0
+2025,2025-04-20,Saudi Arabian,TSU,Red Bull Racing,19,1.0
+2025,2025-04-20,Saudi Arabian,GAS,Alpine,20,1.0
+2025,2025-10-05,Singapore,RUS,Mercedes,1,62.0
+2025,2025-10-05,Singapore,VER,Red Bull Racing,2,62.0
+2025,2025-10-05,Singapore,NOR,McLaren,3,62.0
+2025,2025-10-05,Singapore,PIA,McLaren,4,62.0
+2025,2025-10-05,Singapore,ANT,Mercedes,5,62.0
+2025,2025-10-05,Singapore,LEC,Ferrari,6,62.0
+2025,2025-10-05,Singapore,HAM,Ferrari,7,62.0
+2025,2025-10-05,Singapore,ALO,Aston Martin,8,62.0
+2025,2025-10-05,Singapore,BEA,Haas F1 Team,9,62.0
+2025,2025-10-05,Singapore,SAI,Williams,10,61.0
+2025,2025-10-05,Singapore,HAD,Racing Bulls,11,61.0
+2025,2025-10-05,Singapore,TSU,Red Bull Racing,12,61.0
+2025,2025-10-05,Singapore,STR,Aston Martin,13,61.0
+2025,2025-10-05,Singapore,ALB,Williams,14,61.0
+2025,2025-10-05,Singapore,LAW,Racing Bulls,15,61.0
+2025,2025-10-05,Singapore,COL,Alpine,16,61.0
+2025,2025-10-05,Singapore,BOR,Kick Sauber,17,61.0
+2025,2025-10-05,Singapore,OCO,Haas F1 Team,18,61.0
+2025,2025-10-05,Singapore,GAS,Alpine,19,61.0
+2025,2025-10-05,Singapore,HUL,Kick Sauber,20,61.0
+2025,2025-06-01,Spanish,PIA,McLaren,1,66.0
+2025,2025-06-01,Spanish,NOR,McLaren,2,66.0
+2025,2025-06-01,Spanish,LEC,Ferrari,3,66.0
+2025,2025-06-01,Spanish,RUS,Mercedes,4,66.0
+2025,2025-06-01,Spanish,VER,Red Bull Racing,5,66.0
+2025,2025-06-01,Spanish,HUL,Kick Sauber,6,66.0
+2025,2025-06-01,Spanish,HAM,Ferrari,7,66.0
+2025,2025-06-01,Spanish,HAD,Racing Bulls,8,66.0
+2025,2025-06-01,Spanish,GAS,Alpine,9,66.0
+2025,2025-06-01,Spanish,ALO,Aston Martin,10,66.0
+2025,2025-06-01,Spanish,LAW,Racing Bulls,11,66.0
+2025,2025-06-01,Spanish,BOR,Kick Sauber,12,66.0
+2025,2025-06-01,Spanish,BEA,Haas F1 Team,13,66.0
+2025,2025-06-01,Spanish,TSU,Red Bull Racing,14,66.0
+2025,2025-06-01,Spanish,SAI,Williams,15,66.0
+2025,2025-06-01,Spanish,COL,Alpine,16,66.0
+2025,2025-06-01,Spanish,OCO,Haas F1 Team,17,66.0
+2025,2025-06-01,Spanish,ANT,Mercedes,18,54.0
+2025,2025-06-01,Spanish,ALB,Williams,19,27.0
+2025,2025-11-09,São Paulo,NOR,McLaren,1,71.0
+2025,2025-11-09,São Paulo,ANT,Mercedes,2,71.0
+2025,2025-11-09,São Paulo,VER,Red Bull Racing,3,71.0
+2025,2025-11-09,São Paulo,RUS,Mercedes,4,71.0
+2025,2025-11-09,São Paulo,PIA,McLaren,5,71.0
+2025,2025-11-09,São Paulo,BEA,Haas F1 Team,6,71.0
+2025,2025-11-09,São Paulo,LAW,Racing Bulls,7,71.0
+2025,2025-11-09,São Paulo,HAD,Racing Bulls,8,71.0
+2025,2025-11-09,São Paulo,HUL,Kick Sauber,9,71.0
+2025,2025-11-09,São Paulo,GAS,Alpine,10,71.0
+2025,2025-11-09,São Paulo,ALB,Williams,11,71.0
+2025,2025-11-09,São Paulo,OCO,Haas F1 Team,12,71.0
+2025,2025-11-09,São Paulo,SAI,Williams,13,71.0
+2025,2025-11-09,São Paulo,ALO,Aston Martin,14,71.0
+2025,2025-11-09,São Paulo,COL,Alpine,15,71.0
+2025,2025-11-09,São Paulo,STR,Aston Martin,16,71.0
+2025,2025-11-09,São Paulo,TSU,Red Bull Racing,17,71.0
+2025,2025-11-09,São Paulo,HAM,Ferrari,18,37.0
+2025,2025-11-09,São Paulo,LEC,Ferrari,19,6.0
+2025,2025-11-09,São Paulo,BOR,Kick Sauber,20,1.0
+2025,2025-10-19,United States,VER,Red Bull Racing,1,56.0
+2025,2025-10-19,United States,NOR,McLaren,2,56.0
+2025,2025-10-19,United States,LEC,Ferrari,3,56.0
+2025,2025-10-19,United States,HAM,Ferrari,4,56.0
+2025,2025-10-19,United States,PIA,McLaren,5,56.0
+2025,2025-10-19,United States,RUS,Mercedes,6,56.0
+2025,2025-10-19,United States,TSU,Red Bull Racing,7,56.0
+2025,2025-10-19,United States,HUL,Kick Sauber,8,56.0
+2025,2025-10-19,United States,BEA,Haas F1 Team,9,56.0
+2025,2025-10-19,United States,ALO,Aston Martin,10,56.0
+2025,2025-10-19,United States,LAW,Racing Bulls,11,56.0
+2025,2025-10-19,United States,STR,Aston Martin,12,56.0
+2025,2025-10-19,United States,ANT,Mercedes,13,56.0
+2025,2025-10-19,United States,ALB,Williams,14,56.0
+2025,2025-10-19,United States,OCO,Haas F1 Team,15,56.0
+2025,2025-10-19,United States,HAD,Racing Bulls,16,56.0
+2025,2025-10-19,United States,COL,Alpine,17,55.0
+2025,2025-10-19,United States,BOR,Kick Sauber,18,55.0
+2025,2025-10-19,United States,GAS,Alpine,19,55.0
+2025,2025-10-19,United States,SAI,Williams,20,6.0
+2026,2026-03-08,Australian,RUS,Mercedes,1,58.0
+2026,2026-03-08,Australian,ANT,Mercedes,2,58.0
+2026,2026-03-08,Australian,LEC,Ferrari,3,58.0
+2026,2026-03-08,Australian,HAM,Ferrari,4,58.0
+2026,2026-03-08,Australian,NOR,McLaren,5,58.0
+2026,2026-03-08,Australian,VER,Red Bull Racing,6,58.0
+2026,2026-03-08,Australian,BEA,Haas F1 Team,7,57.0
+2026,2026-03-08,Australian,LIN,Racing Bulls,8,57.0
+2026,2026-03-08,Australian,BOR,Audi,9,57.0
+2026,2026-03-08,Australian,GAS,Alpine,10,57.0
+2026,2026-03-08,Australian,OCO,Haas F1 Team,11,57.0
+2026,2026-03-08,Australian,ALB,Williams,12,57.0
+2026,2026-03-08,Australian,LAW,Racing Bulls,13,57.0
+2026,2026-03-08,Australian,COL,Alpine,14,56.0
+2026,2026-03-08,Australian,SAI,Williams,15,56.0
+2026,2026-03-08,Australian,PER,Cadillac,16,55.0
+2026,2026-03-08,Australian,STR,Aston Martin,17,43.0
+2026,2026-03-08,Australian,ALO,Aston Martin,18,22.0
+2026,2026-03-08,Australian,BOT,Cadillac,19,17.0
+2026,2026-03-08,Australian,HAD,Red Bull Racing,20,12.0
+2026,2026-06-28,Austrian,RUS,Mercedes,1,71.0
+2026,2026-06-28,Austrian,VER,Red Bull Racing,2,71.0
+2026,2026-06-28,Austrian,ANT,Mercedes,3,71.0
+2026,2026-06-28,Austrian,PIA,McLaren,4,71.0
+2026,2026-06-28,Austrian,HAM,Ferrari,5,71.0
+2026,2026-06-28,Austrian,HAD,Red Bull Racing,6,71.0
+2026,2026-06-28,Austrian,NOR,McLaren,7,71.0
+2026,2026-06-28,Austrian,LEC,Ferrari,8,71.0
+2026,2026-06-28,Austrian,LAW,Racing Bulls,9,70.0
+2026,2026-06-28,Austrian,LIN,Racing Bulls,10,70.0
+2026,2026-06-28,Austrian,BOR,Audi,11,70.0
+2026,2026-06-28,Austrian,HUL,Audi,12,70.0
+2026,2026-06-28,Austrian,GAS,Alpine,13,70.0
+2026,2026-06-28,Austrian,BEA,Haas F1 Team,14,70.0
+2026,2026-06-28,Austrian,COL,Alpine,15,70.0
+2026,2026-06-28,Austrian,OCO,Haas F1 Team,16,69.0
+2026,2026-06-28,Austrian,ALB,Williams,17,69.0
+2026,2026-06-28,Austrian,ALO,Aston Martin,18,68.0
+2026,2026-06-28,Austrian,STR,Aston Martin,19,45.0
+2026,2026-06-28,Austrian,SAI,Williams,20,25.0
+2026,2026-06-28,Austrian,PER,Cadillac,21,4.0
+2026,2026-06-28,Austrian,BOT,Cadillac,22,2.0
+2026,2026-09-26,Azerbaijan,RUS,Mercedes,1,51.0
+2026,2026-09-26,Azerbaijan,VER,Red Bull Racing,2,51.0
+2026,2026-09-26,Azerbaijan,HAD,Red Bull Racing,3,51.0
+2026,2026-09-26,Azerbaijan,LEC,Ferrari,4,51.0
+2026,2026-09-26,Azerbaijan,ANT,Mercedes,5,51.0
+2026,2026-09-26,Azerbaijan,HAM,Ferrari,6,51.0
+2026,2026-09-26,Azerbaijan,LIN,Racing Bulls,7,51.0
+2026,2026-09-26,Azerbaijan,OCO,Haas F1 Team,8,51.0
+2026,2026-09-26,Azerbaijan,BEA,Haas F1 Team,9,51.0
+2026,2026-09-26,Azerbaijan,SAI,Williams,10,51.0
+2026,2026-09-26,Azerbaijan,HUL,Audi,11,51.0
+2026,2026-09-26,Azerbaijan,LAW,Racing Bulls,12,51.0
+2026,2026-09-26,Azerbaijan,BOR,Audi,13,51.0
+2026,2026-09-26,Azerbaijan,PIA,McLaren,14,51.0
+2026,2026-09-26,Azerbaijan,PER,Cadillac,15,51.0
+2026,2026-09-26,Azerbaijan,BOT,Cadillac,16,51.0
+2026,2026-09-26,Azerbaijan,GAS,Alpine,17,37.0
+2026,2026-09-26,Azerbaijan,NOR,McLaren,18,37.0
+2026,2026-09-26,Azerbaijan,COL,Alpine,19,36.0
+2026,2026-09-26,Azerbaijan,ALB,Williams,20,31.0
+2026,2026-09-26,Azerbaijan,ALO,Aston Martin,21,20.0
+2026,2026-09-26,Azerbaijan,STR,Aston Martin,22,9.0
+2026,2026-10-04,Bahrain,VER,Red Bull Racing,1,55.0
+2026,2026-10-04,Bahrain,ANT,Mercedes,2,55.0
+2026,2026-10-04,Bahrain,HAM,Ferrari,3,55.0
+2026,2026-10-04,Bahrain,LEC,Ferrari,4,55.0
+2026,2026-10-04,Bahrain,HAD,Red Bull Racing,5,55.0
+2026,2026-10-04,Bahrain,PIA,McLaren,6,55.0
+2026,2026-10-04,Bahrain,LAW,Racing Bulls,7,55.0
+2026,2026-10-04,Bahrain,ALO,Aston Martin,8,55.0
+2026,2026-10-04,Bahrain,NOR,McLaren,9,55.0
+2026,2026-10-04,Bahrain,LIN,Racing Bulls,10,55.0
+2026,2026-10-04,Bahrain,HUL,Audi,11,55.0
+2026,2026-10-04,Bahrain,STR,Aston Martin,12,55.0
+2026,2026-10-04,Bahrain,COL,Alpine,13,55.0
+2026,2026-10-04,Bahrain,BEA,Haas F1 Team,14,55.0
+2026,2026-10-04,Bahrain,OCO,Haas F1 Team,15,55.0
+2026,2026-10-04,Bahrain,GAS,Alpine,16,55.0
+2026,2026-10-04,Bahrain,SAI,Williams,17,55.0
+2026,2026-10-04,Bahrain,BOR,Audi,18,55.0
+2026,2026-10-04,Bahrain,PER,Cadillac,19,55.0
+2026,2026-10-04,Bahrain,RUS,Mercedes,20,51.0
+2026,2026-10-04,Bahrain,ALB,Williams,21,43.0
+2026,2026-10-04,Bahrain,BOT,Cadillac,22,9.0
+2026,2026-06-14,Barcelona,HAM,Ferrari,1,66.0
+2026,2026-06-14,Barcelona,RUS,Mercedes,2,66.0
+2026,2026-06-14,Barcelona,NOR,McLaren,3,66.0
+2026,2026-06-14,Barcelona,VER,Red Bull Racing,4,66.0
+2026,2026-06-14,Barcelona,PIA,McLaren,5,66.0
+2026,2026-06-14,Barcelona,HAD,Red Bull Racing,6,65.0
+2026,2026-06-14,Barcelona,GAS,Alpine,7,65.0
+2026,2026-06-14,Barcelona,COL,Alpine,8,65.0
+2026,2026-06-14,Barcelona,LAW,Racing Bulls,9,65.0
+2026,2026-06-14,Barcelona,LIN,Racing Bulls,10,65.0
+2026,2026-06-14,Barcelona,BOR,Audi,11,64.0
+2026,2026-06-14,Barcelona,SAI,Williams,12,64.0
+2026,2026-06-14,Barcelona,OCO,Haas F1 Team,13,64.0
+2026,2026-06-14,Barcelona,ANT,Mercedes,14,63.0
+2026,2026-06-14,Barcelona,PER,Cadillac,15,63.0
+2026,2026-06-14,Barcelona,LEC,Ferrari,16,62.0
+2026,2026-06-14,Barcelona,BEA,Haas F1 Team,17,60.0
+2026,2026-06-14,Barcelona,ALB,Williams,18,55.0
+2026,2026-06-14,Barcelona,ALO,Aston Martin,19,39.0
+2026,2026-06-14,Barcelona,HUL,Audi,20,29.0
+2026,2026-06-14,Barcelona,BOT,Cadillac,21,15.0
+2026,2026-06-14,Barcelona,STR,Aston Martin,22,5.0
+2026,2026-07-19,Belgian,ANT,Mercedes,1,44.0
+2026,2026-07-19,Belgian,LEC,Ferrari,2,44.0
+2026,2026-07-19,Belgian,VER,Red Bull Racing,3,44.0
+2026,2026-07-19,Belgian,HAM,Ferrari,4,44.0
+2026,2026-07-19,Belgian,PIA,McLaren,5,44.0
+2026,2026-07-19,Belgian,HAD,Red Bull Racing,6,44.0
+2026,2026-07-19,Belgian,NOR,McLaren,7,44.0
+2026,2026-07-19,Belgian,BOR,Audi,8,44.0
+2026,2026-07-19,Belgian,LIN,Racing Bulls,9,44.0
+2026,2026-07-19,Belgian,COL,Alpine,10,44.0
+2026,2026-07-19,Belgian,GAS,Alpine,11,44.0
+2026,2026-07-19,Belgian,LAW,Racing Bulls,12,44.0
+2026,2026-07-19,Belgian,HUL,Audi,13,44.0
+2026,2026-07-19,Belgian,BEA,Haas F1 Team,14,44.0
+2026,2026-07-19,Belgian,ALB,Williams,15,44.0
+2026,2026-07-19,Belgian,SAI,Williams,16,44.0
+2026,2026-07-19,Belgian,OCO,Haas F1 Team,17,44.0
+2026,2026-07-19,Belgian,BOT,Cadillac,18,43.0
+2026,2026-07-19,Belgian,ALO,Aston Martin,19,42.0
+2026,2026-07-19,Belgian,STR,Aston Martin,20,25.0
+2026,2026-07-19,Belgian,PER,Cadillac,21,13.0
+2026,2026-07-19,Belgian,RUS,Mercedes,22,1.0
+2026,2026-07-05,British,LEC,Ferrari,1,52.0
+2026,2026-07-05,British,RUS,Mercedes,2,52.0
+2026,2026-07-05,British,HAM,Ferrari,3,52.0
+2026,2026-07-05,British,NOR,McLaren,4,52.0
+2026,2026-07-05,British,HAD,Red Bull Racing,5,52.0
+2026,2026-07-05,British,LAW,Racing Bulls,6,52.0
+2026,2026-07-05,British,LIN,Racing Bulls,7,52.0
+2026,2026-07-05,British,BOR,Audi,8,52.0
+2026,2026-07-05,British,ANT,Mercedes,9,52.0
+2026,2026-07-05,British,COL,Alpine,10,52.0
+2026,2026-07-05,British,GAS,Alpine,11,52.0
+2026,2026-07-05,British,PIA,McLaren,12,52.0
+2026,2026-07-05,British,SAI,Williams,13,52.0
+2026,2026-07-05,British,BEA,Haas F1 Team,14,52.0
+2026,2026-07-05,British,OCO,Haas F1 Team,15,52.0
+2026,2026-07-05,British,PER,Cadillac,16,52.0
+2026,2026-07-05,British,BOT,Cadillac,17,52.0
+2026,2026-07-05,British,ALO,Aston Martin,18,51.0
+2026,2026-07-05,British,STR,Aston Martin,19,51.0
+2026,2026-07-05,British,VER,Red Bull Racing,20,48.0
+2026,2026-07-05,British,ALB,Williams,21,43.0
+2026,2026-07-05,British,HUL,Audi,22,38.0
+2026,2026-05-24,Canadian,ANT,Mercedes,1,68.0
+2026,2026-05-24,Canadian,HAM,Ferrari,2,68.0
+2026,2026-05-24,Canadian,VER,Red Bull Racing,3,68.0
+2026,2026-05-24,Canadian,LEC,Ferrari,4,68.0
+2026,2026-05-24,Canadian,HAD,Red Bull Racing,5,67.0
+2026,2026-05-24,Canadian,COL,Alpine,6,67.0
+2026,2026-05-24,Canadian,LAW,Racing Bulls,7,67.0
+2026,2026-05-24,Canadian,GAS,Alpine,8,67.0
+2026,2026-05-24,Canadian,SAI,Williams,9,67.0
+2026,2026-05-24,Canadian,BEA,Haas F1 Team,10,67.0
+2026,2026-05-24,Canadian,PIA,McLaren,11,66.0
+2026,2026-05-24,Canadian,HUL,Audi,12,66.0
+2026,2026-05-24,Canadian,BOR,Audi,13,66.0
+2026,2026-05-24,Canadian,OCO,Haas F1 Team,14,66.0
+2026,2026-05-24,Canadian,STR,Aston Martin,15,64.0
+2026,2026-05-24,Canadian,BOT,Cadillac,16,64.0
+2026,2026-05-24,Canadian,NOR,McLaren,17,40.0
+2026,2026-05-24,Canadian,PER,Cadillac,18,40.0
+2026,2026-05-24,Canadian,RUS,Mercedes,19,31.0
+2026,2026-05-24,Canadian,ALO,Aston Martin,20,24.0
+2026,2026-05-24,Canadian,ALB,Williams,21,13.0
+2026,2026-03-15,Chinese,ANT,Mercedes,1,56.0
+2026,2026-03-15,Chinese,RUS,Mercedes,2,56.0
+2026,2026-03-15,Chinese,HAM,Ferrari,3,56.0
+2026,2026-03-15,Chinese,LEC,Ferrari,4,56.0
+2026,2026-03-15,Chinese,BEA,Haas F1 Team,5,56.0
+2026,2026-03-15,Chinese,GAS,Alpine,6,56.0
+2026,2026-03-15,Chinese,LAW,Racing Bulls,7,56.0
+2026,2026-03-15,Chinese,HAD,Red Bull Racing,8,56.0
+2026,2026-03-15,Chinese,SAI,Williams,9,55.0
+2026,2026-03-15,Chinese,COL,Alpine,10,55.0
+2026,2026-03-15,Chinese,HUL,Audi,11,55.0
+2026,2026-03-15,Chinese,LIN,Racing Bulls,12,55.0
+2026,2026-03-15,Chinese,BOT,Cadillac,13,55.0
+2026,2026-03-15,Chinese,OCO,Haas F1 Team,14,55.0
+2026,2026-03-15,Chinese,PER,Cadillac,15,55.0
+2026,2026-03-15,Chinese,VER,Red Bull Racing,16,45.0
+2026,2026-03-15,Chinese,ALO,Aston Martin,17,32.0
+2026,2026-03-15,Chinese,STR,Aston Martin,18,11.0
+2026,2026-08-23,Dutch,NOR,McLaren,1,72.0
+2026,2026-08-23,Dutch,ANT,Mercedes,2,72.0
+2026,2026-08-23,Dutch,RUS,Mercedes,3,72.0
+2026,2026-08-23,Dutch,HAM,Ferrari,4,72.0
+2026,2026-08-23,Dutch,LEC,Ferrari,5,72.0
+2026,2026-08-23,Dutch,PIA,McLaren,6,72.0
+2026,2026-08-23,Dutch,LAW,Red Bull Racing,7,72.0
+2026,2026-08-23,Dutch,HUL,Audi,8,71.0
+2026,2026-08-23,Dutch,ALO,Aston Martin,9,71.0
+2026,2026-08-23,Dutch,GAS,Alpine,10,71.0
+2026,2026-08-23,Dutch,TSU,Racing Bulls,11,71.0
+2026,2026-08-23,Dutch,LIN,Racing Bulls,12,71.0
+2026,2026-08-23,Dutch,BOR,Audi,13,71.0
+2026,2026-08-23,Dutch,COL,Alpine,14,70.0
+2026,2026-08-23,Dutch,PER,Cadillac,15,70.0
+2026,2026-08-23,Dutch,SAI,Williams,16,70.0
+2026,2026-08-23,Dutch,ALB,Williams,17,66.0
+2026,2026-08-23,Dutch,BOT,Cadillac,18,61.0
+2026,2026-08-23,Dutch,OCO,Haas F1 Team,19,54.0
+2026,2026-08-23,Dutch,STR,Aston Martin,20,45.0
+2026,2026-08-23,Dutch,BEA,Haas F1 Team,21,2.0
+2026,2026-08-23,Dutch,VER,Red Bull Racing,22,1.0
+2026,2026-07-26,Hungarian,NOR,McLaren,1,70.0
+2026,2026-07-26,Hungarian,VER,Red Bull Racing,2,70.0
+2026,2026-07-26,Hungarian,ANT,Mercedes,3,70.0
+2026,2026-07-26,Hungarian,HAM,Ferrari,4,70.0
+2026,2026-07-26,Hungarian,LEC,Ferrari,5,70.0
+2026,2026-07-26,Hungarian,HAD,Red Bull Racing,6,70.0
+2026,2026-07-26,Hungarian,RUS,Mercedes,7,70.0
+2026,2026-07-26,Hungarian,LAW,Racing Bulls,8,69.0
+2026,2026-07-26,Hungarian,HUL,Audi,9,69.0
+2026,2026-07-26,Hungarian,LIN,Racing Bulls,10,69.0
+2026,2026-07-26,Hungarian,BOR,Audi,11,69.0
+2026,2026-07-26,Hungarian,GAS,Alpine,12,69.0
+2026,2026-07-26,Hungarian,STR,Aston Martin,13,69.0
+2026,2026-07-26,Hungarian,ALO,Aston Martin,14,69.0
+2026,2026-07-26,Hungarian,COL,Alpine,15,68.0
+2026,2026-07-26,Hungarian,OCO,Haas F1 Team,16,68.0
+2026,2026-07-26,Hungarian,BEA,Haas F1 Team,17,68.0
+2026,2026-07-26,Hungarian,ALB,Williams,18,68.0
+2026,2026-07-26,Hungarian,SAI,Williams,19,68.0
+2026,2026-07-26,Hungarian,PIA,McLaren,20,57.0
+2026,2026-07-26,Hungarian,PER,Cadillac,21,48.0
+2026,2026-07-26,Hungarian,BOT,Cadillac,22,14.0
+2026,2026-09-06,Italian,ANT,Mercedes,1,53.0
+2026,2026-09-06,Italian,RUS,Mercedes,2,53.0
+2026,2026-09-06,Italian,VER,Red Bull Racing,3,53.0
+2026,2026-09-06,Italian,NOR,McLaren,4,53.0
+2026,2026-09-06,Italian,PIA,McLaren,5,53.0
+2026,2026-09-06,Italian,HAM,Ferrari,6,53.0
+2026,2026-09-06,Italian,GAS,Alpine,7,53.0
+2026,2026-09-06,Italian,LIN,Racing Bulls,8,53.0
+2026,2026-09-06,Italian,COL,Alpine,9,53.0
+2026,2026-09-06,Italian,TSU,Racing Bulls,10,53.0
+2026,2026-09-06,Italian,BOR,Audi,11,53.0
+2026,2026-09-06,Italian,HUL,Audi,12,53.0
+2026,2026-09-06,Italian,SAI,Williams,13,53.0
+2026,2026-09-06,Italian,LAW,Red Bull Racing,14,53.0
+2026,2026-09-06,Italian,BEA,Haas F1 Team,15,53.0
+2026,2026-09-06,Italian,OCO,Haas F1 Team,16,52.0
+2026,2026-09-06,Italian,ALB,Williams,17,52.0
+2026,2026-09-06,Italian,PER,Cadillac,18,52.0
+2026,2026-09-06,Italian,BOT,Cadillac,19,51.0
+2026,2026-09-06,Italian,STR,Aston Martin,20,28.0
+2026,2026-09-06,Italian,ALO,Aston Martin,21,23.0
+2026,2026-09-06,Italian,LEC,Ferrari,22,2.0
+2026,2026-03-29,Japanese,ANT,Mercedes,1,53.0
+2026,2026-03-29,Japanese,PIA,McLaren,2,53.0
+2026,2026-03-29,Japanese,LEC,Ferrari,3,53.0
+2026,2026-03-29,Japanese,RUS,Mercedes,4,53.0
+2026,2026-03-29,Japanese,NOR,McLaren,5,53.0
+2026,2026-03-29,Japanese,HAM,Ferrari,6,53.0
+2026,2026-03-29,Japanese,GAS,Alpine,7,53.0
+2026,2026-03-29,Japanese,VER,Red Bull Racing,8,53.0
+2026,2026-03-29,Japanese,LAW,Racing Bulls,9,53.0
+2026,2026-03-29,Japanese,OCO,Haas F1 Team,10,53.0
+2026,2026-03-29,Japanese,HUL,Audi,11,53.0
+2026,2026-03-29,Japanese,HAD,Red Bull Racing,12,53.0
+2026,2026-03-29,Japanese,BOR,Audi,13,53.0
+2026,2026-03-29,Japanese,LIN,Racing Bulls,14,53.0
+2026,2026-03-29,Japanese,SAI,Williams,15,53.0
+2026,2026-03-29,Japanese,COL,Alpine,16,53.0
+2026,2026-03-29,Japanese,PER,Cadillac,17,53.0
+2026,2026-03-29,Japanese,ALO,Aston Martin,18,52.0
+2026,2026-03-29,Japanese,BOT,Cadillac,19,52.0
+2026,2026-03-29,Japanese,ALB,Williams,20,51.0
+2026,2026-03-29,Japanese,STR,Aston Martin,21,30.0
+2026,2026-03-29,Japanese,BEA,Haas F1 Team,22,22.0
+2026,2026-11-01,Mexico City,VER,Red Bull Racing,1,71.0
+2026,2026-11-01,Mexico City,HAM,Ferrari,2,71.0
+2026,2026-11-01,Mexico City,ANT,Mercedes,3,71.0
+2026,2026-11-01,Mexico City,LEC,Ferrari,4,71.0
+2026,2026-11-01,Mexico City,NOR,McLaren,5,71.0
+2026,2026-11-01,Mexico City,RUS,Mercedes,6,71.0
+2026,2026-11-01,Mexico City,PIA,McLaren,7,71.0
+2026,2026-11-01,Mexico City,COL,Alpine,8,71.0
+2026,2026-11-01,Mexico City,LAW,Racing Bulls,9,71.0
+2026,2026-11-01,Mexico City,GAS,Alpine,10,71.0
+2026,2026-11-01,Mexico City,BOR,Audi,11,71.0
+2026,2026-11-01,Mexico City,HAD,Red Bull Racing,12,71.0
+2026,2026-11-01,Mexico City,HIR,Haas F1 Team,13,71.0
+2026,2026-11-01,Mexico City,ALB,Williams,14,71.0
+2026,2026-11-01,Mexico City,SAI,Williams,15,71.0
+2026,2026-11-01,Mexico City,HUL,Audi,16,71.0
+2026,2026-11-01,Mexico City,PER,Cadillac,17,71.0
+2026,2026-11-01,Mexico City,LIN,Racing Bulls,18,60.0
+2026,2026-11-01,Mexico City,BEA,Haas F1 Team,19,47.0
+2026,2026-11-01,Mexico City,BOT,Cadillac,20,44.0
+2026,2026-11-01,Mexico City,STR,Aston Martin,21,7.0
+2026,2026-11-01,Mexico City,ALO,Aston Martin,22,5.0
+2026,2026-05-03,Miami,ANT,Mercedes,1,57.0
+2026,2026-05-03,Miami,NOR,McLaren,2,57.0
+2026,2026-05-03,Miami,PIA,McLaren,3,57.0
+2026,2026-05-03,Miami,RUS,Mercedes,4,57.0
+2026,2026-05-03,Miami,VER,Red Bull Racing,5,57.0
+2026,2026-05-03,Miami,LEC,Ferrari,6,57.0
+2026,2026-05-03,Miami,HAM,Ferrari,7,57.0
+2026,2026-05-03,Miami,COL,Alpine,8,57.0
+2026,2026-05-03,Miami,SAI,Williams,9,57.0
+2026,2026-05-03,Miami,ALB,Williams,10,57.0
+2026,2026-05-03,Miami,BEA,Haas F1 Team,11,56.0
+2026,2026-05-03,Miami,BOR,Audi,12,56.0
+2026,2026-05-03,Miami,OCO,Haas F1 Team,13,56.0
+2026,2026-05-03,Miami,LIN,Racing Bulls,14,56.0
+2026,2026-05-03,Miami,ALO,Aston Martin,15,56.0
+2026,2026-05-03,Miami,PER,Cadillac,16,56.0
+2026,2026-05-03,Miami,STR,Aston Martin,17,56.0
+2026,2026-05-03,Miami,BOT,Cadillac,18,55.0
+2026,2026-05-03,Miami,HUL,Audi,19,7.0
+2026,2026-05-03,Miami,GAS,Alpine,20,6.0
+2026,2026-05-03,Miami,HAD,Red Bull Racing,21,6.0
+2026,2026-05-03,Miami,LAW,Racing Bulls,22,6.0
+2026,2026-06-07,Monaco,ANT,Mercedes,1,78.0
+2026,2026-06-07,Monaco,HAM,Ferrari,2,78.0
+2026,2026-06-07,Monaco,GAS,Alpine,3,78.0
+2026,2026-06-07,Monaco,HAD,Red Bull Racing,4,78.0
+2026,2026-06-07,Monaco,PIA,McLaren,5,78.0
+2026,2026-06-07,Monaco,LAW,Racing Bulls,6,78.0
+2026,2026-06-07,Monaco,LIN,Racing Bulls,7,78.0
+2026,2026-06-07,Monaco,ALB,Williams,8,78.0
+2026,2026-06-07,Monaco,HUL,Audi,9,78.0
+2026,2026-06-07,Monaco,OCO,Haas F1 Team,10,78.0
+2026,2026-06-07,Monaco,PER,Cadillac,11,78.0
+2026,2026-06-07,Monaco,ALO,Aston Martin,12,78.0
+2026,2026-06-07,Monaco,BOR,Audi,13,78.0
+2026,2026-06-07,Monaco,RUS,Mercedes,14,78.0
+2026,2026-06-07,Monaco,COL,Alpine,15,78.0
+2026,2026-06-07,Monaco,SAI,Williams,16,72.0
+2026,2026-06-07,Monaco,LEC,Ferrari,17,66.0
+2026,2026-06-07,Monaco,STR,Aston Martin,18,58.0
+2026,2026-06-07,Monaco,NOR,McLaren,19,44.0
+2026,2026-06-07,Monaco,BEA,Haas F1 Team,20,28.0
+2026,2026-06-07,Monaco,BOT,Cadillac,21,16.0
+2026,2026-06-07,Monaco,VER,Red Bull Racing,22,1.0
+2026,2026-10-11,Singapore,VER,Red Bull Racing,1,62.0
+2026,2026-10-11,Singapore,LEC,Ferrari,2,62.0
+2026,2026-10-11,Singapore,ANT,Mercedes,3,62.0
+2026,2026-10-11,Singapore,NOR,McLaren,4,62.0
+2026,2026-10-11,Singapore,PIA,McLaren,5,62.0
+2026,2026-10-11,Singapore,HAM,Ferrari,6,62.0
+2026,2026-10-11,Singapore,LAW,Racing Bulls,7,62.0
+2026,2026-10-11,Singapore,HUL,Audi,8,62.0
+2026,2026-10-11,Singapore,RUS,Mercedes,9,62.0
+2026,2026-10-11,Singapore,HAD,Red Bull Racing,10,62.0
+2026,2026-10-11,Singapore,GAS,Alpine,11,61.0
+2026,2026-10-11,Singapore,BEA,Haas F1 Team,12,61.0
+2026,2026-10-11,Singapore,OCO,Haas F1 Team,13,61.0
+2026,2026-10-11,Singapore,SAI,Williams,14,61.0
+2026,2026-10-11,Singapore,LIN,Racing Bulls,15,61.0
+2026,2026-10-11,Singapore,ALO,Aston Martin,16,61.0
+2026,2026-10-11,Singapore,ALB,Williams,17,60.0
+2026,2026-10-11,Singapore,PER,Cadillac,18,60.0
+2026,2026-10-11,Singapore,BOT,Cadillac,19,59.0
+2026,2026-10-11,Singapore,STR,Aston Martin,20,38.0
+2026,2026-10-11,Singapore,COL,Alpine,21,31.0
+2026,2026-10-11,Singapore,BOR,Audi,22,9.0
+2026,2026-09-13,Spanish,ANT,Mercedes,1,57.0
+2026,2026-09-13,Spanish,VER,Red Bull Racing,2,57.0
+2026,2026-09-13,Spanish,NOR,McLaren,3,57.0
+2026,2026-09-13,Spanish,LEC,Ferrari,4,57.0
+2026,2026-09-13,Spanish,RUS,Mercedes,5,57.0
+2026,2026-09-13,Spanish,LAW,Red Bull Racing,6,57.0
+2026,2026-09-13,Spanish,COL,Alpine,7,57.0
+2026,2026-09-13,Spanish,PIA,McLaren,8,57.0
+2026,2026-09-13,Spanish,LIN,Racing Bulls,9,56.0
+2026,2026-09-13,Spanish,HUL,Audi,10,56.0
+2026,2026-09-13,Spanish,OCO,Haas F1 Team,11,56.0
+2026,2026-09-13,Spanish,GAS,Alpine,12,56.0
+2026,2026-09-13,Spanish,BOR,Audi,13,56.0
+2026,2026-09-13,Spanish,TSU,Racing Bulls,14,56.0
+2026,2026-09-13,Spanish,ALB,Williams,15,56.0
+2026,2026-09-13,Spanish,BEA,Haas F1 Team,16,56.0
+2026,2026-09-13,Spanish,ALO,Aston Martin,17,55.0
+2026,2026-09-13,Spanish,BOT,Cadillac,18,54.0
+2026,2026-09-13,Spanish,SAI,Williams,19,43.0
+2026,2026-09-13,Spanish,PER,Cadillac,20,31.0
+2026,2026-09-13,Spanish,STR,Aston Martin,21,14.0
+2026,2026-09-13,Spanish,HAM,Ferrari,22,6.0
+2026,2026-11-08,São Paulo,NOR,McLaren,1,71.0
+2026,2026-11-08,São Paulo,VER,Red Bull Racing,2,71.0
+2026,2026-11-08,São Paulo,HAD,Red Bull Racing,3,71.0
+2026,2026-11-08,São Paulo,RUS,Mercedes,4,71.0
+2026,2026-11-08,São Paulo,ANT,Mercedes,5,71.0
+2026,2026-11-08,São Paulo,PIA,McLaren,6,71.0
+2026,2026-11-08,São Paulo,LEC,Ferrari,7,71.0
+2026,2026-11-08,São Paulo,LAW,Racing Bulls,8,71.0
+2026,2026-11-08,São Paulo,HAM,Ferrari,9,70.0
+2026,2026-11-08,São Paulo,HUL,Audi,10,70.0
+2026,2026-11-08,São Paulo,LIN,Racing Bulls,11,70.0
+2026,2026-11-08,São Paulo,ALO,Aston Martin,12,70.0
+2026,2026-11-08,São Paulo,COL,Alpine,13,70.0
+2026,2026-11-08,São Paulo,GAS,Alpine,14,70.0
+2026,2026-11-08,São Paulo,ALB,Williams,15,70.0
+2026,2026-11-08,São Paulo,BOR,Audi,16,70.0
+2026,2026-11-08,São Paulo,BEA,Haas F1 Team,17,70.0
+2026,2026-11-08,São Paulo,PER,Cadillac,18,69.0
+2026,2026-11-08,São Paulo,SAI,Williams,19,69.0
+2026,2026-11-08,São Paulo,CAM,Haas F1 Team,20,69.0
+2026,2026-11-08,São Paulo,STR,Aston Martin,21,30.0
+2026,2026-10-25,United States,ANT,Mercedes,1,56.0
+2026,2026-10-25,United States,LEC,Ferrari,2,56.0
+2026,2026-10-25,United States,VER,Red Bull Racing,3,56.0
+2026,2026-10-25,United States,HAM,Ferrari,4,56.0
+2026,2026-10-25,United States,NOR,McLaren,5,56.0
+2026,2026-10-25,United States,HAD,Red Bull Racing,6,56.0
+2026,2026-10-25,United States,PIA,McLaren,7,56.0
+2026,2026-10-25,United States,RUS,Mercedes,8,56.0
+2026,2026-10-25,United States,LAW,Racing Bulls,9,56.0
+2026,2026-10-25,United States,GAS,Alpine,10,56.0
+2026,2026-10-25,United States,HUL,Audi,11,56.0
+2026,2026-10-25,United States,LIN,Racing Bulls,12,55.0
+2026,2026-10-25,United States,BOR,Audi,13,55.0
+2026,2026-10-25,United States,OCO,Haas F1 Team,14,55.0
+2026,2026-10-25,United States,STR,Aston Martin,15,55.0
+2026,2026-10-25,United States,ALO,Aston Martin,16,55.0
+2026,2026-10-25,United States,ALB,Williams,17,55.0
+2026,2026-10-25,United States,SAI,Williams,18,55.0
+2026,2026-10-25,United States,PER,Cadillac,19,55.0
+2026,2026-10-25,United States,BOT,Cadillac,20,50.0
+2026,2026-10-25,United States,COL,Alpine,21,35.0
+2026,2026-10-25,United States,BEA,Haas F1 Team,22,24.0

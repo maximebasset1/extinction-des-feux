@@ -1,117 +1,87 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Extinction des feux : qui partira en pole ?</title>
-<meta name="description" content="Probabilités de pole position et de victoire pour le prochain Grand Prix de Formule 1, et bilan honnête de nos pronostics passés.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#058785">
+<meta name="description" content="F1 pole and win predictions for the next grand prix, updated automatically and compared with real results.">
+<title>Predictions - PitLane Insider preview</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="preload" href="assets/fonts/big-shoulders-display.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css">
 <script src="assets/app.js" defer></script>
 </head>
 <body>
-<a class="skip" href="#contenu">Aller au contenu</a>
-
 <header class="top">
-  <a class="brand" href="#prochain" aria-label="Extinction des feux, accueil">
-    <span class="brand-lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-    <span class="brand-name">Extinction des feux</span>
-  </a>
+  <a class="brand" href="#">PitLane Insider</a>
   <nav aria-label="Sections">
-    <a href="#prochain">Prochain GP</a>
-    <a href="#historique">Le modèle face au passé</a>
-    <a href="#bilan">Notre bilan</a>
-    <a href="#pilotes">Pilotes</a>
-    <a href="#methode">Comment ça marche</a>
+    <a href="#next">Next GP</a>
+    <a href="#drivers">Drivers</a>
+    <a href="#history">Model vs reality</a>
+    <a href="#record">Track record</a>
+    <a href="#method">How it works</a>
   </nav>
 </header>
+<p class="preview">Preview of the predictions page planned for PitLane Insider. Not the official site.</p>
 
-<main id="contenu">
-
-  <section id="prochain" class="hero" aria-labelledby="titre-gp">
-    <div class="start-lights" aria-hidden="true">
-      <span></span><span></span><span></span><span></span><span></span>
-    </div>
-    <h1 id="titre-gp" class="hero-title">Qui partira en pole&nbsp;?</h1>
-    <p class="hero-sub" id="hero-sub">Chargement des dernières données…</p>
-
-    <div class="grid-wrap">
-      <ol class="grid" id="grid" aria-label="Grille de départ la plus probable"></ol>
-      <aside class="grid-note" id="grid-note"></aside>
-    </div>
-
-    <div class="weekend" id="weekend" aria-label="Programme du week-end"></div>
-    <p class="tz" id="tz-note"></p>
-  </section>
-
-  <section class="chances" aria-labelledby="titre-chances">
-    <div class="section-head">
-      <h2 id="titre-chances">Les chances de chacun</h2>
-      <div class="switches">
-        <div class="seg" role="group" aria-label="Pronostic affiché">
-          <button type="button" data-kind="pole" aria-pressed="true">Pole position</button>
-          <button type="button" data-kind="victoire" aria-pressed="false">Victoire</button>
-        </div>
-        <div class="seg" role="group" aria-label="Moment du pronostic" id="moment-switch" hidden>
-          <button type="button" data-moment="apres" aria-pressed="true">Après les essais</button>
-          <button type="button" data-moment="avant" aria-pressed="false">Avant le week-end</button>
-          <button type="button" data-moment="pluie" aria-pressed="false">Sous la pluie</button>
-        </div>
+<main>
+  <div class="row two" id="next">
+    <section class="card gp">
+      <h2 class="wide gp-name" id="gp-name">Loading…</h2>
+      <p class="session-next" id="session-next"></p>
+      <div class="countdown" id="countdown" aria-label="Countdown to the next session">
+        <div><span id="cd-d">00</span><small>D</small></div>
+        <div><span id="cd-h">00</span><small>H</small></div>
+        <div><span id="cd-m">00</span><small>MIN</small></div>
+        <div><span id="cd-s">00</span><small>S</small></div>
       </div>
-    </div>
-    <p class="explain" id="chances-explain"></p>
-    <ol class="bars" id="bars"></ol>
-    <button type="button" class="more" id="bars-more" aria-expanded="false">Voir tous les pilotes</button>
+      <h1 class="wide question" id="question">Who takes pole?</h1>
+      <p class="muted" id="status"></p>
+      <h3>Weekend schedule</h3>
+      <ul class="sessions" id="sessions"></ul>
+      <p class="tiny muted" id="sessions-note"></p>
+    </section>
+
+    <section class="card">
+      <h3 id="grid-title">Most likely front of the grid</h3>
+      <ol class="grid" id="grid"></ol>
+      <p class="tiny muted">A forecast, not a result: one bad lap can change everything.</p>
+    </section>
+  </div>
+
+  <section class="card" id="drivers">
+    <h3>All drivers</h3>
+    <div class="scroll"><table class="table" id="field"></table></div>
   </section>
 
-  <section id="historique" aria-labelledby="titre-hist">
-    <div class="section-head">
-      <h2 id="titre-hist">Ce que le modèle aurait prévu, et ce qui s'est passé</h2>
-      <div class="seg" role="group" aria-label="Saison" id="season-switch"></div>
+  <section class="card" id="history">
+    <div class="head">
+      <h3>Model vs reality</h3>
+      <div class="pills" id="seasons" role="group" aria-label="Season"></div>
     </div>
-    <p class="explain">Une reconstitution&nbsp;: pour chaque qualification, le modèle est recalculé avec uniquement les courses d'avant, comme s'il avait tourné à l'époque. Chaque barre montre la chance qu'il donnait au pilote qui a fait la pole&nbsp;; plus elle est haute, mieux il l'avait vu venir. La ligne pointillée correspond à un pilote tiré au hasard.</p>
-    <p class="explain">Les Grands Prix 4 à 11 de 2026 ont servi à choisir la recette du modèle&nbsp;: sur ceux-là, il part avec un avantage. Les pronostics vraiment publiés à l'avance sont dans le journal, plus bas.</p>
-    <div class="strip-wrap"><div class="strip" id="strip" role="list"></div></div>
-    <div class="gp-detail" id="gp-detail" aria-live="polite"></div>
+    <p class="muted small">For each qualifying, the model is replayed using only the races before it, as if it had run at the time. Each bar shows the chance it gave to the driver who took pole. The dashed line is a driver picked at random.</p>
+    <p class="muted small">2026 rounds 4 to 11 were used to choose the model, so it has an edge there. Forecasts actually published in advance are in the log below.</p>
+    <div class="chart" id="chart"></div>
+    <div class="scroll"><table class="table" id="history-table"></table></div>
   </section>
 
-  <section id="bilan" aria-labelledby="titre-bilan">
-    <h2 id="titre-bilan">Notre bilan, sans maquillage</h2>
-    <div class="verdicts" id="verdicts"></div>
-    <h3>Le journal des pronostics publiés</h3>
-    <p class="explain">Ici, rien n'est recalculé après coup : chaque pronostic est enregistré au moment où il est publié, avant la séance, puis comparé au résultat.</p>
+  <section class="card" id="record">
+    <h3>Track record</h3>
+    <div class="tiles" id="tiles"></div>
+    <h3 class="mt">Forecast log</h3>
+    <p class="muted small">Each forecast is recorded before the session, never rewritten, then compared with the result.</p>
     <div id="journal"></div>
   </section>
 
-  <section id="pilotes" aria-labelledby="titre-pilotes">
-    <h2 id="titre-pilotes">La saison des pilotes en qualifications</h2>
-    <p class="explain">La courbe suit l'écart au poleman, Grand Prix après Grand Prix : plus elle est haute, plus le pilote était proche de la pole.</p>
-    <div class="table-scroll"><table class="drivers" id="drivers"></table></div>
-  </section>
-
-  <section id="methode" aria-labelledby="titre-methode">
-    <h2 id="titre-methode">Comment ça marche</h2>
-    <ol class="steps">
-      <li><h3>On récupère les chronos</h3><p>Tous les tours des qualifications, des essais libres et des courses depuis 2018, issus du chronométrage officiel.</p></li>
-      <li><h3>On mesure la forme</h3><p>Pour chaque pilote : son écart au poleman lors des derniers Grands Prix, la vitesse de sa voiture, et son rythme dans les essais du week-end. Uniquement des courses déjà disputées, depuis 2018.</p></li>
-      <li><h3>On regarde le ciel</h3><p>La prévision météo du circuit donne le risque de pluie pendant la qualif et la course. Sous la pluie, certains pilotes font mieux que d'habitude et le hasard pèse plus lourd&nbsp;: le modèle mélange alors les scénarios sec et mouillé.</p></li>
-      <li><h3>On en tire des chances</h3><p>Un modèle statistique transforme ces écarts en probabilités, en tenant compte des imprévus : tour raté, trafic, drapeau jaune.</p></li>
-      <li><h3>On vérifie, toujours</h3><p>Le modèle est réentraîné après chaque course et comparé au hasard. S'il ne fait pas mieux, on le dit.</p></li>
-    </ol>
-    <div class="fine">
-      <p><strong>Ce que le site ne sait pas faire&nbsp;:</strong> les pénalités de grille et les abandons échappent au modèle, et la pluie reste difficile à prévoir&nbsp;: peu de qualifs mouillées pour apprendre, et une prévision qui peut se tromper. Une probabilité de 20&nbsp;% veut dire que, sur cent week-ends identiques, ce pilote ferait la pole environ vingt fois&nbsp;: le favori ne gagne pas toujours.</p>
-      <p>Site non officiel, sans lien avec la Formule&nbsp;1, la FIA ou les équipes. Ce n'est pas un outil de paris sportifs.</p>
-    </div>
+  <section class="card small" id="method">
+    <h3>How it works</h3>
+    <p class="muted">Lap times since 2018, each driver's recent form, the car's pace, this weekend's practice sessions and the weather forecast feed a statistical model, retrained after every race. The calculation runs automatically on GitHub several times a day.</p>
+    <p class="muted" id="updated"></p>
+    <p class="muted">Data: official timing via <a href="https://github.com/TracingInsights">TracingInsights</a> and <a href="https://docs.fastf1.dev/">FastF1</a>, calendar <a href="https://jolpi.ca">Jolpica</a>, weather <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0). <a id="source" href="https://github.com/maximebasset1/extinction-des-feux">Source code</a>. Unofficial student project, not affiliated with Formula 1, not a betting tool.</p>
   </section>
 </main>
 
-<footer class="foot">
-  <p id="foot-update"></p>
-  <p>Données&nbsp;: chronométrage officiel via <a href="https://github.com/TracingInsights">TracingInsights</a> et <a href="https://docs.fastf1.dev/">FastF1</a>. Calendrier&nbsp;: <a href="https://jolpi.ca">Jolpica</a>. Météo&nbsp;: <a href="https://open-meteo.com/">Open-Meteo</a> (licence CC BY 4.0). Projet étudiant de Maxime Basset.</p>
-  <p><a id="foot-code" href="#">Code source</a></p>
-</footer>
+<footer class="foot">2024-2026 - La Remontée Formula 1 Team</footer>
 </body>
 </html>

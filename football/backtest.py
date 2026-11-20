@@ -21,7 +21,7 @@ except ImportError:
 XI_GRID = [0.003, 0.004, 0.005]          # mémoire : demi-vie d'environ 230, 175 et 140 jours
 SOT_GRID = [0.0, 0.4, 0.6, 0.8]          # part des tirs cadrés dans la cible
 RHO_GRID = np.round(np.arange(-0.20, 0.01, 0.02), 2)
-A_GRID = np.round(np.arange(0.0, 1.21, 0.1), 2)   # poids du modèle dans le mélange
+A_GRID = np.round(np.arange(C.MIN_MODEL_WEIGHT, 1.21, 0.1), 2)   # poids du modèle dans le mélange
 B_GRID = np.round(np.arange(0.0, 1.21, 0.1), 2)   # poids du marché
 
 

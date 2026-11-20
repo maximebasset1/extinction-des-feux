@@ -84,7 +84,7 @@ def test_table_and_simulation_are_consistent():
     t = S.table(played, ["A", "B", "C", "D"])
     assert list(t.index[:1]) == ["A"] and t.loc["A", "pts"] == 3 and t.loc["C", "pts"] == 1
     upcoming = pd.DataFrame({"home": ["A", "B"], "away": ["C", "D"], "lam_h": [1.5, 1.2], "lam_a": [1.0, 1.1]})
-    sim = S.simulate(played, upcoming, ["A", "B", "C", "D"])
+    sim = S.simulate(played, upcoming, ["A", "B", "C", "D"], rho=-0.1)
     assert sim["titre"].sum() == pytest.approx(1.0)
     assert sim["relegation"].sum() == pytest.approx(2.0)
     for places in sim["places"]:
@@ -112,4 +112,21 @@ def test_journal_records_once_and_respects_the_margin(tmp_path, monkeypatch):
 def test_kickoff_times_are_converted_to_utc():
     assert S.kickoff_utc(pd.Timestamp("2026-11-21"), "20:45") == "2026-11-21T19:45:00Z"
     assert S.kickoff_utc(pd.Timestamp("2026-08-22"), "21:05") == "2026-08-22T19:05:00Z"
-    assert S.kickoff_utc(pd.Timestamp("2026-11-21"), None) is None or S.kickoff_utc(pd.Timestamp("2026-11-21"), None).endswith("Z")
+    assert S.kickoff_utc(pd.Timestamp("2026-11-21"), None) is None          # pas d'heure inventée
+    assert S.kickoff_utc(pd.Timestamp("2026-11-20"), "19:45", S.LONDON) == "2026-11-20T19:45:00Z"
+    assert S.kickoff_utc(pd.Timestamp("2026-08-21"), "19:45", S.LONDON) == "2026-08-21T18:45:00Z"
+
+
+def test_promoted_team_keeps_its_prior_all_season():
+    m = matches(120)
+    m["season"] = np.where(m["date"] < pd.Timestamp("2021-07-01"), 2020, 2021)
+    m = m[~((m["season"] == 2020) & ((m["home"] == "D") | (m["away"] == "D")))]   # D est promu en 2021
+    cutoff = m.loc[m["season"] == 2021, "date"].sort_values().iloc[10]
+    prior = M._prior(m[m["date"] < cutoff], ["A", "B", "C", "D"], cutoff, {"promoted": (-0.2, -0.1)})
+    assert prior[3] == pytest.approx(-0.2) and prior[7] == pytest.approx(-0.1)
+    assert prior[:3].tolist() == [0, 0, 0]
+
+
+def test_published_probabilities_are_rounded_and_sum_to_one():
+    q = S.round_probs([0.3333, 0.3333, 0.3334])
+    assert sum(q) == pytest.approx(1.0) and all(round(x, 2) == x for x in q)

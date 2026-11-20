@@ -1,4 +1,5 @@
 """Ligue 1 : réglages, noms d'équipes, couleurs."""
+from datetime import date
 import os
 from pathlib import Path
 
@@ -16,11 +17,14 @@ USER_AGENT = "extinction-des-feux/1.0 (projet etudiant; github.com/maximebasset1
 
 FIRST_ODDS_SEASON = 2000   # football-data : cotes à partir de 2000-01
 FIRST_MIRROR_SEASON = 1993 # historique des face-à-face
-CURRENT_SEASON = 2026      # 2026-27
+# la saison commence en août : de juillet à décembre c'est l'année de début, ensuite l'année d'avant
+_TODAY = date.today()
+CURRENT_SEASON = _TODAY.year if _TODAY.month >= 7 else _TODAY.year - 1
 
 # saisons du backtest : CHOIX des réglages, puis TEST (jamais utilisé pour choisir)
 CHOICE_SEASONS = [2015, 2016, 2017, 2018, 2019]
-TEST_SEASONS = [2021, 2022, 2023, 2024, 2025, 2026]
+TEST_SEASONS = list(range(2021, CURRENT_SEASON + 1))
+MIN_MODEL_WEIGHT = 0.3     # le pronostic garde toujours une part de nos statistiques : ce n'est jamais la cote recopiée
 # 2020-21 (huis clos, calendrier chamboulé) : ni choix ni test, mais sert à l'apprentissage
 
 # openfootball -> football-data

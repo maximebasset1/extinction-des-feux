@@ -85,8 +85,8 @@ jobs:
         if: always()
         run: |
           mkdir -p data/football/raw site/data/ligue1
-          sig=$(find data/football/raw site/data/ligue1 -type f -printf '%p %s\n' -exec sha256sum {} \; | sha256sum | cut -c1-16)
-          echo "LIGUE1_CLE=ligue1-$sig" >> "$GITHUB_ENV"
+          # une sauvegarde par jour au plus : les fichiers changent à chaque calcul
+          echo "LIGUE1_CLE=ligue1-$(date -u +%F)" >> "$GITHUB_ENV"
 
       - name: Enregistrer le cache Ligue 1
         if: always()

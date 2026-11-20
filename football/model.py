@@ -18,9 +18,14 @@ RIDGE = 2.0          # attire les forces vers leur valeur a priori (stabilise le
 
 
 def _prior(train: pd.DataFrame, teams: list[str], cutoff: pd.Timestamp, params_hist: dict | None) -> np.ndarray:
-    """Valeur a priori (attaque, défense) de chaque équipe : 0 si elle a joué récemment en L1,
-    sinon la moyenne des promus (param. appris) ou une équipe faible par défaut."""
-    recent = set(train.loc[train["date"] > cutoff - pd.Timedelta(days=200), ["home", "away"]].values.ravel())
+    """Valeur a priori (attaque, défense) de chaque équipe : 0 si elle était en L1 la saison d'avant,
+    sinon la moyenne des promus (param. appris) ou une équipe faible par défaut. Le statut de promu
+    dure toute la saison : il ne disparaît pas après le premier match."""
+    if "season" in train:
+        start = cutoff.year if cutoff.month >= 7 else cutoff.year - 1
+        recent = set(train.loc[train["season"] == start - 1, ["home", "away"]].values.ravel())
+    else:
+        recent = set(train.loc[train["date"] > cutoff - pd.Timedelta(days=200), ["home", "away"]].values.ravel())
     promoted = (params_hist or {}).get("promoted", (-0.25, -0.25))
     p = np.zeros(2 * len(teams))
     for i, t in enumerate(teams):
@@ -86,8 +91,8 @@ def score_matrix(lh: float, la: float, rho: float) -> np.ndarray:
     g = np.arange(MAX_GOALS + 1)
     m = np.outer(poisson.pmf(g, lh), poisson.pmf(g, la))
     m[0, 0] *= max(1 - lh * la * rho, 0)
-    m[0, 1] *= 1 + lh * rho
-    m[1, 0] *= 1 + la * rho
+    m[0, 1] *= max(1 + lh * rho, 0)
+    m[1, 0] *= max(1 + la * rho, 0)
     m[1, 1] *= max(1 - rho, 0)
     return m / m.sum()
 

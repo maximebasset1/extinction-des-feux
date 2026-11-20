@@ -137,6 +137,19 @@ Ce qu'il faut en retenir :
    - 22 modèles au total ; le meilleur est choisi automatiquement.
 4. **Victoire :** logit conditionnel sur la place de départ. Avant la qualif, la grille est inconnue : on tire au sort 4 000 grilles possibles selon les probabilités de pole, puis on fait la moyenne.
 
+## Ligue 1
+
+Le site a aussi une page **Ligue 1** (`ligue1.html`) : pour chaque match, la probabilité de victoire à domicile, de nul et de victoire à l'extérieur, les scores les plus probables et les buts attendus. On peut choisir la journée, afficher le calendrier d'un club avec ses chances match par match, comparer deux clubs (tous leurs matchs de Ligue 1 depuis 1993) et voir la fin de saison simulée 10 000 fois (titre, top 4, barrage, relégation).
+
+Comment c'est calculé :
+- chaque équipe a une force d'attaque et de défense, estimée sur ses matchs récents (les plus récents comptent plus), avec les buts et les tirs cadrés ;
+- les cotes d'avant-match servent de variable : elles résument les blessures, suspensions et l'actualité que les statistiques ne voient pas. Elles ne sont jamais affichées ;
+- les réglages sont choisis sur 2015-2019, puis le modèle est jugé sur 2021-2026, semaine par semaine, sans jamais voir le futur.
+
+Résultat sur 1 768 matchs (2021-2026) : avec les seules statistiques, le modèle fait nettement mieux que les habitudes (« l'équipe à domicile gagne 45 % du temps ») ; avec les cotes, il est au niveau du marché des paris, qui reste la référence la plus difficile à battre. Le favori du pronostic gagne environ un match sur deux : au foot, ce sont les probabilités qui doivent être justes, pas chaque pronostic.
+
+Sources, gratuites : résultats, tirs et cotes de [football-data.co.uk](https://www.football-data.co.uk/), calendrier complet d'[openfootball](https://github.com/openfootball/football.json) (domaine public), anciennes saisons de [datasets/football-datasets](https://github.com/datasets/football-datasets). Seuls les logos du domaine public sur Wikimedia Commons sont utilisés ; les autres clubs ont une pastille à leurs couleurs.
+
 ## Limites
 
 - Peu de courses par saison, et la réglementation 2026 change la hiérarchie : les données 2023-2025 n'aident qu'en partie.
@@ -174,10 +187,12 @@ src/
   export_site.py        fichiers JSON du site
   plots.py, report.py   graphiques et rapport HTML
   main.py               enchaîne tout
+football/               page Ligue 1 : téléchargement, modèle, backtest, saison simulée, export
+data/journal/ligue1.csv journal des pronostics Ligue 1 publiés
 app.py, lancer.py       plateforme locale (Streamlit), facultative
 tests/                  tests automatiques
 ```
 
 ---
 
-*Projet étudiant de Maxime Basset, non affilié à la Formule 1 ni à la FIA. Ce n'est pas un outil de pari.*
+*Projet étudiant de Maxime Basset, non affilié à la Formule 1, à la FIA ni à la LFP. Ce n'est pas un outil de pari.*

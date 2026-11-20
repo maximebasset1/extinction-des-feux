@@ -14149,3 +14149,42 @@ season,date,grand_prix,session,driver,team,segment,best_lap,deficit_pct,pole,qua
 2026,2026-11-07,São Paulo,Qualifying,BOT,Cadillac,Q1,93.774,7.207042414542131,False,20.0,6953.027,10,True,0.41687979539641945,28.6,20.6,medium,False,,
 2026,2026-11-07,São Paulo,Qualifying,PER,Cadillac,Q1,94.509,8.047330513318851,False,21.0,6766.332,9,True,0.41687979539641945,28.6,20.6,medium,False,,
 2026,2026-11-07,São Paulo,Qualifying,BOR,Audi,Q1,101.564,16.112953012461407,False,22.0,6317.942,3,True,0.41687979539641945,28.6,20.6,medium,False,,
+2026,2026-11-20,Las Vegas,Practice 1,ALB,Williams,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,ANT,Mercedes,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,BEG,Ferrari,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,BOR,Audi,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,BOT,Cadillac,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,CAM,Haas F1 Team,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,COL,Alpine,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,CRA,Aston Martin,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,GAS,Alpine,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,HAD,Red Bull Racing,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,HIR,Haas F1 Team,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,HUL,Audi,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,LEC,Ferrari,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,PER,Cadillac,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,RUS,Mercedes,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,SAI,Williams,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 1,VER,Red Bull Racing,,,,False,,,0,True,1.0,14.5,12.2,low,True,,
+2026,2026-11-20,Las Vegas,Practice 2,RUS,Mercedes,,107.272,0.0,False,,,16,True,0.0,13.4,15.1,low,True,,107.27199999999999
+2026,2026-11-20,Las Vegas,Practice 2,GAS,Alpine,,107.343,0.06618688940263073,False,,,13,True,0.0,13.4,15.1,low,True,,107.34299999999999
+2026,2026-11-20,Las Vegas,Practice 2,LEC,Ferrari,,107.605,0.310425833395489,False,,,23,True,0.0,13.4,15.1,low,True,,107.60499999999999
+2026,2026-11-20,Las Vegas,Practice 2,HAD,Red Bull Racing,,108.407,1.0580580207323331,False,,,16,True,0.0,13.4,15.1,low,True,,107.495
+2026,2026-11-20,Las Vegas,Practice 2,PIA,McLaren,,108.453,1.1009396673875793,False,,,19,True,0.0,13.4,15.1,low,True,,108.448
+2026,2026-11-20,Las Vegas,Practice 2,HAM,Ferrari,,108.483,1.1289059586844674,False,,,23,True,0.0,13.4,15.1,low,True,,108.392
+2026,2026-11-20,Las Vegas,Practice 2,NOR,McLaren,,108.837,1.4589081959877737,False,,,16,True,0.0,13.4,15.1,low,True,,108.83699999999999
+2026,2026-11-20,Las Vegas,Practice 2,ANT,Mercedes,,109.043,1.650943396226423,False,,,15,True,0.0,13.4,15.1,low,True,,108.96699999999998
+2026,2026-11-20,Las Vegas,Practice 2,COL,Alpine,,109.229,1.8243344022671248,False,,,12,True,0.0,13.4,15.1,low,True,,109.22899999999998
+2026,2026-11-20,Las Vegas,Practice 2,ALO,Aston Martin,,109.231,1.8261988216869085,False,,,15,True,0.0,13.4,15.1,low,True,,109.231
+2026,2026-11-20,Las Vegas,Practice 2,STR,Aston Martin,,109.782,2.3398463718397933,False,,,17,True,0.0,13.4,15.1,low,True,,109.78200000000001
+2026,2026-11-20,Las Vegas,Practice 2,ALB,Williams,,109.829,2.3836602282049313,False,,,18,True,0.0,13.4,15.1,low,True,,109.72299999999998
+2026,2026-11-20,Las Vegas,Practice 2,VER,Red Bull Racing,,110.141,2.674509657692603,False,,,5,True,0.0,13.4,15.1,low,True,,110.08099999999999
+2026,2026-11-20,Las Vegas,Practice 2,PER,Cadillac,,110.431,2.9448504735625214,False,,,14,True,0.0,13.4,15.1,low,True,,110.268
+2026,2026-11-20,Las Vegas,Practice 2,BEA,Haas F1 Team,,110.699,3.194682675814753,False,,,15,True,0.0,13.4,15.1,low,True,,110.512
+2026,2026-11-20,Las Vegas,Practice 2,LAW,Racing Bulls,,111.009,3.4836676858826188,False,,,7,True,0.0,13.4,15.1,low,True,,111.00899999999999
+2026,2026-11-20,Las Vegas,Practice 2,LIN,Racing Bulls,,111.148,3.6132448355582047,False,,,8,True,0.0,13.4,15.1,low,True,,111.06200000000001
+2026,2026-11-20,Las Vegas,Practice 2,SAI,Williams,,111.571,4.007569542844358,False,,,9,True,0.0,13.4,15.1,low,True,,111.06899999999999
+2026,2026-11-20,Las Vegas,Practice 2,HUL,Audi,,111.807,4.227571034379896,False,,,12,True,0.0,13.4,15.1,low,True,,111.80699999999999
+2026,2026-11-20,Las Vegas,Practice 2,BOR,Audi,,112.325,4.7104556641061945,False,,,10,True,0.0,13.4,15.1,low,True,,112.32500000000002
+2026,2026-11-20,Las Vegas,Practice 2,BOT,Cadillac,,112.794,5.147662018047572,False,,,11,True,0.0,13.4,15.1,low,True,,112.68400000000001
+2026,2026-11-20,Las Vegas,Practice 2,CAM,Haas F1 Team,,113.589,5.888768737415173,False,,,13,True,0.0,13.4,15.1,low,True,,113.589

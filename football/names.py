@@ -130,4 +130,8 @@ NO_COUNTRY = {
     "Red Bull Salzburg": "AUT:Salzburg", "Sturm Graz": "AUT:Sturm Graz", "Young Boys": "SUI:Young Boys", "FC Basel": "SUI:Basel",
     "FC Copenhagen": "DEN:FC Copenhagen", "FC Midtjylland": "DEN:Midtjylland", "Bodo/Glimt": "NOR:Bodo/Glimt", "Bodø/Glimt": "NOR:Bodo/Glimt",
     "Malmo FF": "SWE:Malmo FF", "Legia Warsaw": "POL:Legia", "FCSB": "ROU:FCSB",
+    "Olympiakos Piraeus": "GRE:Olympiakos", "NEC Nijmegen": "NED:Nijmegen", "Jagiellonia Białystok": "POL:Jagiellonia",
+    "Ferencváros TC": "HUN:Ferencvárosi TC", "Sparta Prague": "CZE:AC Sparta Praha", "Omonoia FC": "CYP:Omonia Nikosia",
+    "FC Ararat-Armenia": "ARM:FC Ararat-Armenia", "NK Celje": "SVN:NK Celje", "PFC Levski Sofia": "BUL:PFC Levski Sofia",
+    "Torreense": "POR:Torreense",
 }

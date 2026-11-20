@@ -9,7 +9,7 @@ on:
   workflow_dispatch:          # bouton « Run workflow » dans l'onglet Actions
   push:
     branches: [main]
-    paths: ["site/**", "src/**", "scripts/**", "data/calendar.json", "requirements-ci.txt", ".github/workflows/**"]
+    paths: ["site/**", "src/**", "scripts/**", "football/**", "tests/**", "data/calendar.json", "requirements-ci.txt", ".github/workflows/**"]
 
 permissions: {}   # aucun droit par défaut : chaque tâche reçoit seulement ce dont elle a besoin
 
@@ -50,6 +50,20 @@ jobs:
       - name: Télécharger, réentraîner, prédire
         run: python src/main.py
 
+      - name: Reprendre les données Ligue 1
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/football/raw
+            site/data/ligue1
+          key: ligue1-aucune
+          restore-keys: ligue1-
+
+      # si le calcul Ligue 1 échoue, la page garde les pronostics précédents et la F1 est publiée quand même
+      - name: "Ligue 1 : télécharger, réentraîner, prédire"
+        continue-on-error: true
+        run: python football/main.py
+
       - name: Repérer les données téléchargées
         if: always()
         id: inventaire
@@ -66,6 +80,22 @@ jobs:
             data/raw
             data/processed/cache_backtest.pkl
           key: ${{ steps.inventaire.outputs.cle }}
+
+      - name: Garder les données Ligue 1
+        if: always()
+        run: |
+          mkdir -p data/football/raw site/data/ligue1
+          sig=$(find data/football/raw site/data/ligue1 -type f -printf '%p %s\n' -exec sha256sum {} \; | sha256sum | cut -c1-16)
+          echo "LIGUE1_CLE=ligue1-$sig" >> "$GITHUB_ENV"
+
+      - name: Enregistrer le cache Ligue 1
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/football/raw
+            site/data/ligue1
+          key: ${{ env.LIGUE1_CLE }}
 
       - name: Vérifier
         run: python -m pytest tests -q

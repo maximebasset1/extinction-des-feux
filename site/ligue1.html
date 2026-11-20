@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#058785">
+<meta name="description" content="Probabilités de victoire, nul et défaite pour chaque match de Ligue 1, classement final prévu et face-à-face, mis à jour automatiquement.">
+<title>Ligue 1 : pronostics - Extinction des feux</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/ligue1.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html">PitLane Insider</a>
+  <nav aria-label="Pages">
+    <a href="index.html">Formule 1</a>
+    <a href="ligue1.html" aria-current="page">Ligue 1</a>
+    <a href="#journee">Matchs</a>
+    <a href="#club">Clubs</a>
+    <a href="#h2h">Face-à-face</a>
+    <a href="#classement">Classement</a>
+    <a href="#bilan">Bilan</a>
+  </nav>
+</header>
+<p class="preview">Pronostics Ligue 1, projet étudiant. Ce n'est pas un outil de paris sportifs.</p>
+
+<main>
+  <section class="card" id="journee">
+    <div class="head">
+      <h1 class="wide l1-title" id="j-title">Ligue 1</h1>
+      <div class="pager">
+        <button type="button" id="j-prev" aria-label="Journée précédente">‹</button>
+        <label class="visually-hidden" for="j-select">Journée</label>
+        <select id="j-select"></select>
+        <button type="button" id="j-next" aria-label="Journée suivante">›</button>
+      </div>
+    </div>
+    <p class="muted small" id="j-note"></p>
+    <ul class="fixtures" id="fixtures"></ul>
+  </section>
+
+  <section class="card" id="club">
+    <div class="head">
+      <h3>Calendrier d'un club</h3>
+      <label class="visually-hidden" for="club-select">Club</label>
+      <select id="club-select"></select>
+    </div>
+    <div class="club-head" id="club-head"></div>
+    <div class="scroll"><table class="table" id="club-table"></table></div>
+  </section>
+
+  <section class="card" id="h2h">
+    <div class="head">
+      <h3>Face-à-face</h3>
+      <div class="pager">
+        <label class="visually-hidden" for="h2h-a">Premier club</label>
+        <select id="h2h-a"></select>
+        <span class="muted">contre</span>
+        <label class="visually-hidden" for="h2h-b">Second club</label>
+        <select id="h2h-b"></select>
+      </div>
+    </div>
+    <div class="tiles three" id="h2h-sum"></div>
+    <div class="scroll"><table class="table" id="h2h-table"></table></div>
+  </section>
+
+  <section class="card" id="classement">
+    <h3>Classement actuel et fin de saison prévue</h3>
+    <p class="muted small" id="sim-note"></p>
+    <div class="scroll"><table class="table" id="table"></table></div>
+  </section>
+
+  <section class="card" id="bilan">
+    <h3>Le modèle est-il fiable ?</h3>
+    <p class="muted small">Chaque semaine depuis 2021, le modèle est rejoué avec les seuls matchs joués avant, comme s'il avait tourné à l'époque. Les réglages ont été choisis sur 2015-2020, jamais sur cette période.</p>
+    <div class="tiles" id="bilan-tiles"></div>
+    <div class="scroll"><table class="table" id="bilan-table"></table></div>
+    <h3 class="mt">Journal des pronostics publiés</h3>
+    <p class="muted small">Chaque pronostic est enregistré une fois, avant le coup d'envoi, jamais réécrit, puis comparé au résultat.</p>
+    <div id="journal"></div>
+  </section>
+
+  <section class="card small" id="methode">
+    <h3>Comment ça marche</h3>
+    <p class="muted">Pour chaque équipe, le modèle estime une force d'attaque et de défense à partir des buts et des tirs cadrés des matchs récents (Poisson, correction de Dixon-Coles), avec l'avantage du terrain. Les cotes d'avant-match, qui résument blessures, compositions et actualité, sont ensuite intégrées : elles ne sont jamais affichées. La fin de saison est simulée 10 000 fois.</p>
+    <p class="muted">Ce que le modèle ne voit pas directement : les blessures et l'actualité de dernière minute quand les cotes ne sont pas encore publiées, les changements d'entraîneur, le mercato.</p>
+    <p class="muted" id="l1-updated"></p>
+    <p class="muted">Données : <a href="https://www.football-data.co.uk/">football-data.co.uk</a>, calendrier <a href="https://github.com/openfootball">openfootball</a>. Logos : uniquement ceux du domaine public (<a href="https://commons.wikimedia.org/">Wikimedia Commons</a>) ; les autres clubs sont représentés par leurs couleurs. Les noms et logos des clubs appartiennent à leurs propriétaires. Projet étudiant sans lien avec la LFP ni les clubs.</p>
+    <p class="muted">Les jeux d'argent et de hasard peuvent être dangereux : pertes d'argent, conflits familiaux, addiction. Retrouvez nos conseils sur joueurs-info-service.fr (09 74 75 13 13, appel non surtaxé).</p>
+  </section>
+</main>
+
+<footer class="foot">2024-2026 - La Remontée Formula 1 Team</footer>
+</body>
+</html>

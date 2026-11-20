@@ -1,0 +1,10 @@
+publie_utc,match_id,journee,domicile,exterieur,coup_envoi,p_dom,p_nul,p_ext,avec_marche
+2026-11-20T11:43:47Z,2026:Troyes:Le Havre,11,Troyes,Le Havre,2026-11-20T19:45:00Z,0.42,0.28,0.3,True
+2026-11-20T11:43:47Z,2026:Nice:Paris SG,11,Nice,Paris SG,2026-11-21T16:15:00Z,0.14,0.18,0.68,True
+2026-11-20T11:43:47Z,2026:Monaco:Auxerre,11,Monaco,Auxerre,2026-11-21T19:45:00Z,0.7,0.18,0.12,True
+2026-11-20T11:43:47Z,2026:Lens:Toulouse,11,Lens,Toulouse,2026-11-21T19:45:00Z,0.54,0.23,0.23,True
+2026-11-20T11:43:47Z,2026:Lille:Lyon,11,Lille,Lyon,2026-11-21T19:45:00Z,0.44,0.28,0.28,True
+2026-11-20T11:43:47Z,2026:Strasbourg:Brest,11,Strasbourg,Brest,2026-11-21T19:45:00Z,0.46,0.24,0.3,True
+2026-11-20T11:43:47Z,2026:Paris FC:Angers,11,Paris FC,Angers,2026-11-22T14:00:00Z,0.76,0.16,0.08,True
+2026-11-20T11:43:47Z,2026:Lorient:Rennes,11,Lorient,Rennes,2026-11-22T16:15:00Z,0.34,0.26,0.4,True
+2026-11-20T11:43:47Z,2026:Marseille:Le Mans,11,Marseille,Le Mans,2026-11-22T19:45:00Z,0.71,0.17,0.12,True

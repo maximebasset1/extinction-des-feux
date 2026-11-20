@@ -137,6 +137,23 @@ Ce qu'il faut en retenir :
    - 22 modèles au total ; le meilleur est choisi automatiquement.
 4. **Victoire :** logit conditionnel sur la place de départ. Avant la qualif, la grille est inconnue : on tire au sort 4 000 grilles possibles selon les probabilités de pole, puis on fait la moyenne.
 
+## Recherche de matchs (six compétitions)
+
+La page **Recherche** (`recherche.html`) donne les probabilités de n'importe quel match à venir de Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions et Ligue Europa. On tape un club (« Lille »), ou deux (« Lille Bayern »), et on clique sur le match : probabilités 1/N/2 sur 90 minutes, scores les plus probables, buts attendus et derniers face-à-face.
+
+Comment c'est calculé :
+- un seul modèle note ensemble les clubs de 22 championnats européens (football-data.co.uk, depuis 2010) et des coupes d'Europe passées (openfootball, domaine public) ;
+- chaque club a une force absolue, rappelée vers le niveau moyen de son championnat ; ce niveau n'est connu que grâce aux matchs européens et aux clubs qui montent ou descendent. C'est ce qui permet de comparer Lille et le Bayern ;
+- quand les cotes d'avant-match existent, elles sont mélangées au modèle (jamais affichées), comme pour la page Ligue 1.
+
+Réglages choisis sur 2021-22, puis jugement semaine par semaine de 2022 à 2026. En coupe d'Europe, le modèle fait nettement mieux que les pourcentages habituels (score RPS 0,193 contre 0,236 en Ligue des champions, 0,196 contre 0,230 en Ligue Europa). En championnat, il reste un peu derrière les cotes seules, et au niveau du marché une fois les cotes ajoutées.
+
+Deux clés gratuites, rangées dans les secrets du dépôt (Settings > Secrets and variables > Actions), ajoutent les coupes de la saison en cours :
+- `FOOTBALL_DATA_ORG_TOKEN` (football-data.org) : calendrier et résultats de la Ligue des champions ;
+- `ODDS_API_KEY` (The Odds API, 500 crédits par mois) : calendrier de la Ligue Europa et cotes des coupes, demandées au plus toutes les 3 heures et seulement quand un match a lieu dans les 3 jours.
+
+Sans ces clés, la page fonctionne avec les quatre championnats.
+
 ## Ligue 1
 
 Le site a aussi une page **Ligue 1** (`ligue1.html`) : pour chaque match, la probabilité de victoire à domicile, de nul et de victoire à l'extérieur, les scores les plus probables et les buts attendus. On peut choisir la journée, afficher le calendrier d'un club avec ses chances match par match, comparer deux clubs (tous leurs matchs de Ligue 1 depuis 1993) et voir la fin de saison simulée 10 000 fois (titre, top 4, barrage, relégation).
@@ -188,6 +205,8 @@ src/
   plots.py, report.py   graphiques et rapport HTML
   main.py               enchaîne tout
 football/               page Ligue 1 : téléchargement, modèle, backtest, saison simulée, export
+  joint.py, europe_main.py  recherche : modèle commun aux championnats et coupes, pronostics, export
+  leagues.py, cups.py, sources.py, names.py  championnats, coupes passées, calendriers à venir, noms des clubs
 data/journal/ligue1.csv journal des pronostics Ligue 1 publiés
 app.py, lancer.py       plateforme locale (Streamlit), facultative
 tests/                  tests automatiques
@@ -195,4 +214,4 @@ tests/                  tests automatiques
 
 ---
 
-*Projet étudiant de Maxime Basset, non affilié à la Formule 1, à la FIA ni à la LFP. Ce n'est pas un outil de pari.*
+*Projet étudiant de Maxime Basset, non affilié à la Formule 1, à la FIA ni à la LFP, à l'UEFA ou aux clubs. Ce n'est pas un outil de pari.*

@@ -64,6 +64,23 @@ jobs:
         continue-on-error: true
         run: python football/main.py
 
+      - name: Reprendre les données de la recherche
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/football/eu
+            site/data/recherche
+          key: recherche-aucune
+          restore-keys: recherche-
+
+      # clés gratuites rangées dans les secrets du dépôt ; sans elles, les coupes d'Europe sont simplement absentes
+      - name: "Recherche : six compétitions"
+        continue-on-error: true
+        env:
+          FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: python football/europe_main.py
+
       - name: Repérer les données téléchargées
         if: always()
         id: inventaire
@@ -96,6 +113,21 @@ jobs:
             data/football/raw
             site/data/ligue1
           key: ${{ env.LIGUE1_CLE }}
+
+      - name: Garder les données de la recherche
+        if: always()
+        run: |
+          mkdir -p data/football/eu site/data/recherche
+          echo "RECHERCHE_CLE=recherche-$(date -u +%F)" >> "$GITHUB_ENV"
+
+      - name: Enregistrer le cache de la recherche
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/football/eu
+            site/data/recherche
+          key: ${{ env.RECHERCHE_CLE }}
 
       - name: Vérifier
         run: python -m pytest tests -q

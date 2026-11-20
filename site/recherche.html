@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#058785">
+<meta name="description" content="Cherche un club et obtiens les probabilités de ses prochains matchs : Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions, Ligue Europa.">
+<title>Recherche de matchs : pronostics - Extinction des feux</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/recherche.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html">PitLane Insider</a>
+  <nav aria-label="Pages">
+    <a href="index.html" lang="en">Formula 1</a>
+    <a href="ligue1.html">Ligue 1</a>
+    <a href="recherche.html" aria-current="page">Recherche</a>
+    <a href="#fiabilite">Bilan</a>
+    <a href="#methode">Méthode</a>
+  </nav>
+</header>
+<p class="preview">Pronostics football, projet étudiant. Ce n'est pas un outil de paris sportifs.</p>
+
+<main>
+  <section class="card" id="recherche">
+    <h1 class="wide l1-title">Chercher un match</h1>
+    <div class="search">
+      <label for="q" class="visually-hidden">Club</label>
+      <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Un club, par exemple Lille ou Lille Bayern" aria-describedby="q-help" aria-controls="suggest" aria-expanded="false" role="combobox">
+      <ul id="suggest" class="suggest" role="listbox" hidden></ul>
+    </div>
+    <p class="muted small" id="q-help">Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions et Ligue Europa. Écris deux clubs pour trouver leur match.</p>
+    <div class="chips" id="chips" role="group" aria-label="Compétition"></div>
+    <p class="muted small" id="note" aria-live="polite"></p>
+    <ul class="fixtures" id="results"></ul>
+    <p class="pager-more"><button type="button" id="more" hidden>Voir plus de matchs</button></p>
+  </section>
+
+  <section class="card" id="detail" hidden>
+    <div class="head">
+      <h2 class="h3" id="d-title">Match</h2>
+      <button type="button" class="close" id="d-close">Fermer</button>
+    </div>
+    <div id="d-body"></div>
+  </section>
+
+  <section class="card" id="fiabilite">
+    <h2 class="h3">Le modèle est-il fiable ?</h2>
+    <p class="muted small" id="f-note"></p>
+    <div class="scroll"><table class="table" id="f-table"></table></div>
+  </section>
+
+  <section class="card small" id="methode">
+    <h2 class="h3">Comment ça marche</h2>
+    <p class="muted">Tous les clubs sont notés ensemble, une force d'attaque et une force de défense chacun, à partir des buts et des tirs cadrés de leurs matchs récents dans 22 championnats européens et en coupe d'Europe. Les championnats ne se rencontrent qu'en coupe d'Europe : ce sont ces matchs, et les clubs qui montent ou descendent, qui permettent de comparer un club de Ligue 1 à un club de Bundesliga.</p>
+    <p class="muted">Quand les cotes d'avant-match sont publiées, elles sont mélangées au modèle, car elles résument blessures, compositions et actualité : <span id="m-part">elles pèsent lourd</span>, mais nos statistiques gardent toujours une part, et les cotes ne sont jamais affichées. Les probabilités portent sur le temps réglementaire (90 minutes) : prolongations et tirs au but ne sont pas comptés.</p>
+    <p class="muted" id="m-updated"></p>
+    <p class="muted">Données : <a href="https://www.football-data.co.uk/">football-data.co.uk</a>, calendriers et coupes passées <a href="https://github.com/openfootball">openfootball</a> (domaine public), Ligue des champions <a href="https://www.football-data.org/">football-data.org</a>, Ligue Europa et cotes des coupes <a href="https://the-odds-api.com/">The Odds API</a>. Les noms et logos des clubs appartiennent à leurs propriétaires. Projet étudiant sans lien avec l'UEFA, les ligues ni les clubs.</p>
+    <p class="muted">Les jeux d'argent et de hasard peuvent être dangereux : pertes d'argent, conflits familiaux, addiction. Retrouvez nos conseils sur joueurs-info-service.fr (09 74 75 13 13, appel non surtaxé).</p>
+  </section>
+</main>
+
+<footer class="foot">2024-2026 - La Remontée Formula 1 Team</footer>
+</body>
+</html>

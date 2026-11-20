@@ -1,0 +1,22 @@
+# Sonde temporaire (branche sonde uniquement) : vérifie les sources Ligue 1 depuis GitHub.
+name: Sonde Ligue 1
+on:
+  push:
+    branches: [sonde]
+    paths: ["sonde/sonde.py", ".github/workflows/sonde.yml"]
+permissions:
+  contents: write
+jobs:
+  sonde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python sonde/sonde.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add sonde/resultat.json && git commit -m "Résultat de la sonde" && git push

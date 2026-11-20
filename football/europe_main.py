@@ -26,6 +26,7 @@ from football import sources as SRC  # noqa: E402
 from football.data import _get, season_code  # noqa: E402
 
 RAW = Path(os.environ.get("EU_DATA_DIR", C.ROOT / "data" / "football" / "eu"))
+ODDS_STATE = Path(os.environ.get("ODDS_STATE_DIR", C.ROOT / "data" / "football" / "cotes"))   # gardé à chaque lancement
 OUT = C.ROOT / "site" / "data" / "recherche"
 FIRST_SEASON = 2010
 XI, SOT_SHARE, RHO = 0.002, 0.4, -0.1        # choisis sur la saison 2021-22 (voir le README)
@@ -36,6 +37,7 @@ DOMESTIC = {"E0": ("en.1", "ENG", "Europe/London"), "D1": ("de.1", "GER", "Europ
             "SP1": ("es.1", "ESP", "Europe/Madrid"), "F1": ("fr.1", "FRA", "Europe/Paris")}
 NAMES_FR = {"E0": "Premier League", "D1": "Bundesliga", "SP1": "Liga", "F1": "Ligue 1", "LDC": "Ligue des champions",
             "LEC": "Ligue Europa"}
+CUP_FIRST = {"cl": 2011, "el": 2020}   # premières saisons publiées par openfootball
 CUP_HISTORY = "https://raw.githubusercontent.com/openfootball/champions-league/master/{season}/{code}.txt"
 LEAGUE_FILE = "https://raw.githubusercontent.com/openfootball/football.json/master/{season}/{file}.json"
 SUFFIX = re.compile(r"\s+(FC|CF|AFC|SC|FK|SK|KV|CFC)$")
@@ -61,28 +63,45 @@ def download() -> None:
                 f.write_bytes(_get(f"https://www.football-data.co.uk/mmz4281/{season_code(y)}/{code}.csv"))
             except Exception as e:  # noqa: BLE001
                 print(f"   {code} {y} indisponible : {e}")
-    for code in leagues.NEW:   # gros fichiers toutes saisons : une fois par jour suffit
-        f = RAW / f"new_{code}.csv"
-        if not keep(f, 20):
-            f.write_bytes(_get(f"https://www.football-data.co.uk/new/{code}.csv"))
-    (RAW / "fixtures.csv").write_bytes(_get("https://www.football-data.co.uk/fixtures.csv"))
-    for code, (file, _, _) in DOMESTIC.items():
-        (RAW / f"{file}.json").write_bytes(_get(LEAGUE_FILE.format(season=season_dir(C.CURRENT_SEASON), file=file)))
+    # (fichier, adresse, âge maximal en heures : None = jamais retéléchargé, 0 = à chaque lancement)
+    jobs = [(RAW / f"new_{c}.csv", f"https://www.football-data.co.uk/new/{c}.csv", 20) for c in leagues.NEW]
+    jobs.append((RAW / "fixtures.csv", "https://www.football-data.co.uk/fixtures.csv", 0))
+    jobs += [(RAW / f"{file}.json", LEAGUE_FILE.format(season=season_dir(C.CURRENT_SEASON), file=file), 0)
+             for file, _, _ in DOMESTIC.values()]
     for y in range(2011, C.CURRENT_SEASON):
-        for c in cups.COMPETITIONS:
-            d = RAW / "cups" / season_dir(y)
-            f = d / f"{c}.txt"
-            if keep(f):
-                continue
-            d.mkdir(parents=True, exist_ok=True)
-            try:
-                f.write_bytes(_get(CUP_HISTORY.format(season=season_dir(y), code=c)))
-            except Exception:  # noqa: BLE001
-                pass   # la Ligue Europa n'est publiée que depuis 2020-21
+        for c, first in CUP_FIRST.items():
+            if y >= first:
+                jobs.append((RAW / "cups" / season_dir(y) / f"{c}.txt", CUP_HISTORY.format(season=season_dir(y), code=c), None))
+    # chaque fichier à part : une source absente (changement de saison...) ne bloque pas les autres
+    for f, url, max_age_h in jobs:
+        if max_age_h != 0 and keep(f, max_age_h):
+            continue
+        try:
+            data = _get(url)
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_bytes(data)
+        except Exception as e:  # noqa: BLE001
+            print(f"   {f.name} indisponible ({type(e).__name__}) : on garde la version précédente s'il y en a une")
+
+
+KEEP_SUFFIX = {"Paris FC"}
+# noms officiels trop longs pour une carte de match
+DISPLAY = {"Club Atlético de Madrid": "Atlético de Madrid", "Stade Rennais FC 1901": "Stade Rennais", "FC Internazionale Milano": "Inter",
+           "Paris Saint-Germain FC": "Paris Saint-Germain", "Real Sociedad de Fútbol": "Real Sociedad", "Real Betis Balompié": "Real Betis",
+           "RCD Espanyol de Barcelona": "Espanyol", "Rayo Vallecano de Madrid": "Rayo Vallecano", "TSG 1899 Hoffenheim": "Hoffenheim",
+           "Racing Club de Lens": "RC Lens", "Real Racing Club de Santander": "Racing Santander", "RC Deportivo La Coruña": "Deportivo La Coruña",
+           "SV 07 Elversberg": "Elversberg", "SC Paderborn 07": "Paderborn", "Brighton & Hove Albion FC": "Brighton",
+           "RC Strasbourg Alsace": "RC Strasbourg", "Stade Brestois 29": "Stade Brestois", "Sport Lisboa e Benfica": "Benfica",
+           "Sporting Clube de Portugal": "Sporting CP", "Bayer 04 Leverkusen": "Bayer Leverkusen", "FC Bayern München": "Bayern Munich",
+           "Club Brugge KV": "Club Brugge", "Real Madrid CF": "Real Madrid"}
 
 
 def display(name: str) -> str:
-    return SUFFIX.sub("", str(name)).strip()
+    """Nom court lisible (« Arsenal FC » -> « Arsenal ») ; « Paris FC » garde son « FC », sinon on le confondrait avec le PSG."""
+    name = str(name).strip()
+    if name in DISPLAY:
+        return DISPLAY[name]
+    return name if name in KEEP_SUFFIX else SUFFIX.sub("", name).strip() or name
 
 
 def load_all():
@@ -110,21 +129,27 @@ def load_all():
     if cl:
         f = SRC.fdorg_frame(cl, "LDC", idx)
         played_cup.append(f[f["played"]])
-        upcoming.append(f[~f["played"]])
+        upcoming.append(f[~f["played"] & ~f["status"].isin(["IN_PLAY", "PAUSED", "SUSPENDED", "CANCELLED", "AWARDED"])])
     for comp in ("LDC", "LEC"):
-        kos = [datetime.fromisoformat(k.replace("Z", "+00:00")) for u in upcoming for k in u["kickoff"].dropna()]
         try:
-            events, odds = SRC.odds_api(comp, key, RAW, now, kos)
+            events, odds = SRC.odds_api(comp, key, ODDS_STATE, now)
         except RuntimeError as e:
             print(f"   {comp} (The Odds API) indisponible : {e}")
-            events, odds = SRC.odds_api(comp, None, RAW, now, kos)
-        o = SRC.odds_frame(events, odds, comp, idx)
-        if comp == "LDC" and len(upcoming) and len(o):
+            events, odds = SRC.odds_api(comp, None, ODDS_STATE, now)
+        o = SRC.odds_frame(events, odds, comp, idx, now)
+        if comp == "LDC" and cl:
             # le calendrier vient de football-data.org ; The Odds API n'apporte que les cotes
-            base = upcoming[0].merge(o[["home", "away", "oh", "od", "oa"]], on=["home", "away"], how="left")
-            upcoming[0] = base
+            if len(o) and len(upcoming[0]):
+                upcoming[0], lost = SRC.attach_odds(upcoming[0], o)
+                if lost:
+                    print(f"   Ligue des champions : {lost} match(s) avec cotes sans correspondance dans le calendrier")
         elif len(o):
             upcoming.append(o)
+    unknown = sorted({t for u in upcoming for t in pd.concat([u["home"], u["away"]]) if t.startswith("?:")})
+    if unknown:
+        print("   clubs non reconnus, ajouter leur nom à names.NO_COUNTRY :", unknown)
+    if idx.approx:
+        print("   rapprochements de noms à vérifier :", sorted(idx.approx))
     for code, (file, cc, tz) in DOMESTIC.items():
         f = RAW / f"{file}.json"
         if not f.exists():
@@ -168,9 +193,9 @@ def odds_for_domestic(up: pd.DataFrame) -> pd.DataFrame:
     from football.data import _dates
     # heures de football-data : heure de Londres
     ko = [S.kickoff_utc(d, t, S.LONDON) for d, t in zip(_dates(u["Date"]), u["Time"])]
-    odds = pd.DataFrame({"home": cc + ":" + u["HomeTeam"].str.strip(), "away": cc + ":" + u["AwayTeam"].str.strip(),
+    odds = pd.DataFrame({"competition": u["Div"], "home": cc + ":" + u["HomeTeam"].str.strip(), "away": cc + ":" + u["AwayTeam"].str.strip(),
                          "_oh": o[:, 0], "_od": o[:, 1], "_oa": o[:, 2], "_ko": ko})
-    up = up.merge(odds, on=["home", "away"], how="left")
+    up = up.merge(odds, on=["competition", "home", "away"], how="left")
     for c in ("oh", "od", "oa"):
         up[c] = up[c].fillna(up.pop(f"_{c}"))
     up["kickoff"] = up["_ko"].where(up["_ko"].notna(), up["kickoff"])
@@ -179,7 +204,7 @@ def odds_for_domestic(up: pd.DataFrame) -> pd.DataFrame:
 
 def code_hash() -> str:
     h = hashlib.sha256()
-    for f in ("joint.py", "joint_backtest.py", "names.py", "leagues.py", "cups.py", "model.py"):
+    for f in ("joint.py", "joint_backtest.py", "names.py", "leagues.py", "cups.py", "model.py", "europe_main.py", "config.py"):
         h.update((C.ROOT / "football" / f).read_bytes())
     return h.hexdigest()[:16]
 
@@ -256,12 +281,9 @@ def main(offline: bool = False) -> None:
     print("2/4 Données")
     allm, fx, names, idx = load_all()
     print(f"   {len(allm)} matchs joués, {len(fx)} à venir")
-    unknown = sorted({t for t in pd.concat([fx["home"], fx["away"]]) if t.startswith("?:")})
-    if unknown:
-        print("   clubs non reconnus (pronostic au niveau d'un championnat modeste) :", unknown)
     print("3/4 Backtest")
     bt = backtest(allm)
-    print(f"   mélange avec les cotes : a={bt['a']}, b={bt['b']}")
+    # poids exacts jamais affichés (journaux publics) : seule la part arrondie est publiée
     print("4/4 Pronostics et fichiers du site")
     ratio = JB.sot_ratio(allm, pd.Timestamp(now.date()))
     fit = joint.fit(allm, pd.Timestamp(now.date()) + pd.Timedelta(days=1), XI, SOT_SHARE, ratio)
@@ -278,9 +300,13 @@ def main(offline: bool = False) -> None:
             lh, la = S.calibrate_rates(lh, la, p, RHO)
         mat = M.score_matrix(lh, la, RHO)
         top = np.argsort(mat, axis=None)[::-1][:3]
-        rows.append({"competition": r.competition, "kickoff": r.kickoff if isinstance(r.kickoff, str) else None,
-                     "jour": getattr(r, "jour", None) if isinstance(getattr(r, "jour", None), str) else
-                     (r.kickoff[:10] if isinstance(r.kickoff, str) else None),
+        ko = r.kickoff if isinstance(r.kickoff, str) else None
+        if ko and datetime.fromisoformat(ko.replace("Z", "+00:00")) <= now:
+            continue   # déjà commencé : plus un pronostic d'avant-match
+        jour = getattr(r, "jour", None)
+        if ko:   # jour du match à l'heure de Paris (un match à 0 h 30 ne tombe pas la veille)
+            jour = datetime.fromisoformat(ko.replace("Z", "+00:00")).astimezone(S.PARIS).strftime("%Y-%m-%d")
+        rows.append({"competition": r.competition, "kickoff": ko, "jour": jour if isinstance(jour, str) else None,
                      "home": r.home, "away": r.away, "p": S.round_probs(p), "avec_cotes": has,
                      "xg": [round(lh, 1), round(la, 1)],
                      "scores": [{"score": f"{i // mat.shape[1]}-{i % mat.shape[1]}", "p": round(float(mat.flat[i]), 2)} for i in top],
@@ -294,6 +320,11 @@ def main(offline: bool = False) -> None:
             c = clubs.setdefault(t, club_info(t, names))
             if x["competition"] not in c["competitions"]:
                 c["competitions"].append(x["competition"])
+    # deux clubs avec le même sigle (Bayern et Gladbach « BM ») : on prend les 3 premières lettres du nom
+    count = pd.Series([c["sigle"] for c in clubs.values()]).value_counts()
+    for t, c in clubs.items():
+        if count[c["sigle"]] > 1 and "couleur" not in c:
+            c["sigle"] = re.sub(r"[^A-Za-z]", "", t.split(":", 1)[1])[:3].upper()
     perf = {"maj_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "saisons_test": TEST, "part_marche": round(bt["b"] / (bt["a"] + bt["b"]), 1),
             "competitions": bt["table"]}
     write_all({"matchs": {"maj_utc": perf["maj_utc"], "competitions": NAMES_FR, "clubs": clubs, "matchs": rows},

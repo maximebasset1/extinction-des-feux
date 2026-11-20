@@ -45,22 +45,57 @@ def test_names_are_matched_within_the_country():
     assert names.match("FRA", "Club inconnu", ["Lille", "Lens"]) is None
 
 
-def test_odds_api_name_without_country_is_resolved_only_if_unique():
-    idx = sources.TeamIndex(["FRA:Lille", "ENG:Arsenal", "GER:Bayern Munich"])
-    assert idx.resolve("Lille OSC") == "FRA:Lille"
-    assert idx.resolve("Bayern München") == "GER:Bayern Munich"
+def full_index():
+    from football import leagues
+    ids = []
+    for cc, names_ in {"FRA": ["Paris SG", "Paris FC", "Lille", "Monaco"], "ESP": ["Real Madrid", "Ath Madrid", "Betis"],
+                       "ITA": ["Inter", "Milan", "Lazio", "Roma"], "GER": ["Bayern Munich"], "RUS": ["Arsenal Tula"],
+                       "ENG": ["Arsenal"], "POR": ["Sp Braga", "Sp Lisbon"]}.items():
+        ids += [f"{cc}:{x}" for x in names_]
+    return sources.TeamIndex(ids)
+
+
+def test_odds_api_names_never_jump_to_the_wrong_club():
+    idx = full_index()
+    assert idx.resolve("Atletico Madrid") == "ESP:Ath Madrid"
+    assert idx.resolve("Paris Saint Germain") == "FRA:Paris SG"
+    assert idx.resolve("Paris FC") == "FRA:Paris FC"
+    assert idx.resolve("Monaco") == "FRA:Monaco"
+    assert idx.resolve("Inter Milan") == "ITA:Inter"
+    assert idx.resolve("Arsenal") == "ENG:Arsenal"
     assert idx.resolve("Club Totalement Inconnu").startswith("?:")
 
 
-def test_odds_frame_averages_bookmakers_and_never_needs_them():
-    idx = sources.TeamIndex(["FRA:Lille", "GER:Bayern Munich"])
-    ev = [{"id": "x", "commence_time": "2026-11-25T20:00:00Z", "home_team": "Lille OSC", "away_team": "Bayern Munich"}]
-    od = [{"id": "x", "home_team": "Lille OSC", "away_team": "Bayern Munich", "bookmakers": [
-        {"markets": [{"key": "h2h", "outcomes": [{"name": "Lille OSC", "price": 4.0}, {"name": "Draw", "price": 4.0}, {"name": "Bayern Munich", "price": 1.8}]}]},
-        {"markets": [{"key": "h2h", "outcomes": [{"name": "Lille OSC", "price": 4.4}, {"name": "Draw", "price": 4.2}, {"name": "Bayern Munich", "price": 1.7}]}]}]}]
-    f = sources.odds_frame(ev, od, "LEC", idx)
+def test_clubs_of_countries_without_league_keep_one_identity():
+    idx = full_index()
+    a = idx.resolve("Qarabağ FK", "AZE")
+    assert idx.resolve("Qarabağ Ağdam FK", "AZE") == a
+    assert idx.resolve("FK Crvena Zvezda", "SRB") == idx.resolve("Crvena Zvezda", "SRB")
+
+
+def test_odds_frame_averages_bookmakers_and_drops_live_odds():
+    idx = full_index()
+    now = datetime(2026, 11, 20, 12, tzinfo=timezone.utc)
+    ev = [{"id": "x", "commence_time": "2026-11-25T20:00:00Z", "home_team": "Lille OSC", "away_team": "Bayern Munich"},
+          {"id": "y", "commence_time": "2026-11-20T11:00:00Z", "home_team": "Lille OSC", "away_team": "Inter Milan"}]
+    book = lambda h, d, a: {"markets": [{"key": "h2h", "outcomes": [{"name": "Lille OSC", "price": h}, {"name": "Draw", "price": d},  # noqa: E731
+                                                                     {"name": "Bayern Munich", "price": a}]}]}
+    od = {"fetched": now.timestamp(), "data": [{"id": "x", "commence_time": ev[0]["commence_time"], "home_team": "Lille OSC",
+                                                "away_team": "Bayern Munich", "bookmakers": [book(4.0, 4.0, 1.8), book(4.4, 4.2, 1.7)]}]}
+    f = sources.odds_frame(ev, od, "LEC", idx, now)
+    assert len(f) == 1                                        # le match déjà commencé disparaît
     assert f.loc[0, "home"] == "FRA:Lille" and f.loc[0, "oh"] == pytest.approx(4.2)
-    assert np.isnan(sources.odds_frame(ev, [], "LEC", idx).loc[0, "oh"])
+    late = {**od, "fetched": datetime(2026, 11, 25, 20, 30, tzinfo=timezone.utc).timestamp()}
+    assert np.isnan(sources.odds_frame(ev, late, "LEC", idx, now).loc[0, "oh"])   # cote relevée pendant le match
+
+
+def test_cup_odds_are_attached_by_kickoff_and_one_known_club():
+    fx = pd.DataFrame({"kickoff": ["2026-11-25T20:00:00Z", "2026-11-25T20:00:00Z"], "home": ["FRA:Lille", "ESP:Betis"],
+                       "away": ["GER:Bayern Munich", "ITA:Roma"]})
+    od = pd.DataFrame({"kickoff": ["2026-11-25T20:00:00Z"], "home": ["FRA:Lille"], "away": ["?:Bayern"],
+                       "oh": [4.0], "od": [3.8], "oa": [1.8]})
+    out, lost = sources.attach_odds(fx, od)
+    assert lost == 0 and out.loc[0, "oh"] == 4.0 and np.isnan(out.loc[1, "oh"])
 
 
 def test_football_data_org_uses_the_score_after_90_minutes():
@@ -113,12 +148,21 @@ def test_joint_fit_never_uses_the_future():
 
 
 def test_odds_are_fetched_only_when_a_match_is_near(tmp_path, monkeypatch):
-    calls = []
-    monkeypatch.setattr(sources, "_get_json", lambda url, h=None: (calls.append(url.split("?")[0]) or ([], {})))
+    calls, events = [], []
+    def fake(url, h=None):
+        calls.append(url.split("?")[0])
+        return (events if url.split("?")[0].endswith("/events") else []), {"x-requests-remaining": "400"}
+    monkeypatch.setattr(sources, "_get_json", fake)
     now = datetime(2026, 11, 20, 12, tzinfo=timezone.utc)
-    sources.odds_api("LEC", "k", tmp_path, now, [datetime(2026, 12, 10, tzinfo=timezone.utc)])
-    assert all(not u.endswith("/odds") for u in calls)          # match lointain : liste des matchs seulement (gratuite)
-    sources.odds_api("LEC", "k", tmp_path, now, [datetime(2026, 11, 21, tzinfo=timezone.utc)])
-    assert sum(u.endswith("/odds") for u in calls) == 1
-    sources.odds_api("LEC", "k", tmp_path, now, [datetime(2026, 11, 21, tzinfo=timezone.utc)])
-    assert sum(u.endswith("/odds") for u in calls) == 1        # déjà récupérées il y a moins de 3 h
+    odds_calls = lambda: sum(u.endswith("/odds") for u in calls)  # noqa: E731
+    events[:] = [{"id": "a", "commence_time": "2026-12-10T20:00:00Z", "home_team": "x", "away_team": "y"}]
+    sources.odds_api("LEC", "k", tmp_path, now)
+    assert odds_calls() == 0                      # match lointain : liste des matchs seulement (gratuite)
+    events[:] = [{"id": "a", "commence_time": "2026-11-21T20:00:00Z", "home_team": "x", "away_team": "y"}]
+    sources.odds_api("LEC", "k", tmp_path, now)
+    assert odds_calls() == 1
+    sources.odds_api("LEC", "k", tmp_path, now)
+    assert odds_calls() == 1                      # déjà récupérées il y a moins de 3 h
+    (tmp_path / "quota.json").write_text('{"month": "2026-11", "remaining": 20}')
+    sources.odds_api("LEC", "k", tmp_path, datetime(2026, 11, 20, 18, tzinfo=timezone.utc))
+    assert odds_calls() == 1                      # réserve atteinte : plus d'appel payant ce mois-ci

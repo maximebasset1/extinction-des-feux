@@ -6,9 +6,9 @@ import unicodedata
 # mots qui n'aident pas à reconnaître un club
 NOISE = {"fc", "cf", "afc", "sc", "ssc", "ac", "as", "sk", "kv", "osc", "club", "de", "del", "da", "do", "the", "fk", "nk", "sv",
          "vfl", "vfb", "tsg", "rcd", "cd", "ud", "sd", "ca", "rc", "us", "ogc", "aj", "ss", "bc", "calcio", "1899", "1900", "1901",
-         "1904", "1907", "1909", "1913", "04", "05", "96", "e", "v", "spor", "kulubu", "futbol", "football", "sport", "sporting",
-         "royale", "royal", "krc", "rsc", "pae", "sfp", "sad", "fsv", "bsc", "hsc", "losc", "stade", "olympique", "real", "atletico",
-         "atlético", "athletic", "borussia", "eintracht", "bayer", "1", "s", "a", "ff", "if", "bk", "ik"}
+         "1904", "1907", "1909", "1913", "04", "05", "96", "e", "v", "spor", "kulubu", "futbol", "football", "sport",
+         "royale", "royal", "krc", "rsc", "pae", "sfp", "sad", "fsv", "bsc", "hsc", "losc", "borussia", "bayer", "1", "s", "a",
+         "ff", "if", "bk", "ik", "gnk", "hnk", "pfc", "jk"}
 # cas que la ressemblance des noms ne suffit pas à trancher : (pays, nom source) -> nom football-data
 MANUAL = {
     ("ENG", "Manchester United FC"): "Man United", ("ENG", "Manchester United"): "Man United", ("ENG", "Manchester City FC"): "Man City",
@@ -38,7 +38,7 @@ MANUAL = {
     ("ITA", "Bologna FC 1909"): "Bologna", ("ITA", "Torino FC"): "Torino", ("ITA", "Udinese Calcio"): "Udinese", ("ITA", "Como 1907"): "Como",
     ("FRA", "Paris Saint-Germain FC"): "Paris SG", ("FRA", "Paris Saint-Germain"): "Paris SG", ("FRA", "Olympique de Marseille"): "Marseille",
     ("FRA", "Olympique Lyonnais"): "Lyon", ("FRA", "Lille OSC"): "Lille", ("FRA", "LOSC Lille"): "Lille", ("FRA", "AS Monaco FC"): "Monaco",
-    ("MCO", "AS Monaco FC"): "Monaco", ("MCO", "AS Monaco"): "Monaco", ("MCO", "Monaco"): "Monaco", ("FRA", "AS Monaco"): "Monaco",
+    ("FRA", "AS Monaco"): "Monaco",
     ("FRA", "Stade Rennais FC 1901"): "Rennes", ("FRA", "Stade Rennais FC"): "Rennes", ("FRA", "Stade Rennais"): "Rennes",
     ("FRA", "OGC Nice"): "Nice", ("FRA", "RC Lens"): "Lens", ("FRA", "Racing Club de Lens"): "Lens", ("FRA", "Stade Brestois 29"): "Brest",
     ("FRA", "RC Strasbourg Alsace"): "Strasbourg", ("FRA", "Girondins de Bordeaux"): "Bordeaux", ("FRA", "FC Girondins de Bordeaux"): "Bordeaux",
@@ -100,3 +100,34 @@ def match(country: str, name: str, candidates: list[str]) -> str | None:
         return None
     best = difflib.get_close_matches(n, list(by_norm), n=1, cutoff=0.8)
     return by_norm[best[0]] if best else None
+
+
+# The Odds API ne donne pas le pays : seuls ces noms, ou un nom identique une fois normalisé, sont reliés
+NO_COUNTRY = {
+    "Paris Saint Germain": "FRA:Paris SG", "Paris Saint-Germain": "FRA:Paris SG", "Monaco": "FRA:Monaco", "AS Monaco": "FRA:Monaco",
+    "Lille": "FRA:Lille", "Lille OSC": "FRA:Lille", "Lyon": "FRA:Lyon", "Marseille": "FRA:Marseille", "Lens": "FRA:Lens", "RC Lens": "FRA:Lens",
+    "Nice": "FRA:Nice", "Rennes": "FRA:Rennes", "Strasbourg": "FRA:Strasbourg", "Brest": "FRA:Brest", "Toulouse": "FRA:Toulouse",
+    "Atletico Madrid": "ESP:Ath Madrid", "Atlético Madrid": "ESP:Ath Madrid", "Real Madrid": "ESP:Real Madrid", "Barcelona": "ESP:Barcelona",
+    "Athletic Bilbao": "ESP:Ath Bilbao", "Athletic Club": "ESP:Ath Bilbao", "Real Betis": "ESP:Betis", "Real Sociedad": "ESP:Sociedad",
+    "Villarreal": "ESP:Villarreal", "Sevilla": "ESP:Sevilla", "Celta Vigo": "ESP:Celta", "Valencia": "ESP:Valencia",
+    "Inter Milan": "ITA:Inter", "Inter": "ITA:Inter", "AC Milan": "ITA:Milan", "Juventus": "ITA:Juventus", "Napoli": "ITA:Napoli",
+    "AS Roma": "ITA:Roma", "Lazio": "ITA:Lazio", "Atalanta": "ITA:Atalanta", "Atalanta BC": "ITA:Atalanta", "Fiorentina": "ITA:Fiorentina",
+    "Bologna": "ITA:Bologna", "Como": "ITA:Como", "Arsenal": "ENG:Arsenal", "Manchester City": "ENG:Man City", "Manchester United": "ENG:Man United",
+    "Liverpool": "ENG:Liverpool", "Chelsea": "ENG:Chelsea", "Tottenham Hotspur": "ENG:Tottenham", "Aston Villa": "ENG:Aston Villa",
+    "Newcastle United": "ENG:Newcastle", "Nottingham Forest": "ENG:Nott'm Forest", "Crystal Palace": "ENG:Crystal Palace",
+    "Brighton and Hove Albion": "ENG:Brighton", "West Ham United": "ENG:West Ham", "Bayern Munich": "GER:Bayern Munich",
+    "Borussia Dortmund": "GER:Dortmund", "Bayer Leverkusen": "GER:Leverkusen", "RB Leipzig": "GER:RB Leipzig",
+    "Eintracht Frankfurt": "GER:Ein Frankfurt", "VfB Stuttgart": "GER:Stuttgart", "SC Freiburg": "GER:Freiburg",
+    "Borussia Monchengladbach": "GER:M'gladbach", "TSG Hoffenheim": "GER:Hoffenheim", "VfL Wolfsburg": "GER:Wolfsburg",
+    "Benfica": "POR:Benfica", "SL Benfica": "POR:Benfica", "FC Porto": "POR:Porto", "Porto": "POR:Porto", "Sporting Lisbon": "POR:Sp Lisbon",
+    "Sporting CP": "POR:Sp Lisbon", "Braga": "POR:Sp Braga", "SC Braga": "POR:Sp Braga", "Vitoria Guimaraes": "POR:Guimaraes",
+    "PSV Eindhoven": "NED:PSV Eindhoven", "Feyenoord": "NED:Feyenoord", "Ajax": "NED:Ajax", "AZ Alkmaar": "NED:AZ Alkmaar",
+    "FC Twente": "NED:Twente", "FC Utrecht": "NED:Utrecht", "Club Brugge": "BEL:Club Brugge", "Union Saint-Gilloise": "BEL:St. Gilloise",
+    "Anderlecht": "BEL:Anderlecht", "KRC Genk": "BEL:Genk", "Genk": "BEL:Genk", "Gent": "BEL:Gent", "Celtic": "SCO:Celtic",
+    "Rangers": "SCO:Rangers", "Aberdeen": "SCO:Aberdeen", "Galatasaray": "TUR:Galatasaray", "Fenerbahce": "TUR:Fenerbahce",
+    "Besiktas": "TUR:Besiktas", "Besiktas JK": "TUR:Besiktas", "Olympiacos": "GRE:Olympiakos", "Olympiakos": "GRE:Olympiakos",
+    "PAOK": "GRE:PAOK", "PAOK Thessaloniki": "GRE:PAOK", "Panathinaikos": "GRE:Panathinaikos", "AEK Athens": "GRE:AEK",
+    "Red Bull Salzburg": "AUT:Salzburg", "Sturm Graz": "AUT:Sturm Graz", "Young Boys": "SUI:Young Boys", "FC Basel": "SUI:Basel",
+    "FC Copenhagen": "DEN:FC Copenhagen", "FC Midtjylland": "DEN:Midtjylland", "Bodo/Glimt": "NOR:Bodo/Glimt", "Bodø/Glimt": "NOR:Bodo/Glimt",
+    "Malmo FF": "SWE:Malmo FF", "Legia Warsaw": "POL:Legia", "FCSB": "ROU:FCSB",
+}

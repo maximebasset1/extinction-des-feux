@@ -73,6 +73,14 @@ jobs:
           key: recherche-aucune
           restore-keys: recherche-
 
+      # état du quota de cotes : gardé à chaque lancement, pas une fois par jour, sinon la limite de 3 h ne tiendrait pas
+      - name: Reprendre l'état des cotes
+        uses: actions/cache/restore@v4
+        with:
+          path: data/football/cotes
+          key: recherche-cotes-aucune
+          restore-keys: recherche-cotes-
+
       # clés gratuites rangées dans les secrets du dépôt ; sans elles, les coupes d'Europe sont simplement absentes
       - name: "Recherche : six compétitions"
         continue-on-error: true
@@ -114,10 +122,17 @@ jobs:
             site/data/ligue1
           key: ${{ env.LIGUE1_CLE }}
 
+      - name: Enregistrer l'état des cotes
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/football/cotes
+          key: recherche-cotes-${{ github.run_id }}-${{ github.run_attempt }}
+
       - name: Garder les données de la recherche
         if: always()
         run: |
-          mkdir -p data/football/eu site/data/recherche
+          mkdir -p data/football/eu site/data/recherche data/football/cotes
           echo "RECHERCHE_CLE=recherche-$(date -u +%F)" >> "$GITHUB_ENV"
 
       - name: Enregistrer le cache de la recherche

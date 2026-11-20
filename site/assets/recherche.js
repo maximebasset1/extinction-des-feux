@@ -8,7 +8,7 @@ const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : "–");
 const pct = (p) => (p == null ? "–" : p < 0.005 ? "<1 %" : p >= 0.995 ? ">99 %" : `${Math.round(p * 100)} %`);
 const fold = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ");
 const PAGE = 24;
-const S = { m: null, p: null, comp: "", q: "", shown: PAGE, list: [] };
+const S = { m: null, p: null, comp: "", q: "", club: null, shown: PAGE, list: [], opener: null };
 // surnoms courants, pour trouver un club comme on le dit
 const ALIASES = { "FRA:Paris SG": "psg paris", "FRA:Marseille": "om", "FRA:Lyon": "ol", "FRA:Lille": "losc", "ESP:Barcelona": "barca barça",
   "ENG:Man United": "man utd manchester united", "ENG:Man City": "man city", "GER:Bayern Munich": "bayern munich munchen",
@@ -49,43 +49,64 @@ function probBar(p, home, away) {
 }
 const matchKey = (x) => `${x.home}|${x.away}|${x.jour || ""}`;
 
-/* ---------- recherche */
+/* ---------- recherche : la requête désigne un club, ou deux */
 let index = {};
 function buildIndex() {
   index = {};
-  for (const [k, c] of Object.entries(S.m.clubs)) index[k] = fold(`${c.nom} ${k.split(":").pop()} ${c.sigle} ${ALIASES[k] || ""}`);
+  for (const [k, c] of Object.entries(S.m.clubs)) {
+    index[k] = new Set(fold(`${c.nom} ${k.split(":").pop()} ${c.sigle} ${ALIASES[k] || ""}`).split(" ").filter(Boolean));
+  }
 }
-const tokens = (q) => fold(q).split(" ").filter((t) => t.length > 1 || /\d/.test(t));
+const tokens = (q) => fold(q).split(" ").filter(Boolean);
+// mot court (« OM », « OL ») : il doit correspondre exactement ; sinon début de mot (« bay » pour Bayern)
+const hasWord = (k, w) => (w.length <= 3 ? index[k].has(w) : [...index[k]].some((t) => t.startsWith(w)));
+const clubsFor = (ws) => Object.keys(S.m.clubs).filter((k) => ws.every((w) => hasWord(k, w)));
+function pairs() {
+  if (S.club) return { one: new Set([S.club]) };
+  const ws = tokens(S.q);
+  if (!ws.length) return null;
+  const one = clubsFor(ws);
+  if (one.length) return { one: new Set(one) };
+  const two = [];
+  for (let i = 1; i < ws.length; i++) {
+    const a = clubsFor(ws.slice(0, i)), b = clubsFor(ws.slice(i));
+    if (a.length && b.length) two.push([new Set(a), new Set(b)]);
+  }
+  return { two };
+}
+const isAhead = (x, now, today) => (x.kickoff ? new Date(x.kickoff) > now : (x.jour || "9999") >= today);
 function filter() {
-  const t = tokens(S.q);
-  return S.m.matchs.filter((x) => (!S.comp || x.competition === S.comp)
-    && t.every((w) => index[x.home]?.includes(w) || index[x.away]?.includes(w)));
+  const now = new Date(), today = now.toLocaleDateString("sv-SE");
+  const q = pairs();
+  return S.m.matchs.filter((x) => isAhead(x, now, today) && (!S.comp || x.competition === S.comp) && (!q
+    || (q.one ? q.one.has(x.home) || q.one.has(x.away)
+      : q.two.some(([a, b]) => (a.has(x.home) && b.has(x.away)) || (b.has(x.home) && a.has(x.away))))));
 }
 function render() {
   S.list = filter();
-  const t = tokens(S.q);
+  const t = S.club ? [S.club] : tokens(S.q);
   const shown = S.list.slice(0, S.shown);
   $("#note").textContent = !S.list.length
     ? (t.length ? "Aucun match à venir pour cette recherche. Vérifie l'orthographe, ou essaie un seul club." : "Aucun match à venir.")
     : t.length ? `${S.list.length} match${S.list.length > 1 ? "s" : ""} à venir.` : "Prochains matchs, toutes compétitions. Heures à l'heure de ton appareil.";
-  $("#results").innerHTML = shown.map((x) => `<li class="fixture clickable" tabindex="0" role="button" data-key="${esc(matchKey(x))}" aria-label="Voir le détail de ${esc(name(x.home))} contre ${esc(name(x.away))}">
-    <p class="tiny muted comp-line"><span class="comp">${esc(compName(x.competition))}</span>${esc(kick(x))}</p>
-    <div class="teams"><span class="team-l">${badge(x.home)}<b>${esc(name(x.home))}</b></span><span class="mid"></span>
-      <span class="team-r"><b>${esc(name(x.away))}</b>${badge(x.away)}</span></div>
-    ${probBar(x.p, x.home, x.away)}</li>`).join("");
+  $("#results").innerHTML = shown.map((x) => `<li class="fixture clickable"><a class="fixture-link" href="#match=${encodeURIComponent(matchKey(x))}" data-key="${esc(matchKey(x))}">
+    <span class="tiny muted comp-line"><span class="comp">${esc(compName(x.competition))}</span><span>${esc(kick(x))}</span></span>
+    <span class="teams"><span class="team-l">${badge(x.home)}<b>${esc(name(x.home))}</b></span><span class="mid"></span>
+      <span class="team-r"><b>${esc(name(x.away))}</b>${badge(x.away)}</span></span>
+    ${probBar(x.p, x.home, x.away)}</a></li>`).join("");
   $("#more").hidden = S.list.length <= S.shown;
 }
 function suggest() {
   const t = tokens(S.q), box = $("#suggest");
-  const hits = t.length ? Object.keys(S.m.clubs).filter((k) => t.every((w) => index[k].includes(w))).slice(0, 8) : [];
+  const hits = t.length && !S.club ? clubsFor(t).slice(0, 8) : [];
   box.innerHTML = hits.map((k, i) => `<li role="option" id="sg-${i}" data-club="${esc(k)}" tabindex="-1">${badge(k)}<span>${esc(name(k))}</span>
     <span class="tiny muted">${esc(club(k).competitions.map(compName).join(", "))}</span></li>`).join("");
-  box.hidden = !hits.length || (hits.length === 1 && fold(name(hits[0])) === fold(S.q));
+  box.hidden = !hits.length;
   $("#q").setAttribute("aria-expanded", String(!box.hidden));
 }
 
 /* ---------- détail */
-function showDetail(key, isScroll = true) {
+function showDetail(key, isScroll = true, opener = null) {
   const x = S.m.matchs.find((m) => matchKey(m) === key);
   if (!x) return;
   const sc = x.scores.map((s) => `<b>${esc(s.score)}</b> (${pct(s.p)})`).join(", ");
@@ -113,8 +134,12 @@ function showDetail(key, isScroll = true) {
         <td><span class="driver">${badge(a)}<b>${esc(name(a))}</b></span></td></tr>`).join("")}</tbody></table></div>`
       : `<p class="empty">Aucun match entre ces deux clubs depuis 2010 dans nos données.</p>`}`;
   $("#detail").hidden = false;
+  S.opener = opener;
   history.replaceState(null, "", `#match=${encodeURIComponent(key)}`);
-  if (isScroll) $("#detail").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  if (isScroll) {
+    $("#detail").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    $("#d-title").focus({ preventScroll: true });
+  }
 }
 
 /* ---------- bilan */
@@ -147,7 +172,7 @@ async function main() {
   $("#m-updated").textContent = `Dernière mise à jour : ${when(S.m.maj_utc)}.`;
   render(); renderBilan();
   const q = $("#q");
-  q.addEventListener("input", () => { S.q = q.value; S.shown = PAGE; render(); suggest(); });
+  q.addEventListener("input", () => { S.q = q.value; S.club = null; S.shown = PAGE; render(); suggest(); });
   q.addEventListener("keydown", (e) => {
     const items = [...document.querySelectorAll("#suggest li")];
     if (e.key === "ArrowDown" && items.length && !$("#suggest").hidden) { e.preventDefault(); items[0].focus(); }
@@ -163,7 +188,7 @@ async function main() {
   $("#suggest").addEventListener("click", (e) => {
     const li = e.target.closest("li[data-club]");
     if (!li) return;
-    q.value = name(li.dataset.club); S.q = q.value; S.shown = PAGE;
+    q.value = name(li.dataset.club); S.q = q.value; S.club = li.dataset.club; S.shown = PAGE;
     $("#suggest").hidden = true; q.setAttribute("aria-expanded", "false"); render(); q.focus();
   });
   document.addEventListener("click", (e) => { if (!e.target.closest(".search")) { $("#suggest").hidden = true; q.setAttribute("aria-expanded", "false"); } });
@@ -175,13 +200,23 @@ async function main() {
     render();
   });
   $("#more").addEventListener("click", () => { S.shown += PAGE; render(); });
-  $("#results").addEventListener("click", (e) => { const li = e.target.closest("li[data-key]"); if (li) showDetail(li.dataset.key); });
-  $("#results").addEventListener("keydown", (e) => {
-    const li = e.target.closest("li[data-key]");
-    if (li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); showDetail(li.dataset.key); }
+  $("#results").addEventListener("click", (e) => {
+    const a = e.target.closest("a[data-key]");
+    if (!a) return;
+    e.preventDefault();
+    showDetail(a.dataset.key, true, a);
   });
-  $("#d-close").addEventListener("click", () => { $("#detail").hidden = true; history.replaceState(null, "", location.pathname); q.focus(); });
-  const h = decodeURIComponent(location.hash.replace(/^#match=/, ""));
-  if (location.hash.startsWith("#match=")) showDetail(h, false);
+  $("#d-close").addEventListener("click", () => {
+    $("#detail").hidden = true;
+    history.replaceState(null, "", location.pathname);
+    (S.opener && document.body.contains(S.opener) ? S.opener : q).focus();
+  });
+  if (location.hash.startsWith("#match=")) {
+    try {
+      showDetail(decodeURIComponent(location.hash.slice(7)), false);
+    } catch {
+      history.replaceState(null, "", location.pathname);   // lien abîmé : on ignore
+    }
+  }
 }
 main();

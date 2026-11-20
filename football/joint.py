@@ -48,7 +48,7 @@ def fit(m: pd.DataFrame, cutoff: pd.Timestamp, xi: float, s: float, sot_ratio: f
         ya = np.where(ok, (1 - s) * ya + s * sot_ratio * d["ast"].fillna(0).to_numpy(float), ya)
     home_on = (~d["neutral"].fillna(False).astype(bool)).to_numpy(float)
     cup = d["is_cup"].to_numpy(bool)
-    # avantage du terrain propre aux coupes : on le sait plus faible qu'en championnat
+    # avantage du terrain estimé à part pour les coupes (voyages plus longs, ambiance différente)
     home_dom, home_cup = home_on * ~cup, home_on * cup
     w = np.exp(-xi * (cutoff - d["date"]).dt.days.to_numpy(float))
     # club absent de la saison précédente : un cran sous le niveau de son championnat

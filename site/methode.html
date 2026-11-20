@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#26292e">
+<meta name="description" content="Comment les probabilités de Formule 1 et de football sont calculées, et ce qu'elles valent.">
+<title>Méthode - Extinction des feux</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/signal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/commun.js" defer></script>
+<script src="assets/methode.js" defer></script>
+</head>
+<body data-root="./">
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header class="tete">
+  <div class="tete-in">
+    <a class="marque" href="index.html"><span class="feux" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Extinction des feux</span></a>
+    <nav class="menu" aria-label="Sections">
+    <a href="f1.html">Formule 1</a>
+    <a href="foot.html">Football</a>
+    <a href="methode.html" aria-current="page">Méthode</a>
+    </nav>
+  </div>
+</header>
+<main id="contenu">
+  <section class="titre-page">
+    <div class="titre-in">
+      <h1>Méthode</h1>
+      <p class="chapeau">Comment les probabilités sont calculées, et ce qu'elles valent vraiment.</p>
+    </div>
+  </section>
+
+  <div class="page texte">
+    <section class="bloc">
+      <h2>Football</h2>
+      <p>Tous les clubs de 22 championnats européens et des coupes d'Europe sont notés ensemble : chacun a une force d'attaque et une force de défense, estimées sur ses matchs récents (les plus récents comptent plus) à partir des buts et des tirs cadrés. Les championnats ne se rencontrent qu'en coupe d'Europe : ce sont ces matchs, et les clubs qui montent ou descendent, qui permettent de comparer un club de Ligue 1 à un club de Bundesliga.</p>
+      <p>De ces forces, le modèle tire la probabilité de chaque score (loi de Poisson, avec la correction de Dixon et Coles pour les petits scores), puis les chances de victoire, de nul et de défaite sur 90 minutes. Prolongations et tirs au but ne sont pas comptés.</p>
+      <p>Quand les cotes d'avant-match sont publiées, elles sont mélangées au modèle, car elles résument ce que les statistiques ne voient pas : blessures, compositions, actualité. <span id="m-part">Elles pèsent lourd dans le pronostic final</span>, mais nos statistiques gardent toujours une part, et les cotes ne sont jamais affichées.</p>
+      <h3>Le modèle apprend-il ?</h3>
+      <p>À chaque nouveau résultat, toutes les forces sont réestimées : une victoire, un nul ou une défaite déplace les chances des matchs suivants, d'autant plus que le résultat est récent. Une seule surprise ne bouge pourtant les choses que de peu, volontairement : un match tient beaucoup du hasard, et sur-réagir rendrait le modèle moins juste. Ses réglages, eux, ne changent pas d'un match à l'autre : ils ont été choisis une fois pour toutes sur la saison 2021-22, et le journal des pronostics sert à vérifier, saison après saison, qu'ils tiennent.</p>
+      <h3>Est-ce fiable ?</h3>
+      <p>Chaque semaine depuis 2022, le modèle est rejoué avec les seuls matchs joués avant, comme s'il avait tourné à l'époque. On le compare à deux références : les pourcentages habituels de victoire à domicile, de nul et de victoire à l'extérieur, et les cotes des bookmakers. Le score utilisé, le RPS, est d'autant plus bas que les probabilités annoncées étaient justes.</p>
+      <div class="defile"><table class="tableau" id="m-table"></table></div>
+      <p>Un pronostic de football se trompe souvent sur un match donné : même bien calibré, le favori ne gagne qu'un peu plus d'une fois sur deux. Ce qui compte, c'est qu'un événement annoncé à 30 % arrive à peu près trois fois sur dix.</p>
+    </section>
+
+    <section class="bloc">
+      <h2>Formule 1</h2>
+      <p>Les temps au tour depuis 2018, la forme récente de chaque pilote, le rythme de la voiture, les essais du week-end et la météo prévue alimentent un modèle statistique réentraîné après chaque course. Il donne, pour chaque pilote, la probabilité de faire la pole et de gagner la course. Le détail et le bilan sont sur la <a href="f1.html">page Formule 1</a>.</p>
+    </section>
+
+    <section class="bloc">
+      <h2>Sources</h2>
+      <p>Football : <a href="https://www.football-data.co.uk/">football-data.co.uk</a> (résultats, tirs, cotes), <a href="https://www.football-data.org/">football-data.org</a> (calendriers, résultats récents), <a href="https://github.com/openfootball">openfootball</a> (coupes d'Europe passées, domaine public), <a href="https://the-odds-api.com/">The Odds API</a> (Ligue Europa, cotes des coupes). Formule 1 : <a href="https://github.com/TracingInsights">TracingInsights</a>, <a href="https://docs.fastf1.dev/">FastF1</a>, <a href="https://jolpi.ca">Jolpica</a>, <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0).</p>
+      <p>Logos : seuls ceux du domaine public sont utilisés (Wikimedia Commons) ; les autres clubs sont représentés par leur sigle. Les noms et logos des clubs appartiennent à leurs propriétaires.</p>
+      <p class="note" id="m-maj"></p>
+    </section>
+  </div>
+</main>
+<footer class="pied">
+  <div class="pied-in">
+    <p>Projet étudiant de Maxime Basset. Pronostics automatiques, sans lien avec la Formule 1, la FIA, l'UEFA, les ligues ni les clubs.</p>
+    <p>Ce n'est pas un outil de paris. Les jeux d'argent et de hasard peuvent être dangereux : pertes d'argent, conflits familiaux, addiction. Retrouvez nos conseils sur joueurs-info-service.fr (09 74 75 13 13, appel non surtaxé).</p>
+    <p><a href="https://github.com/maximebasset1/extinction-des-feux">Code source</a></p>
+  </div>
+</footer>
+</body>
+</html>

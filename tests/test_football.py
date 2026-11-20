@@ -1,4 +1,4 @@
-"""Tests du modèle Ligue 1 : python -m pytest tests -q"""
+"""Tests des outils de match, des classements et du journal : python -m pytest tests -q"""
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -8,25 +8,9 @@ import pandas as pd
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from football import config as C  # noqa: E402
-from football import main as F  # noqa: E402
+from football import journal as JR  # noqa: E402
 from football import model as M  # noqa: E402
 from football import season as S  # noqa: E402
-
-
-def matches(n_weeks=60, seed=1):
-    """Petit championnat fictif : A est nettement la meilleure équipe."""
-    rng = np.random.default_rng(seed)
-    teams, strength = ["A", "B", "C", "D"], {"A": 0.6, "B": 0.1, "C": -0.1, "D": -0.4}
-    rows, d0 = [], pd.Timestamp("2020-01-04")
-    for w in range(n_weeks):
-        for k, (h, a) in enumerate([(teams[(w + i) % 4], teams[(w + i + 1 + w % 3) % 4]) for i in range(2)]):
-            if h == a:
-                continue
-            lh, la = np.exp(0.25 + strength[h] - strength[a]), np.exp(strength[a] - strength[h])
-            rows.append({"date": d0 + pd.Timedelta(weeks=w, days=k), "home": h, "away": a,
-                         "hg": rng.poisson(lh), "ag": rng.poisson(la), "hst": np.nan, "ast": np.nan})
-    return pd.DataFrame(rows)
 
 
 def test_score_matrix_is_a_distribution():
@@ -35,6 +19,7 @@ def test_score_matrix_is_a_distribution():
         assert mat.min() >= 0
         assert mat.sum() == pytest.approx(1.0, abs=1e-6)
         assert M.outcome(mat).sum() == pytest.approx(1.0, abs=1e-6)
+    assert M.score_matrix(6.0, 5.0, -0.2).min() >= 0      # la correction ne crée jamais de probabilité négative
 
 
 def test_stronger_attack_means_more_home_wins():
@@ -49,34 +34,15 @@ def test_market_probabilities_remove_the_margin():
 
 def test_blend_without_odds_keeps_the_model():
     pm = np.array([[0.5, 0.3, 0.2]])
-    out = M.blend(pm, np.full((1, 3), np.nan), 0.3, 1.0)
-    assert np.allclose(out, pm)
+    assert np.allclose(M.blend(pm, np.full((1, 3), np.nan), 0.3, 1.0), pm)
     mixed = M.blend(pm, np.array([[0.2, 0.3, 0.5]]), 1.0, 1.0)
     assert mixed.sum() == pytest.approx(1.0) and mixed[0, 0] < 0.5
 
 
 def test_rps_rewards_the_right_favourite():
-    good, bad = np.array([[0.7, 0.2, 0.1]]), np.array([[0.1, 0.2, 0.7]])
     y = np.array([0])
-    assert M.rps(good, y)[0] < M.rps(bad, y)[0]
+    assert M.rps(np.array([[0.7, 0.2, 0.1]]), y)[0] < M.rps(np.array([[0.1, 0.2, 0.7]]), y)[0]
     assert M.rps(np.array([[1.0, 0.0, 0.0]]), y)[0] == pytest.approx(0.0)
-
-
-def test_fit_never_uses_matches_after_the_cutoff():
-    m = matches()
-    cutoff = m["date"].iloc[len(m) // 2]
-    a = M.fit(m, cutoff, xi=0.003, s=0.0, sot_ratio=0.3)
-    changed = m.copy()
-    changed.loc[changed["date"] >= cutoff, ["hg", "ag"]] = 9
-    b = M.fit(changed, cutoff, xi=0.003, s=0.0, sot_ratio=0.3)
-    assert np.allclose(a["att"], b["att"]) and np.allclose(a["def"], b["def"])
-
-
-def test_fit_finds_the_best_team():
-    m = matches(120)
-    fit = M.fit(m, m["date"].max() + pd.Timedelta(days=1), xi=0.001, s=0.0, sot_ratio=0.3)
-    lh, la = M.rates(fit, "A", "D")
-    assert lh > la
 
 
 def test_table_and_simulation_are_consistent():
@@ -84,49 +50,44 @@ def test_table_and_simulation_are_consistent():
     t = S.table(played, ["A", "B", "C", "D"])
     assert list(t.index[:1]) == ["A"] and t.loc["A", "pts"] == 3 and t.loc["C", "pts"] == 1
     upcoming = pd.DataFrame({"home": ["A", "B"], "away": ["C", "D"], "lam_h": [1.5, 1.2], "lam_a": [1.0, 1.1]})
-    sim = S.simulate(played, upcoming, ["A", "B", "C", "D"], rho=-0.1)
-    assert sim["titre"].sum() == pytest.approx(1.0)
-    assert sim["relegation"].sum() == pytest.approx(2.0)
-    for places in sim["places"]:
-        assert sum(places) == pytest.approx(1.0, abs=1e-3)
-    assert sim.iloc[0]["club"] == "A"
-
-
-def test_journal_records_once_and_respects_the_margin(tmp_path, monkeypatch):
-    monkeypatch.setattr(C, "JOURNAL", tmp_path / "ligue1.csv")
-    now = datetime(2026, 11, 20, 12, 0, tzinfo=timezone.utc)
-    iso = lambda dt: dt.strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
-    fx = pd.DataFrame({
-        "played": [False, False, False, False],
-        "kickoff": [iso(now + timedelta(hours=5)), iso(now + timedelta(minutes=10)), iso(now + timedelta(days=9)),
-                    iso(now + timedelta(days=2))],
-        "round": [11, 11, 12, 11], "home": ["A", "B", "C", "D"], "away": ["D", "C", "A", "B"],
-        "p": [[0.5, 0.3, 0.2]] * 4, "with_market": [True, True, True, False]})
-    # trop tard pour le 2e, trop tôt pour le 3e, le 4e attend encore ses cotes
-    assert F.record_journal(fx, now) == 1
-    assert F.record_journal(fx, now + timedelta(hours=1)) == 0   # jamais réécrit
-    j = pd.read_csv(C.JOURNAL)
-    assert list(j["domicile"]) == ["A"] and j.loc[0, "p_dom"] == pytest.approx(0.5)
-
-
-def test_kickoff_times_are_converted_to_utc():
-    assert S.kickoff_utc(pd.Timestamp("2026-11-21"), "20:45") == "2026-11-21T19:45:00Z"
-    assert S.kickoff_utc(pd.Timestamp("2026-08-22"), "21:05") == "2026-08-22T19:05:00Z"
-    assert S.kickoff_utc(pd.Timestamp("2026-11-21"), None) is None          # pas d'heure inventée
-    assert S.kickoff_utc(pd.Timestamp("2026-11-20"), "19:45", S.LONDON) == "2026-11-20T19:45:00Z"
-    assert S.kickoff_utc(pd.Timestamp("2026-08-21"), "19:45", S.LONDON) == "2026-08-21T18:45:00Z"
-
-
-def test_promoted_team_keeps_its_prior_all_season():
-    m = matches(120)
-    m["season"] = np.where(m["date"] < pd.Timestamp("2021-07-01"), 2020, 2021)
-    m = m[~((m["season"] == 2020) & ((m["home"] == "D") | (m["away"] == "D")))]   # D est promu en 2021
-    cutoff = m.loc[m["season"] == 2021, "date"].sort_values().iloc[10]
-    prior = M._prior(m[m["date"] < cutoff], ["A", "B", "C", "D"], cutoff, {"promoted": (-0.2, -0.1)})
-    assert prior[3] == pytest.approx(-0.2) and prior[7] == pytest.approx(-0.1)
-    assert prior[:3].tolist() == [0, 0, 0]
+    pts, places = S.simulate_places(played, upcoming, ["A", "B", "C", "D"], rho=-0.1)
+    assert places.shape == (4, 4)
+    assert np.allclose(places.sum(axis=0), 1.0) and np.allclose(places.sum(axis=1), 1.0)
+    assert places[0, 0] == places[:, 0].max()              # A, déjà en tête, finit le plus souvent premier
+    assert pts[0] >= 3
 
 
 def test_published_probabilities_are_rounded_and_sum_to_one():
     q = S.round_probs([0.3333, 0.3333, 0.3334])
     assert sum(q) == pytest.approx(1.0) and all(round(x, 2) == x for x in q)
+
+
+def test_kickoff_times_are_converted_to_utc_and_to_the_paris_day():
+    assert S.kickoff_utc(pd.Timestamp("2026-11-21"), "20:45") == "2026-11-21T19:45:00Z"
+    assert S.kickoff_utc(pd.Timestamp("2026-08-22"), "21:05") == "2026-08-22T19:05:00Z"
+    assert S.kickoff_utc(pd.Timestamp("2026-11-21"), None) is None          # pas d'heure inventée
+    assert S.kickoff_utc(pd.Timestamp("2026-11-20"), "19:45", S.LONDON) == "2026-11-20T19:45:00Z"
+    assert S.paris_day("2026-11-20T23:30:00Z") == "2026-11-21"               # 0 h 30 à Paris : le lendemain
+
+
+def test_journal_records_once_respects_the_margin_and_waits_for_odds(tmp_path):
+    path = tmp_path / "foot.csv"
+    now = datetime(2026, 11, 20, 12, 0, tzinfo=timezone.utc)
+    iso = lambda dt: dt.strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
+    rows = [{"competition": "F1", "journee": "Journée 11", "jour": "2026-11-20", "kickoff": iso(now + timedelta(hours=5)),
+             "home": "FRA:A", "away": "FRA:D", "p": [0.6, 0.25, 0.15], "avec_cotes": True},
+            {"competition": "F1", "journee": "Journée 11", "jour": "2026-11-20", "kickoff": iso(now + timedelta(minutes=10)),
+             "home": "FRA:B", "away": "FRA:C", "p": [0.5, 0.3, 0.2], "avec_cotes": True},
+            {"competition": "F1", "journee": "Journée 12", "jour": "2026-11-29", "kickoff": iso(now + timedelta(days=9)),
+             "home": "FRA:C", "away": "FRA:A", "p": [0.5, 0.3, 0.2], "avec_cotes": True},
+            {"competition": "LDC", "journee": "Journée 5", "jour": "2026-11-22", "kickoff": iso(now + timedelta(days=2)),
+             "home": "FRA:D", "away": "GER:B", "p": [0.5, 0.3, 0.2], "avec_cotes": False},
+            {"competition": "LDC", "journee": "Journée 5", "jour": "2026-11-21", "kickoff": None,
+             "home": "FRA:E", "away": "GER:F", "p": [0.5, 0.3, 0.2], "avec_cotes": True}]
+    # trop tard pour le 2e, trop tôt pour le 3e, le 4e attend ses cotes, le 5e son heure
+    assert JR.record(rows, path, now) == 1
+    assert JR.record(rows, path, now + timedelta(hours=1)) == 0              # jamais réécrit
+    j = JR.read(path)
+    assert list(j["domicile"]) == ["FRA:A"] and j.loc[0, "p_dom"] == pytest.approx(0.6)
+    e = JR.evaluate(path, {j.loc[0, "match_id"]: (0, 2)})
+    assert e[0]["resultat"] == 2 and e[0]["surprise"] and not e[0]["favori_juste"]

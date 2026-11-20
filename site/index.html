@@ -1,90 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="theme-color" content="#058785">
-<meta name="description" content="F1 pole and win predictions for the next grand prix, updated automatically and compared with real results.">
-<title>Predictions - PitLane Insider preview</title>
+<meta name="theme-color" content="#26292e">
+<meta name="description" content="Probabilités de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, mises à jour toutes les heures.">
+<title>Extinction des feux : pronostics F1 et football</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/signal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css">
-<script src="assets/app.js" defer></script>
+<script src="assets/commun.js" defer></script>
+<script src="assets/accueil.js" defer></script>
 </head>
-<body>
-<header class="top">
-  <a class="brand" href="#">PitLane Insider</a>
-  <nav aria-label="Sections">
-    <a href="index.html" aria-current="page">Formula 1</a>
-    <a href="ligue1.html">Ligue 1</a>
-    <a href="recherche.html">Recherche</a>
-    <a href="#next">Next GP</a>
-    <a href="#drivers">Drivers</a>
-    <a href="#history">Model vs reality</a>
-    <a href="#record">Track record</a>
-    <a href="#method">How it works</a>
-  </nav>
+<body data-root="./">
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header class="tete">
+  <div class="tete-in">
+    <a class="marque" href="index.html"><span class="feux" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Extinction des feux</span></a>
+    <nav class="menu" aria-label="Sections">
+    <a href="f1.html">Formule 1</a>
+    <a href="foot.html">Football</a>
+    <a href="methode.html">Méthode</a>
+    </nav>
+  </div>
 </header>
-<p class="preview">Preview of the predictions page planned for PitLane Insider. Not the official site.</p>
-
-<main>
-  <div class="row two" id="next">
-    <section class="card gp">
-      <h2 class="wide gp-name" id="gp-name">Loading…</h2>
-      <p class="session-next" id="session-next"></p>
-      <div class="countdown" id="countdown" aria-label="Countdown to the next session">
-        <div><span id="cd-d">00</span><small>D</small></div>
-        <div><span id="cd-h">00</span><small>H</small></div>
-        <div><span id="cd-m">00</span><small>MIN</small></div>
-        <div><span id="cd-s">00</span><small>S</small></div>
+<main id="contenu">
+  <section class="depart" aria-labelledby="h-depart">
+    <div class="depart-in">
+      <div class="feux-grands" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <h1 id="h-depart">Les prochains départs</h1>
+      <p class="chapeau">Les chances de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, recalculées toutes les heures et comparées ensuite aux vrais résultats.</p>
+      <div class="departs">
+        <a class="dep" href="f1.html" id="dep-f1"><span class="dep-quoi">Formule 1</span><b id="dep-f1-titre">Chargement…</b><span id="dep-f1-quand"></span><span id="dep-f1-detail" class="dep-detail"></span></a>
+        <a class="dep" href="foot.html" id="dep-foot"><span class="dep-quoi">Football</span><b id="dep-foot-titre">Chargement…</b><span id="dep-foot-quand"></span><span id="dep-foot-detail" class="dep-detail"></span></a>
       </div>
-      <h1 class="wide question" id="question">Who takes pole?</h1>
-      <p class="muted" id="status"></p>
-      <h3>Weekend schedule</h3>
-      <ul class="sessions" id="sessions"></ul>
-      <p class="tiny muted" id="sessions-note"></p>
+    </div>
+  </section>
+
+  <div class="page">
+    <section class="bloc" aria-labelledby="h-une">
+      <div class="bloc-tete"><h2 id="h-une">À la une cette semaine</h2><a href="foot.html">Tous les matchs</a></div>
+      <p class="note">Les affiches de la semaine : coupes d'Europe, grands clubs et matchs à l'issue la plus ouverte.</p>
+      <ul class="matchs" id="une"></ul>
     </section>
 
-    <section class="card">
-      <h3 id="grid-title">Most likely front of the grid</h3>
-      <ol class="grid" id="grid"></ol>
-      <p class="tiny muted">A forecast, not a result: one bad lap can change everything.</p>
+    <section class="bloc" aria-labelledby="h-surprises">
+      <div class="bloc-tete"><h2 id="h-surprises">Surprises récentes</h2></div>
+      <p class="note">Le modèle se trompe aussi. Voici les résultats des quinze derniers jours qu'il donnait à moins de 20 %.</p>
+      <ul class="matchs" id="surprises"></ul>
+    </section>
+
+    <section class="bloc" aria-labelledby="h-grille">
+      <div class="bloc-tete"><h2 id="h-grille">Formule 1, la grille la plus probable</h2><a href="f1.html">Page Formule 1</a></div>
+      <p class="note" id="grille-note"></p>
+      <ol class="classement-f1" id="grille"></ol>
+    </section>
+
+    <section class="bloc" aria-labelledby="h-comp">
+      <div class="bloc-tete"><h2 id="h-comp">Six compétitions de football</h2></div>
+      <ul class="competitions" id="competitions"></ul>
+    </section>
+
+    <section class="bloc encadre" aria-labelledby="h-fiable">
+      <h2 id="h-fiable">Peut-on s'y fier ?</h2>
+      <p id="fiable"></p>
+      <p><a href="methode.html">Comment c'est calculé, et à quel point c'est juste</a></p>
     </section>
   </div>
-
-  <section class="card" id="drivers">
-    <h3>All drivers</h3>
-    <div class="scroll"><table class="table" id="field"></table></div>
-  </section>
-
-  <section class="card" id="history">
-    <div class="head">
-      <h3>Model vs reality</h3>
-      <div class="pills" id="seasons" role="group" aria-label="Season"></div>
-    </div>
-    <p class="muted small">For each qualifying, the model is replayed using only the races before it, as if it had run at the time. Each bar shows the chance it gave to the driver who took pole. The dashed line is a driver picked at random.</p>
-    <p class="muted small">2026 rounds 4 to 11 were used to choose the model, so it has an edge there. Forecasts actually published in advance are in the log below.</p>
-    <div class="chart" id="chart"></div>
-    <div class="scroll"><table class="table" id="history-table"></table></div>
-  </section>
-
-  <section class="card" id="record">
-    <h3>Track record</h3>
-    <div class="tiles" id="tiles"></div>
-    <h3 class="mt">Forecast log</h3>
-    <p class="muted small">Each forecast is recorded before the session, never rewritten, then compared with the result.</p>
-    <div id="journal"></div>
-  </section>
-
-  <section class="card small" id="method">
-    <h3>How it works</h3>
-    <p class="muted">Lap times since 2018, each driver's recent form, the car's pace, this weekend's practice sessions and the weather forecast feed a statistical model, retrained after every race. The calculation runs automatically on GitHub several times a day.</p>
-    <p class="muted" id="updated"></p>
-    <p class="muted">Data: official timing via <a href="https://github.com/TracingInsights">TracingInsights</a> and <a href="https://docs.fastf1.dev/">FastF1</a>, calendar <a href="https://jolpi.ca">Jolpica</a>, weather <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0). <a id="source" href="https://github.com/maximebasset1/extinction-des-feux">Source code</a>. Unofficial student project, not affiliated with Formula 1, not a betting tool.</p>
-  </section>
 </main>
-
-<footer class="foot">2024-2026 - La Remontée Formula 1 Team</footer>
+<footer class="pied">
+  <div class="pied-in">
+    <p>Projet étudiant de Maxime Basset. Pronostics automatiques, sans lien avec la Formule 1, la FIA, l'UEFA, les ligues ni les clubs.</p>
+    <p>Ce n'est pas un outil de paris. Les jeux d'argent et de hasard peuvent être dangereux : pertes d'argent, conflits familiaux, addiction. Retrouvez nos conseils sur joueurs-info-service.fr (09 74 75 13 13, appel non surtaxé).</p>
+    <p><a href="https://github.com/maximebasset1/extinction-des-feux">Code source</a></p>
+  </div>
+</footer>
 </body>
 </html>

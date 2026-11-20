@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#26292e">
+<meta name="description" content="Probabilités de pole et de victoire pour chaque pilote au prochain Grand Prix, comparées ensuite aux vrais résultats.">
+<title>Formule 1 : pole et victoire au prochain Grand Prix - Extinction des feux</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/signal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/commun.js" defer></script>
+<script src="assets/f1.js" defer></script>
+</head>
+<body data-root="./">
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header class="tete">
+  <div class="tete-in">
+    <a class="marque" href="index.html"><span class="feux" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Extinction des feux</span></a>
+    <nav class="menu" aria-label="Sections">
+    <a href="f1.html" aria-current="page">Formule 1</a>
+    <a href="foot.html">Football</a>
+    <a href="methode.html">Méthode</a>
+    </nav>
+  </div>
+</header>
+<main id="contenu">
+  <section class="depart depart-f1" aria-labelledby="gp-name">
+    <div class="depart-in">
+      <p class="dep-quoi" id="question">Qui partira en pole ?</p>
+      <h1 id="gp-name">Chargement…</h1>
+      <p class="chapeau" id="status"></p>
+      <div class="compte" id="countdown" aria-live="off">
+        <p id="session-next"></p>
+        <div class="compte-chiffres"><span><b id="cd-d">00</b> j</span><span><b id="cd-h">00</b> h</span><span><b id="cd-m">00</b> min</span><span><b id="cd-s">00</b> s</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="page">
+    <section class="bloc" aria-labelledby="grid-title">
+      <div class="bloc-tete"><h2 id="grid-title">La grille la plus probable</h2></div>
+      <ol class="classement-f1" id="grid"></ol>
+      <p class="note">Un pronostic, pas un résultat : un tour raté et tout change.</p>
+    </section>
+
+    <section class="bloc" aria-labelledby="h-seances">
+      <div class="bloc-tete"><h2 id="h-seances">Programme du week-end</h2></div>
+      <ul class="seances" id="sessions"></ul>
+      <p class="note" id="sessions-note"></p>
+    </section>
+
+    <section class="bloc" id="drivers" aria-labelledby="h-pilotes">
+      <div class="bloc-tete"><h2 id="h-pilotes">Tous les pilotes</h2></div>
+      <div class="defile"><table class="tableau" id="field"></table></div>
+    </section>
+
+    <section class="bloc" id="history" aria-labelledby="h-histo">
+      <div class="bloc-tete"><h2 id="h-histo">Le modèle face à la réalité</h2><div class="pastilles" id="seasons" role="group" aria-label="Saison"></div></div>
+      <p class="note">Pour chaque qualification, le modèle est rejoué avec les seules courses d'avant, comme s'il avait tourné à l'époque. Chaque barre montre la chance qu'il donnait au pilote qui a fait la pole. La ligne pointillée correspond à un pilote tiré au hasard.</p>
+      <p class="note">Les manches 4 à 11 de 2026 ont servi à choisir le modèle : il y part avec un avantage. Les pronostics vraiment publiés à l'avance sont dans le journal plus bas.</p>
+      <div class="graphe" id="chart"></div>
+      <div class="defile"><table class="tableau" id="history-table"></table></div>
+    </section>
+
+    <section class="bloc" id="record" aria-labelledby="h-bilan">
+      <div class="bloc-tete"><h2 id="h-bilan">Bilan</h2></div>
+      <dl class="chiffres" id="tiles"></dl>
+      <h3>Journal des pronostics publiés</h3>
+      <p class="note">Chaque pronostic est enregistré avant la séance, jamais réécrit, puis comparé au résultat.</p>
+      <div id="journal"></div>
+    </section>
+
+    <section class="bloc encadre" id="method" aria-labelledby="h-meth">
+      <h2 id="h-meth">Comment ça marche</h2>
+      <p>Les temps au tour depuis 2018, la forme récente de chaque pilote, le rythme de la voiture, les essais du week-end et la météo prévue alimentent un modèle statistique réentraîné après chaque course. Le calcul tourne tout seul sur GitHub plusieurs fois par jour.</p>
+      <p id="updated" class="note"></p>
+      <p class="note">Données : chronométrage officiel via <a href="https://github.com/TracingInsights">TracingInsights</a> et <a href="https://docs.fastf1.dev/">FastF1</a>, calendrier <a href="https://jolpi.ca">Jolpica</a>, météo <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0).</p>
+    </section>
+  </div>
+</main>
+<footer class="pied">
+  <div class="pied-in">
+    <p>Projet étudiant de Maxime Basset. Pronostics automatiques, sans lien avec la Formule 1, la FIA, l'UEFA, les ligues ni les clubs.</p>
+    <p>Ce n'est pas un outil de paris. Les jeux d'argent et de hasard peuvent être dangereux : pertes d'argent, conflits familiaux, addiction. Retrouvez nos conseils sur joueurs-info-service.fr (09 74 75 13 13, appel non surtaxé).</p>
+    <p><a href="https://github.com/maximebasset1/extinction-des-feux">Code source</a></p>
+  </div>
+</footer>
+</body>
+</html>

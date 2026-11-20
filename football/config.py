@@ -1,40 +1,14 @@
-"""Ligue 1 : réglages, noms d'équipes, couleurs."""
+"""Football : réglages communs et couleurs des clubs de Ligue 1 (pour leur écusson)."""
 from datetime import date
-import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RAW = Path(os.environ.get("L1_DATA_DIR", ROOT / "data" / "football" / "raw"))
-PROCESSED = ROOT / "data" / "football"
-SITE_DATA = ROOT / "site" / "data" / "ligue1"
-JOURNAL = ROOT / "data" / "journal" / "ligue1.csv"
-
-FD_URL = "https://www.football-data.co.uk/mmz4281/{code}/F1.csv"
-FD_FIXTURES = "https://www.football-data.co.uk/fixtures.csv"
-MIRROR_URL = "https://raw.githubusercontent.com/datasets/football-datasets/main/datasets/ligue-1/season-{code}.csv"
-OPENFOOTBALL_URL = "https://raw.githubusercontent.com/openfootball/football.json/master/{season}/fr.1.json"
 USER_AGENT = "extinction-des-feux/1.0 (projet etudiant; github.com/maximebasset1/extinction-des-feux)"
-
-FIRST_ODDS_SEASON = 2000   # football-data : cotes à partir de 2000-01
-FIRST_MIRROR_SEASON = 1993 # historique des face-à-face
 # la saison commence en août : de juillet à décembre c'est l'année de début, ensuite l'année d'avant
 _TODAY = date.today()
 CURRENT_SEASON = _TODAY.year if _TODAY.month >= 7 else _TODAY.year - 1
-
-# saisons du backtest : CHOIX des réglages, puis TEST (jamais utilisé pour choisir)
-CHOICE_SEASONS = [2015, 2016, 2017, 2018, 2019]
-TEST_SEASONS = list(range(2021, CURRENT_SEASON + 1))
 MIN_MODEL_WEIGHT = 0.3     # le pronostic garde toujours une part de nos statistiques : ce n'est jamais la cote recopiée
-# 2020-21 (huis clos, calendrier chamboulé) : ni choix ni test, mais sert à l'apprentissage
 
-# openfootball -> football-data
-OPENFOOTBALL_NAMES = {
-    "AJ Auxerre": "Auxerre", "AS Monaco FC": "Monaco", "Angers SCO": "Angers", "ES Troyes AC": "Troyes",
-    "FC Lorient": "Lorient", "Le Havre AC": "Le Havre", "Le Mans FC": "Le Mans", "Lille OSC": "Lille",
-    "OGC Nice": "Nice", "Olympique Lyonnais": "Lyon", "Olympique de Marseille": "Marseille", "Paris FC": "Paris FC",
-    "Paris Saint-Germain FC": "Paris SG", "RC Strasbourg Alsace": "Strasbourg", "Racing Club de Lens": "Lens",
-    "Stade Brestois 29": "Brest", "Stade Rennais FC 1901": "Rennes", "Toulouse FC": "Toulouse",
-}
 # nom affiché, sigle, couleur principale, couleur secondaire (pastille)
 CLUBS = {
     "Auxerre": ("AJ Auxerre", "AJA", "#0055a4", "#ffffff"), "Monaco": ("AS Monaco", "ASM", "#e2001a", "#ffffff"),

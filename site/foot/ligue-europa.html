@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#26292e">
+<meta name="description" content="Ligue Europa : probabilités de chaque match, classement, fin de saison simulée, face-à-face et fiabilité du modèle.">
+<title>Ligue Europa : pronostics, classement et fin de saison - Extinction des feux</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="../assets/fonts/signal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/commun.js" defer></script>
+<script src="../assets/competition.js" defer></script>
+</head>
+<body data-root="../" data-competition="ligue-europa">
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header class="tete">
+  <div class="tete-in">
+    <a class="marque" href="../index.html"><span class="feux" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Extinction des feux</span></a>
+    <nav class="menu" aria-label="Sections">
+    <a href="../f1.html">Formule 1</a>
+    <a href="../foot.html" aria-current="page">Football</a>
+    <a href="../methode.html">Méthode</a>
+    </nav>
+  </div>
+  <nav class="bande" aria-label="Compétitions">
+    <div class="bande-in">
+      <a href="../foot.html">Tous les matchs</a>
+      <a href="../foot/premier-league.html">Premier League</a>
+      <a href="../foot/bundesliga.html">Bundesliga</a>
+      <a href="../foot/liga.html">Liga</a>
+      <a href="../foot/ligue-1.html">Ligue 1</a>
+      <a href="../foot/ligue-des-champions.html">Ligue des champions</a>
+      <a href="../foot/ligue-europa.html" aria-current="page">Ligue Europa</a>
+    </div>
+  </nav>
+</header>
+<main id="contenu">
+  <section class="titre-page">
+    <div class="titre-in">
+      <h1 id="c-titre">Ligue Europa</h1>
+      <p class="chapeau" id="c-chapeau"></p>
+      <nav class="sommaire" aria-label="Dans cette page">
+        <a href="#matchs">Matchs</a><a href="#classement" id="lien-classement">Classement</a><a href="#club">Clubs</a><a href="#face">Face-à-face</a><a href="#fiabilite">Fiabilité</a>
+      </nav>
+    </div>
+  </section>
+
+  <div class="page">
+    <section class="bloc" id="matchs" aria-labelledby="j-titre">
+      <div class="bloc-tete">
+        <h2 id="j-titre">Matchs</h2>
+        <div class="pager">
+          <button type="button" id="j-prev" aria-label="Journée précédente">‹</button>
+          <label class="cache" for="j-select">Journée</label>
+          <select id="j-select"></select>
+          <button type="button" id="j-next" aria-label="Journée suivante">›</button>
+        </div>
+      </div>
+      <p class="note" id="j-note"></p>
+      <div id="j-liste"></div>
+    </section>
+
+    <section class="bloc" id="classement" aria-labelledby="h-classement">
+      <div class="bloc-tete"><h2 id="h-classement">Classement et fin de saison prévue</h2></div>
+      <p class="note" id="t-note"></p>
+      <div class="defile"><table class="tableau" id="t-table"></table></div>
+    </section>
+
+    <section class="bloc" id="club" aria-labelledby="h-club">
+      <div class="bloc-tete"><h2 id="h-club">Calendrier d'un club</h2><label class="cache" for="club-select">Club</label><select id="club-select"></select></div>
+      <div id="club-resume"></div>
+      <div id="club-liste"></div>
+    </section>
+
+    <section class="bloc" id="face" aria-labelledby="h-face">
+      <div class="bloc-tete"><h2 id="h-face">Face-à-face</h2>
+        <div class="pager"><label class="cache" for="f-a">Premier club</label><select id="f-a"></select><span>contre</span><label class="cache" for="f-b">Second club</label><select id="f-b"></select></div>
+      </div>
+      <p id="f-resume"></p>
+      <div class="defile"><table class="tableau" id="f-liste"></table></div>
+    </section>
+
+    <section class="bloc" id="fiabilite" aria-labelledby="h-fiab">
+      <div class="bloc-tete"><h2 id="h-fiab">Fiabilité</h2><a href="../methode.html">Méthode</a></div>
+      <p class="note" id="b-note"></p>
+      <div class="defile"><table class="tableau" id="b-table"></table></div>
+      <h3>Journal des pronostics publiés</h3>
+      <p class="note">Chaque pronostic est enregistré avant le coup d'envoi, jamais réécrit, puis comparé au résultat.</p>
+      <div id="journal"></div>
+    </section>
+  </div>
+</main>
+<footer class="pied">
+  <div class="pied-in">
+    <p>Projet étudiant de Maxime Basset. Pronostics automatiques, sans lien avec la Formule 1, la FIA, l'UEFA, les ligues ni les clubs.</p>
+    <p>Ce n'est pas un outil de paris. Les jeux d'argent et de hasard peuvent être dangereux : pertes d'argent, conflits familiaux, addiction. Retrouvez nos conseils sur joueurs-info-service.fr (09 74 75 13 13, appel non surtaxé).</p>
+    <p><a href="https://github.com/maximebasset1/extinction-des-feux">Code source</a></p>
+  </div>
+</footer>
+</body>
+</html>

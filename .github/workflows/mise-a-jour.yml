@@ -50,28 +50,15 @@ jobs:
       - name: Télécharger, réentraîner, prédire
         run: python src/main.py
 
-      - name: Reprendre les données Ligue 1
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            data/football/raw
-            site/data/ligue1
-          key: ligue1-aucune
-          restore-keys: ligue1-
-
-      # si le calcul Ligue 1 échoue, la page garde les pronostics précédents et la F1 est publiée quand même
-      - name: "Ligue 1 : télécharger, réentraîner, prédire"
-        continue-on-error: true
-        run: python football/main.py
-
-      - name: Reprendre les données de la recherche
+      # si le calcul football échoue, les pages gardent les pronostics précédents et la F1 est publiée quand même
+      - name: Reprendre les données football
         uses: actions/cache/restore@v4
         with:
           path: |
             data/football/eu
-            site/data/recherche
-          key: recherche-aucune
-          restore-keys: recherche-
+            site/data/foot
+          key: foot-aucune
+          restore-keys: foot-
 
       # état du quota de cotes : gardé à chaque lancement, pas une fois par jour, sinon la limite de 3 h ne tiendrait pas
       - name: Reprendre l'état des cotes
@@ -82,12 +69,12 @@ jobs:
           restore-keys: recherche-cotes-
 
       # clés gratuites rangées dans les secrets du dépôt ; sans elles, les coupes d'Europe sont simplement absentes
-      - name: "Recherche : six compétitions"
+      - name: "Football : six compétitions"
         continue-on-error: true
         env:
           FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-        run: python football/europe_main.py
+        run: python football/pipeline.py
 
       - name: Repérer les données téléchargées
         if: always()
@@ -106,22 +93,6 @@ jobs:
             data/processed/cache_backtest.pkl
           key: ${{ steps.inventaire.outputs.cle }}
 
-      - name: Garder les données Ligue 1
-        if: always()
-        run: |
-          mkdir -p data/football/raw site/data/ligue1
-          # une sauvegarde par jour au plus : les fichiers changent à chaque calcul
-          echo "LIGUE1_CLE=ligue1-$(date -u +%F)" >> "$GITHUB_ENV"
-
-      - name: Enregistrer le cache Ligue 1
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            data/football/raw
-            site/data/ligue1
-          key: ${{ env.LIGUE1_CLE }}
-
       - name: Enregistrer l'état des cotes
         if: always()
         uses: actions/cache/save@v4
@@ -129,20 +100,21 @@ jobs:
           path: data/football/cotes
           key: recherche-cotes-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Garder les données de la recherche
+      - name: Garder les données football
         if: always()
         run: |
-          mkdir -p data/football/eu site/data/recherche data/football/cotes
-          echo "RECHERCHE_CLE=recherche-$(date -u +%F)" >> "$GITHUB_ENV"
+          mkdir -p data/football/eu site/data/foot data/football/cotes
+          # une sauvegarde par jour au plus : les fichiers changent à chaque calcul
+          echo "FOOT_CLE=foot-$(date -u +%F)" >> "$GITHUB_ENV"
 
-      - name: Enregistrer le cache de la recherche
+      - name: Enregistrer le cache football
         if: always()
         uses: actions/cache/save@v4
         with:
           path: |
             data/football/eu
-            site/data/recherche
-          key: ${{ env.RECHERCHE_CLE }}
+            site/data/foot
+          key: ${{ env.FOOT_CLE }}
 
       - name: Vérifier
         run: python -m pytest tests -q
@@ -152,6 +124,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git add data/calendar.json data/journal data/processed/best_laps.csv data/processed/race_results.csv
+          if [ -f data/football/resultats_coupes.csv ]; then git add data/football/resultats_coupes.csv; fi
           if git diff --cached --quiet; then
             echo "Rien de nouveau."
           else

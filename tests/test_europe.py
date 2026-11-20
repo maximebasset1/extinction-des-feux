@@ -166,3 +166,30 @@ def test_odds_are_fetched_only_when_a_match_is_near(tmp_path, monkeypatch):
     (tmp_path / "quota.json").write_text('{"month": "2026-11", "remaining": 20}')
     sources.odds_api("LEC", "k", tmp_path, datetime(2026, 11, 20, 18, tzinfo=timezone.utc))
     assert odds_calls() == 1                      # réserve atteinte : plus d'appel payant ce mois-ci
+
+
+def test_european_matches_of_one_week_form_one_matchday():
+    from football import pipeline as P
+    idx = sources.TeamIndex(["FRA:Lille", "FRA:Lyon", "ESP:Betis", "GER:Stuttgart"])
+    now = datetime(2026, 11, 20, 12, tzinfo=timezone.utc)
+    ev = [{"id": "a", "commence_time": "2026-11-26T17:45:00Z", "home_team": "Lille OSC", "away_team": "Real Betis"},
+          {"id": "b", "commence_time": "2026-11-26T20:00:00Z", "home_team": "Lyon", "away_team": "VfB Stuttgart"},
+          {"id": "c", "commence_time": "2026-12-10T20:00:00Z", "home_team": "Lyon", "away_team": "Lille OSC"}]
+    f = P.europa_calendar(ev, {}, pd.DataFrame(), idx, now)
+    assert list(f["journee"]) == ["Semaine du 26 novembre", "Semaine du 26 novembre", "Semaine du 10 décembre"]
+    assert list(f["ordre"]) == [1, 1, 2]
+
+
+def test_display_names_stay_unambiguous():
+    from football import pipeline as P
+    assert P.display("Paris FC") == "Paris FC"                 # sinon on le confondrait avec le PSG
+    assert P.display("Arsenal FC") == "Arsenal"
+    assert P.display("Paris Saint-Germain FC") == "Paris Saint-Germain"
+    assert P.display("FC Bayern München") == "Bayern Munich"
+
+
+def test_site_pages_are_up_to_date():
+    import subprocess
+    root = Path(__file__).resolve().parents[1]
+    r = subprocess.run([sys.executable, str(root / "scripts" / "build_site.py"), "--check"], capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout

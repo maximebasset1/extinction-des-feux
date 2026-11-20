@@ -1,0 +1,75 @@
+/* Accueil : prochain départ en Formule 1 et en football, matchs à la une, surprises récentes, grille la plus probable. */
+"use strict";
+
+const SEANCES = { FP1: "Essais libres 1", SQ: "Qualifications sprint", FP2: "Essais libres 2", S: "Sprint", FP3: "Essais libres 3", Q: "Qualifications", R: "Course" };
+const ORDRE = ["FP1", "SQ", "FP2", "S", "FP3", "Q", "R"];
+const DUREE = { FP1: 60, FP2: 60, FP3: 60, SQ: 45, S: 60, Q: 60, R: 120 };
+
+function prochaineSeance(n) {
+  const s = n.sessions || {}, now = Date.now();
+  return ORDRE.filter((k) => s[k]).find((k) => new Date(s[k]).getTime() + (DUREE[k] || 60) * 6e4 > now);
+}
+function favorisPole(n) {
+  const cle = n.pole.some((d) => d.apres != null) ? "apres" : "avant";
+  return [...n.pole].map((d) => ({ ...d, p: d[cle] })).sort((a, b) => (b.p ?? 0) - (a.p ?? 0));
+}
+
+function rendreF1(n) {
+  const k = prochaineSeance(n);
+  $("#dep-f1-titre").textContent = n.gp_fr || `Grand Prix ${n.gp}`;
+  if (n.saison_terminee || !k) {
+    $("#dep-f1-quand").textContent = n.saison_terminee ? "La saison est terminée." : "Course terminée. Le prochain pronostic arrive dans quelques heures.";
+  } else {
+    $("#dep-f1-quand").textContent = `${SEANCES[k]} ${quand(n.sessions[k])}, ${relatif(n.sessions[k])}`;
+  }
+  let liste, titre;
+  if (n.qualif_disputee && n.victoire && n.victoire.length) {
+    liste = [...n.victoire].sort((a, b) => (b.proba ?? 0) - (a.proba ?? 0)).map((d) => ({ ...d, p: d.proba }));
+    titre = "Chances de victoire, sur la vraie grille de départ.";
+  } else {
+    liste = favorisPole(n);
+    titre = n.pole.some((d) => d.apres != null) ? "Chances de pole, mises à jour avec les essais du week-end." : "Chances de pole, avant les essais du week-end.";
+  }
+  $("#dep-f1-detail").textContent = liste.slice(0, 3).map((d) => `${d.famille} ${pct(d.p)}`).join(", ");
+  $("#grille-note").textContent = titre;
+  const max = Math.max(...liste.map((d) => d.p ?? 0), 0.01);
+  $("#grille").innerHTML = liste.slice(0, 6).map((d, i) => `<li><span class="pos">${i + 1}</span>
+    <span class="pilote"><b>${esc(d.famille)}</b><span><i class="ecurie" style="background:${couleur(d.couleur) || "#888"}"></i>${esc(d.equipe)}</span></span>
+    <span class="jauge"><i style="width:${((100 * (d.p ?? 0)) / max).toFixed(1)}%;background:${couleur(d.couleur) || "#888"}"></i></span>
+    <span class="pct">${pct(d.p)}</span></li>`).join("");
+}
+
+function rendreFoot(i) {
+  const lien = (m, comp) => `${ROOT}foot/${i.slugs[comp]}.html#match=${encodeURIComponent(m.id)}`;
+  const prochain = i.a_la_une.find((m) => !m.kickoff || new Date(m.kickoff) > new Date());
+  if (prochain) {
+    const c = (k) => i.clubs[k] || { nom: k.split(":").pop() };
+    $("#dep-foot").href = lien(prochain, prochain.c);
+    $("#dep-foot-titre").textContent = `${c(prochain.home).nom} - ${c(prochain.away).nom}`;
+    $("#dep-foot-quand").textContent = `${i.noms[prochain.c]}, ${quandMatch(prochain)}${prochain.kickoff ? `, ${relatif(prochain.kickoff)}` : ""}`;
+    $("#dep-foot-detail").innerHTML = barre(prochain.p, c(prochain.home).nom, c(prochain.away).nom);
+  } else {
+    $("#dep-foot-titre").textContent = "Pas de grande affiche cette semaine";
+  }
+  $("#une").innerHTML = i.a_la_une.length
+    ? i.a_la_une.map((m) => ligneMatch(m, i.clubs, { lien: lien(m, m.c), comp: i.noms[m.c], jourDansHeure: true })).join("")
+    : `<li class="vide">Pas de match annoncé cette semaine.</li>`;
+  $("#surprises").innerHTML = i.surprises.length
+    ? i.surprises.map((m) => ligneMatch(m, i.clubs, { lien: lien(m, m.competition), comp: i.noms[m.competition], jourDansHeure: true })).join("")
+    : `<li class="vide">Aucune surprise ces quinze derniers jours : les favoris ont tenu.</li>`;
+  listeCompetitions($("#competitions"), i.competitions);
+  const t = i.fiabilite, coupes = t.filter((r) => !r.avec_cotes), ligues = t.filter((r) => r.avec_cotes);
+  const gain = (r) => r.habitudes.rps - r.modele.rps;
+  $("#fiable").textContent = `Rejoué semaine par semaine depuis ${i.saisons_test[0]} sur ${t.reduce((s, r) => s + r.matchs, 0).toLocaleString("fr-FR")} matchs, le modèle fait mieux que les pourcentages habituels dans ${t.filter((r) => gain(r) > 0).length} compétitions sur ${t.length}`
+    + `${ligues.length ? `, et rejoint le niveau des bookmakers en championnat une fois leurs cotes ajoutées` : ""}. Le favori ne gagne pourtant qu'un peu plus d'un match sur deux : au football, ce sont les probabilités qui doivent être justes, pas chaque pronostic.`
+    + `${coupes.length ? " En coupe d'Europe, sans historique de cotes gratuit, seules nos statistiques sont jugées." : ""}`;
+}
+
+async function main() {
+  const [f1, foot] = await Promise.allSettled([donnees("next"), donnees("foot/index")]);
+  if (f1.status === "fulfilled") rendreF1(f1.value);
+  else { $("#dep-f1-titre").textContent = "Pronostic indisponible"; erreur($("#grille"), f1.reason); }
+  if (foot.status === "fulfilled") rendreFoot(foot.value);
+  else { $("#dep-foot-titre").textContent = "Pronostics indisponibles"; erreur($("#une"), foot.reason); }
+}
+main();

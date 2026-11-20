@@ -1,4 +1,4 @@
-"""Pronostics des matchs à venir et simulation de la fin de saison."""
+"""Classements, fins de saison simulées et petits outils de pronostic communs à toutes les compétitions."""
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -8,11 +8,11 @@ from scipy.optimize import minimize
 
 try:
     from football import model as M
-except ImportError:
+except ImportError:  # lancé comme script
     import model as M  # type: ignore
 
 PARIS = ZoneInfo("Europe/Paris")
-LONDON = ZoneInfo("Europe/London")   # heures de football-data
+LONDON = ZoneInfo("Europe/London")   # heures de football-data.co.uk
 N_SIM = 10000
 
 
@@ -34,8 +34,7 @@ def calibrate_rates(lh: float, la: float, target: np.ndarray, rho: float) -> tup
 
 
 def kickoff_utc(date: pd.Timestamp, time: str | None, tz: ZoneInfo = PARIS) -> str | None:
-    """Heure locale (Paris pour le calendrier, Londres pour football-data) -> ISO UTC.
-    Sans heure connue : None (la page affiche alors seulement la date)."""
+    """Heure locale -> ISO UTC. Sans heure connue : None (la page affiche alors seulement la date)."""
     if pd.isna(date) or not time or str(time) == "nan":
         return None
     hh, mm = (str(time).split(":") + ["0"])[:2]
@@ -43,45 +42,13 @@ def kickoff_utc(date: pd.Timestamp, time: str | None, tz: ZoneInfo = PARIS) -> s
     return local.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def predict_fixtures(fx: pd.DataFrame, played: pd.DataFrame, fit: dict, settings: dict) -> pd.DataFrame:
-    """Une ligne par match du calendrier : score réel s'il est joué, sinon pronostic."""
-    rho, a, b = settings["rho"], settings["a"], settings["b"]
-    res = played.set_index(["home", "away"])[["hg", "ag", "hxg", "axg", "date"]]
-    rows = []
-    for r in fx.itertuples():
-        ko = kickoff_utc(r.date, r.time)
-        fd_date = getattr(r, "fd_date", None)
-        if fd_date is not None and not pd.isna(fd_date):
-            ko = kickoff_utc(fd_date, getattr(r, "fd_time", None), LONDON)
-        day = fd_date if fd_date is not None and not pd.isna(fd_date) else r.date
-        row = {"round": int(r.round), "home": r.home, "away": r.away, "kickoff": ko,
-               "jour": None if pd.isna(day) else day.strftime("%Y-%m-%d")}
-        if (r.home, r.away) in res.index:
-            x = res.loc[(r.home, r.away)]
-            row.update(played=True, hg=int(x["hg"]), ag=int(x["ag"]), date=x["date"].strftime("%Y-%m-%d"),
-                       hxg=None if pd.isna(x["hxg"]) else float(x["hxg"]), axg=None if pd.isna(x["axg"]) else float(x["axg"]))
-        else:
-            lh, la = M.rates(fit, r.home, r.away)
-            p_model = M.outcome(M.score_matrix(lh, la, rho))
-            odds = np.array([[r.oh, r.od, r.oa]], float)
-            p_mkt = M.market_probs(odds) if np.isfinite(odds).all() else np.full((1, 3), np.nan)
-            p = M.blend(p_model[None, :], p_mkt, a, b)[0]
-            has_market = bool(np.isfinite(p_mkt).all())
-            if has_market:
-                lh, la = calibrate_rates(lh, la, p, rho)
-            mat = M.score_matrix(lh, la, rho)
-            flat = np.argsort(mat, axis=None)[::-1][:3]
-            scores = [{"score": f"{i // mat.shape[1]}-{i % mat.shape[1]}", "p": round(float(mat.flat[i]), 2)} for i in flat]
-            g = np.add.outer(np.arange(mat.shape[0]), np.arange(mat.shape[1]))
-            # arrondi au pour cent : la page n'en montre pas plus, et on ne peut pas en déduire les cotes
-            row.update(played=False, p=round_probs(p), with_market=has_market, xg=[round(lh, 1), round(la, 1)], scores=scores,
-                       over25=round(float(mat[g > 2].sum()), 2),
-                       btts=round(float(mat[1:, 1:].sum()), 2), lam_h=lh, lam_a=la)
-        rows.append(row)
-    return pd.DataFrame(rows)
+def paris_day(iso: str) -> str:
+    """Jour du match à l'heure de Paris : un match à 0 h 30 ne tombe pas la veille."""
+    return datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(PARIS).strftime("%Y-%m-%d")
 
 
 def table(played: pd.DataFrame, teams: list[str]) -> pd.DataFrame:
+    """Classement : points, différence de buts, buts marqués."""
     t = pd.DataFrame(0, index=teams, columns=["j", "g", "n", "p", "bp", "bc", "pts"])
     for r in played.itertuples():
         for team, gf, ga in ((r.home, r.hg, r.ag), (r.away, r.ag, r.hg)):
@@ -95,9 +62,11 @@ def table(played: pd.DataFrame, teams: list[str]) -> pd.DataFrame:
     return t.sort_values(["pts", "diff", "bp"], ascending=False)
 
 
-def simulate(played: pd.DataFrame, upcoming: pd.DataFrame, teams: list[str], rho: float = 0.0, seed: int = 0) -> pd.DataFrame:
-    """10 000 fins de saison : buts tirés selon les buts attendus de chaque match restant.
-    Classement : points, différence de buts, buts marqués."""
+def simulate_places(played: pd.DataFrame, upcoming: pd.DataFrame, teams: list[str], rho: float = 0.0,
+                    seed: int = 0) -> tuple[np.ndarray, np.ndarray]:
+    """Fin de saison tirée 10 000 fois : chaque match restant est tiré dans la même grille de scores que le
+    pronostic affiché (correction des nuls comprise). Renvoie les points moyens et la probabilité de chaque place
+    (une ligne par club de `teams`, une colonne par place)."""
     rng = np.random.default_rng(seed)
     idx = {t: i for i, t in enumerate(teams)}
     base = table(played, teams).reindex(teams)
@@ -105,22 +74,20 @@ def simulate(played: pd.DataFrame, upcoming: pd.DataFrame, teams: list[str], rho
     gd = np.tile(base["diff"].to_numpy(float), (N_SIM, 1))
     gf = np.tile(base["bp"].to_numpy(float), (N_SIM, 1))
     for r in upcoming.itertuples():
+        if r.home not in idx or r.away not in idx:
+            continue
         h, a = idx[r.home], idx[r.away]
-        # tirage dans la même grille de scores que le pronostic affiché (correction des nuls comprise)
         mat = M.score_matrix(r.lam_h, r.lam_a, rho)
-        k = rng.choice(mat.size, N_SIM, p=mat.ravel())
+        k = rng.choice(mat.size, N_SIM, p=mat.ravel() / mat.sum())
         x, y = k // mat.shape[1], k % mat.shape[1]
         pts[:, h] += np.where(x > y, 3, np.where(x == y, 1, 0))
         pts[:, a] += np.where(y > x, 3, np.where(x == y, 1, 0))
-        gd[:, h] += x - y; gd[:, a] += y - x
-        gf[:, h] += x; gf[:, a] += y
+        gd[:, h] += x - y
+        gd[:, a] += y - x
+        gf[:, h] += x
+        gf[:, a] += y
     key = pts * 1e6 + (gd + 500) * 1e3 + gf + rng.random(pts.shape) * 1e-3
-    rank = (-key).argsort(axis=1).argsort(axis=1) + 1
+    rank = (-key).argsort(axis=1).argsort(axis=1)          # 0 = premier
     n = len(teams)
-    out = pd.DataFrame({"club": teams, "points_attendus": pts.mean(axis=0).round(1),
-                        "titre": (rank == 1).mean(axis=0), "top3": (rank <= 3).mean(axis=0), "top4": (rank <= 4).mean(axis=0),
-                        "top6": (rank <= 6).mean(axis=0), "barrage": (rank == n - 2).mean(axis=0),
-                        "relegation": (rank >= n - 1).mean(axis=0), "rang_moyen": rank.mean(axis=0).round(1)})
-    dist = np.stack([(rank == k).mean(axis=0) for k in range(1, n + 1)], axis=1)
-    out["places"] = [list(np.round(d, 4)) for d in dist]
-    return out.sort_values(["rang_moyen"]).reset_index(drop=True)
+    places = np.stack([(rank == k).mean(axis=0) for k in range(n)], axis=1)
+    return pts.mean(axis=0), places

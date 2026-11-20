@@ -1,0 +1,10 @@
+publie_utc,match_id,competition,journee,domicile,exterieur,coup_envoi,p_dom,p_nul,p_ext,avec_cotes
+2026-11-20T11:43:47Z,F1|FRA:Troyes|FRA:Le Havre|2026-11-20,F1,Journée 11,FRA:Troyes,FRA:Le Havre,2026-11-20T19:45:00Z,0.42,0.28,0.3,True
+2026-11-20T11:43:47Z,F1|FRA:Nice|FRA:Paris SG|2026-11-21,F1,Journée 11,FRA:Nice,FRA:Paris SG,2026-11-21T16:15:00Z,0.14,0.18,0.68,True
+2026-11-20T11:43:47Z,F1|FRA:Monaco|FRA:Auxerre|2026-11-21,F1,Journée 11,FRA:Monaco,FRA:Auxerre,2026-11-21T19:45:00Z,0.7,0.18,0.12,True
+2026-11-20T11:43:47Z,F1|FRA:Lens|FRA:Toulouse|2026-11-21,F1,Journée 11,FRA:Lens,FRA:Toulouse,2026-11-21T19:45:00Z,0.54,0.23,0.23,True
+2026-11-20T11:43:47Z,F1|FRA:Lille|FRA:Lyon|2026-11-21,F1,Journée 11,FRA:Lille,FRA:Lyon,2026-11-21T19:45:00Z,0.44,0.28,0.28,True
+2026-11-20T11:43:47Z,F1|FRA:Strasbourg|FRA:Brest|2026-11-21,F1,Journée 11,FRA:Strasbourg,FRA:Brest,2026-11-21T19:45:00Z,0.46,0.24,0.3,True
+2026-11-20T11:43:47Z,F1|FRA:Paris FC|FRA:Angers|2026-11-22,F1,Journée 11,FRA:Paris FC,FRA:Angers,2026-11-22T14:00:00Z,0.76,0.16,0.08,True
+2026-11-20T11:43:47Z,F1|FRA:Lorient|FRA:Rennes|2026-11-22,F1,Journée 11,FRA:Lorient,FRA:Rennes,2026-11-22T16:15:00Z,0.34,0.26,0.4,True
+2026-11-20T11:43:47Z,F1|FRA:Marseille|FRA:Le Mans|2026-11-22,F1,Journée 11,FRA:Marseille,FRA:Le Mans,2026-11-22T19:45:00Z,0.71,0.17,0.12,True

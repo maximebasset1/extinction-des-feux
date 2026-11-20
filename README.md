@@ -1,17 +1,21 @@
-# Extinction des feux : qui partira en pole ?
+# Extinction des feux : pronostics de Formule 1 et de football
 
-Un site public sur la Formule 1 qui estime, pour chaque pilote, la probabilité de faire la **pole position** et de **gagner la course** au prochain Grand Prix. Il compare aussi, course par course depuis 2024, **ce que le modèle annonçait et ce qui s'est réellement passé**, et tient un journal des pronostics publiés avant chaque séance.
+Un site public qui estime, avant chaque Grand Prix de Formule 1, la probabilité de chaque pilote de faire la **pole position** et de **gagner la course**, et, avant chaque match de six compétitions de football, les chances de **victoire, de nul et de défaite**. Les pronostics sont ensuite comparés aux vrais résultats : un journal enregistre chaque pronostic avant le départ, sans jamais le réécrire.
 
-Le site se met à jour tout seul : toutes les 3 heures, GitHub télécharge les nouvelles séances, réentraîne les modèles, recalcule les pronostics et republie la page. Rien à faire sur ton PC.
+Le site se met à jour tout seul : toutes les 1 à 3 heures, GitHub télécharge les nouveaux résultats, réentraîne les modèles, recalcule les pronostics et republie les pages. Rien à faire sur ton PC.
+
+Pages : accueil (prochains départs, matchs à la une, surprises récentes), Formule 1, Football (recherche d'un club ou d'un match), une page par compétition (Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions, Ligue Europa) et Méthode.
 
 ## Le site en ligne (GitHub Pages)
 
 | Élément | Rôle |
 | --- | --- |
-| `site/` | le site : `index.html`, `assets/` (style, script, polices, icône) et `data/*.json` (les chiffres) |
+| `site/` | le site : pages HTML (générées par `scripts/build_site.py`), `assets/` (style, scripts, polices, icône) et `data/` (les chiffres) |
 | `.github/workflows/mise-a-jour.yml` | le calcul automatique, toutes les 3 heures et à chaque modification du code |
 | `data/calendar.json` | les horaires des séances (mis à jour par `scripts/update_calendar.py`) |
-| `data/journal/predictions.csv` | le journal des pronostics : chaque pronostic est enregistré **avant** la séance, jamais réécrit |
+| `data/journal/predictions.csv` | le journal des pronostics de F1 : chaque pronostic est enregistré **avant** la séance, jamais réécrit |
+| `data/journal/foot.csv` | le journal des pronostics de football, au moins 30 minutes avant chaque coup d'envoi |
+| `data/football/resultats_coupes.csv` | les résultats de Ligue Europa relevés au fil de la saison |
 
 **Gratuit :** GitHub Actions et GitHub Pages sont gratuits pour un dépôt public.
 
@@ -76,7 +80,7 @@ python -m pytest tests -q         # tests
 
 Pour forcer un Grand Prix : `F1_TARGET="2026|Qatar Grand Prix" python src/main.py`.
 
-## Les rubriques du site
+## La page Formule 1
 
 | Rubrique | Contenu |
 | --- | --- |
@@ -137,35 +141,24 @@ Ce qu'il faut en retenir :
    - 22 modèles au total ; le meilleur est choisi automatiquement.
 4. **Victoire :** logit conditionnel sur la place de départ. Avant la qualif, la grille est inconnue : on tire au sort 4 000 grilles possibles selon les probabilités de pole, puis on fait la moyenne.
 
-## Recherche de matchs (six compétitions)
+## Football : six compétitions, un seul modèle
 
-La page **Recherche** (`recherche.html`) donne les probabilités de n'importe quel match à venir de Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions et Ligue Europa. On tape un club (« Lille »), ou deux (« Lille Bayern »), et on clique sur le match : probabilités 1/N/2 sur 90 minutes, scores les plus probables, buts attendus et derniers face-à-face.
-
-Comment c'est calculé :
-- un seul modèle note ensemble les clubs de 22 championnats européens (football-data.co.uk, depuis 2010) et des coupes d'Europe passées (openfootball, domaine public) ;
-- chaque club a une force absolue, rappelée vers le niveau moyen de son championnat ; ce niveau n'est connu que grâce aux matchs européens et aux clubs qui montent ou descendent. C'est ce qui permet de comparer Lille et le Bayern ;
-- quand les cotes d'avant-match existent, elles sont mélangées au modèle (jamais affichées), comme pour la page Ligue 1.
-
-Réglages choisis sur 2021-22, puis jugement semaine par semaine de 2022 à 2026. En coupe d'Europe, le modèle fait nettement mieux que les pourcentages habituels (score RPS 0,193 contre 0,236 en Ligue des champions, 0,196 contre 0,230 en Ligue Europa). En championnat, il reste un peu derrière les cotes seules, et au niveau du marché une fois les cotes ajoutées.
-
-Deux clés gratuites, rangées dans les secrets du dépôt (Settings > Secrets and variables > Actions), ajoutent les coupes de la saison en cours :
-- `FOOTBALL_DATA_ORG_TOKEN` (football-data.org) : calendrier et résultats de la Ligue des champions ;
-- `ODDS_API_KEY` (The Odds API, 500 crédits par mois) : calendrier de la Ligue Europa et cotes des coupes, demandées au plus toutes les 3 heures et seulement quand un match a lieu dans les 3 jours.
-
-Sans ces clés, la page fonctionne avec les quatre championnats.
-
-## Ligue 1
-
-Le site a aussi une page **Ligue 1** (`ligue1.html`) : pour chaque match, la probabilité de victoire à domicile, de nul et de victoire à l'extérieur, les scores les plus probables et les buts attendus. On peut choisir la journée, afficher le calendrier d'un club avec ses chances match par match, comparer deux clubs (tous leurs matchs de Ligue 1 depuis 1993) et voir la fin de saison simulée 10 000 fois (titre, top 4, barrage, relégation).
+Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions et Ligue Europa. Pour chaque compétition : les matchs journée par journée (probabilités 1/N/2 sur 90 minutes, scores les plus probables, buts attendus), le classement et la fin de saison simulée 10 000 fois (titre, top 4, relégation ; top 8 et barrages en Ligue des champions), le calendrier de chaque club, les face-à-face depuis 2000 et la fiabilité. La page Football permet de chercher un club (« Lille ») ou un match (« Lille Bayern »).
 
 Comment c'est calculé :
-- chaque équipe a une force d'attaque et de défense, estimée sur ses matchs récents (les plus récents comptent plus), avec les buts et les tirs cadrés ;
-- les cotes d'avant-match servent de variable : elles résument les blessures, suspensions et l'actualité que les statistiques ne voient pas. Elles ne sont jamais affichées ;
-- les réglages sont choisis sur 2015-2019, puis le modèle est jugé sur 2021-2026, semaine par semaine, sans jamais voir le futur.
+- un seul modèle note ensemble les clubs de 22 championnats européens (football-data.co.uk, depuis 2010) et des coupes d'Europe (openfootball, domaine public, puis football-data.org pour la saison en cours) ;
+- chaque club a une force d'attaque et de défense, estimée sur ses matchs récents avec les buts et les tirs cadrés, et rappelée vers le niveau moyen de son championnat ; ce niveau n'est connu que grâce aux matchs européens et aux clubs qui montent ou descendent, ce qui permet de comparer Lille et le Bayern ;
+- quand les cotes d'avant-match existent (football-data.co.uk pour les championnats, The Odds API pour les coupes), elles sont mélangées au modèle, car elles résument blessures et actualité ; elles ne sont jamais affichées et nos statistiques gardent toujours au moins 30 % du poids.
 
-Résultat sur 1 768 matchs (2021-2026) : avec les seules statistiques, le modèle fait nettement mieux que les habitudes (« l'équipe à domicile gagne 45 % du temps ») ; avec les cotes, il est au niveau du marché des paris, qui reste la référence la plus difficile à battre. Le favori du pronostic gagne environ un match sur deux : au foot, ce sont les probabilités qui doivent être justes, pas chaque pronostic.
+**Le modèle apprend-il ?** À chaque lancement, toutes les forces sont réestimées avec les derniers résultats (football-data.org les donne dans l'heure) : une victoire ou une défaite déplace les chances des matchs suivants. Une surprise ne bouge pourtant les choses que de peu, volontairement : un match tient beaucoup du hasard. Les réglages (mémoire, part des tirs cadrés, poids des cotes) ont été choisis sur la saison 2021-22 et ne changent pas ; le journal sert à vérifier qu'ils tiennent.
 
-Sources, gratuites : résultats, tirs et cotes de [football-data.co.uk](https://www.football-data.co.uk/), calendrier complet d'[openfootball](https://github.com/openfootball/football.json) (domaine public), anciennes saisons de [datasets/football-datasets](https://github.com/datasets/football-datasets). Seuls les logos du domaine public sur Wikimedia Commons sont utilisés ; les autres clubs ont une pastille à leurs couleurs.
+Réglages choisis sur 2021-22, puis jugement semaine par semaine de 2022 à 2026. En coupe d'Europe, le modèle fait nettement mieux que les pourcentages habituels (score RPS 0,193 contre 0,236 en Ligue des champions, 0,196 contre 0,230 en Ligue Europa). En championnat, il est au niveau des bookmakers une fois les cotes ajoutées. Les matchs déjà joués de la saison affichent ce que le modèle aurait annoncé avant (reconstitution) tant que le journal n'existait pas.
+
+Deux clés gratuites, rangées dans les secrets du dépôt (*Settings > Secrets and variables > Actions*) :
+- `FOOTBALL_DATA_ORG_TOKEN` (football-data.org) : calendriers complets avec les heures, résultats récents, Ligue des champions ;
+- `ODDS_API_KEY` (The Odds API, 500 crédits par mois) : Ligue Europa et cotes des coupes, demandées au plus toutes les 3 heures, seulement quand un match a lieu dans les 3 jours, avec une réserve de 50 crédits.
+
+Sans ces clés, les quatre championnats fonctionnent avec le calendrier openfootball.
 
 ## Limites
 
@@ -204,10 +197,12 @@ src/
   export_site.py        fichiers JSON du site
   plots.py, report.py   graphiques et rapport HTML
   main.py               enchaîne tout
-football/               page Ligue 1 : téléchargement, modèle, backtest, saison simulée, export
-  joint.py, europe_main.py  recherche : modèle commun aux championnats et coupes, pronostics, export
-  leagues.py, cups.py, sources.py, names.py  championnats, coupes passées, calendriers à venir, noms des clubs
-data/journal/ligue1.csv journal des pronostics Ligue 1 publiés
+football/               les six compétitions de football
+  pipeline.py           enchaîne tout : téléchargement, backtest, pronostics, journal, classements, fichiers du site
+  joint.py, model.py    modèle commun aux championnats et coupes, grille des scores, mélange avec les cotes
+  leagues.py, cups.py, sources.py, names.py  championnats, coupes passées, calendriers et cotes, noms des clubs
+  season.py, journal.py classements et fins de saison simulées, journal des pronostics
+scripts/build_site.py   génère les pages HTML (même en-tête et même pied partout)
 app.py, lancer.py       plateforme locale (Streamlit), facultative
 tests/                  tests automatiques
 ```

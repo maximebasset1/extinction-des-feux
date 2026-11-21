@@ -25,6 +25,8 @@ def season_of(ts: pd.Timestamp) -> int:
 def weekly(m: pd.DataFrame, seasons: list[int], xi: float, s: float) -> pd.DataFrame:
     """Buts attendus de chaque match visé des saisons demandées."""
     rows = m[m["league"].isin(TARGET_LEAGUES) & m["date"].map(season_of).isin(seasons)].dropna(subset=["hg", "ag"])
+    if not len(rows):   # début de saison, aucun match joué : rien à rejouer
+        return rows.assign(lh=pd.Series(dtype=float), la=pd.Series(dtype=float), result=pd.Series(dtype=int))
     out = []
     ratio_cache = {}
     for _, g in rows.groupby(rows["date"].dt.to_period("W-MON")):

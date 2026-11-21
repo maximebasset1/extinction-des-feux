@@ -1,0 +1,2 @@
+signal.woff2 : Big Shoulders Display (licence OFL-big-shoulders.txt), réduite aux caractères latins.
+lisible.woff2 : Schibsted Grotesk (licence OFL-schibsted-grotesk.txt), réduite aux caractères latins.

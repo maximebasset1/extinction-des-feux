@@ -23,12 +23,14 @@ function detail(m) {
     const sc = m.scores.map((s) => `${esc(s.score)} (${pct(s.p)})`).join(", ");
     html += trois(m.p);
     html += `<p>Scores les plus probables : ${sc}. Buts attendus : ${virgule(m.xg[0])} pour ${esc(h)}, ${virgule(m.xg[1])} pour ${esc(a)}. Plus de 2,5 buts : ${pct(m.plus25)}.</p>`;
-    html += `<p class="note">${m.avec_cotes ? "Cotes d'avant-match comprises : les blessures et l'actualité connues sont prises en compte."
+    html += `<p class="note">${m.source === "publie" ? `Pronostic figé et enregistré dans le journal${m.publie ? ` (${esc(quand(m.publie))})` : ""} : c'est lui qui sera jugé. `
+      : ""}${m.avec_cotes ? "Cotes d'avant-match comprises : les blessures et l'actualité connues sont prises en compte."
       : "Statistiques seules : les cotes d'avant-match ne sont pas encore publiées, les blessures et l'actualité récentes ne sont donc pas prises en compte."} Probabilités sur 90 minutes.</p>`;
   } else if (m.etat === "joue") {
     if (m.p) {
       const y = issue(m.score);
-      html += `<p>${m.source === "publie" ? "Pronostic publié avant le match :" : "Ce que le modèle aurait annoncé avant le match (reconstitution, le journal n'existait pas encore) :"}</p>`;
+      html += `<p>${m.source === "publie" ? `Pronostic publié avant le match${m.publie ? ` (${esc(quand(m.publie))})` : ""} :`
+        : "Ce que le modèle aurait annoncé avant le match (reconstitution : ce match n'a pas été enregistré dans le journal) :"}</p>`;
       html += trois(m.p);
       html += `<p>${m.surprise ? `<span class="tag-surprise">Surprise.</span> Le résultat n'avait que ${pct(m.p[y])} de chances.` : `Le résultat avait ${pct(m.p[y])} de chances.`}</p>`;
     } else {
@@ -57,9 +59,10 @@ function rendreJournee() {
   $("#j-prev").disabled = i <= 0;
   $("#j-next").disabled = i >= C.d.journees.length - 1;
   const aVenir = liste.filter((m) => m.etat === "a_venir");
+  const legende = legendeJoues(liste);
   $("#j-note").textContent = !liste.length ? "" : !aVenir.length
-    ? "Journée terminée. Sous chaque score, la chance que le modèle donnait au résultat avant le match. Déplie un match pour le détail."
-    : `Chances de victoire à domicile, de nul et de victoire à l'extérieur${aVenir.some((m) => m.avec_cotes) ? ", cotes d'avant-match comprises quand elles sont publiées" : ""}. Heures à l'heure de ton appareil. Déplie un match pour le détail.`;
+    ? `Journée terminée. Sous chaque score, la chance que le modèle donnait au résultat avant le match. ${legende ? `${legende} ` : ""}Déplie un match pour le détail.`
+    : `Chances de victoire à domicile, de nul et de victoire à l'extérieur${aVenir.some((m) => m.avec_cotes) ? ", cotes d'avant-match comprises quand elles sont publiées" : ""}. Heures à l'heure de ton appareil. ${legende ? `${legende} ` : ""}Déplie un match pour le détail.`;
   $("#j-liste").innerHTML = liste.length ? parJour(liste, ligne) : `<p class="vide">Aucun match pour l'instant.</p>`;
 }
 
@@ -67,9 +70,12 @@ function rendreJournee() {
 function rendreClassement() {
   const t = C.d.classement;
   if (!t.length) {
-    $("#t-note").textContent = C.d.type === "coupe"
-      ? "Classement indisponible : nos sources gratuites n'ont pas tous les résultats de la phase de ligue. Les matchs et leurs probabilités restent à jour."
-      : "Le classement apparaîtra après la première journée.";
+    if (C.d.type === "coupe") {   // pas de classement complet : la section et son lien disparaissent
+      $("#classement").hidden = true;
+      $("#lien-classement").hidden = true;
+      return;
+    }
+    $("#t-note").textContent = "Le classement apparaîtra après la première journée.";
     $("#t-table").innerHTML = "";
     return;
   }
@@ -97,10 +103,11 @@ function rendreClub() {
   const k = C.club, liste = C.d.matchs.filter((m) => m.home === k || m.away === k);
   const rang = C.d.classement.findIndex((r) => r.club === k), r = C.d.classement[rang], p = C.d.projection.find((x) => x.club === k);
   const morceaux = [];
-  if (r && r.j) morceaux.push(`${rang + 1}<sup>e</sup> avec ${nombre(r.pts)} points en ${nombre(r.j)} matchs (${nombre(r.g)} victoires, ${nombre(r.n)} nuls, ${nombre(r.p)} défaites)`);
+  if (r && r.j) morceaux.push(`${rang + 1}<sup>${rang === 0 ? "er" : "e"}</sup> avec ${accord(r.pts, "point")} en ${accord(r.j, "match", "matchs")} (${accord(r.g, "victoire")}, ${accord(r.n, "nul")}, ${accord(r.p, "défaite")})`);
   if (p && C.d.zones.length) morceaux.push(`${virgule(p.points_attendus)} points attendus en fin de saison, ${C.d.zones.map((z) => `${esc(z.nom.toLowerCase())} ${pct(p[z.cle])}`).join(", ")}`);
-  $("#club-resume").innerHTML = morceaux.length ? `<p>${morceaux.join(". ")}.</p>` : "";
-  $("#club-liste").innerHTML = liste.length ? `<ul class="matchs">${liste.map((m) => ligneMatch(m, C.d.clubs, { detail: detail(m), jourDansHeure: true })).join("")}</ul>` : `<p class="vide">Aucun match.</p>`;
+  const legende = legendeJoues(liste);
+  $("#club-resume").innerHTML = (morceaux.length ? `<p>${morceaux.join(". ")}.</p>` : "") + (legende ? `<p class="note">${legende}</p>` : "");
+  $("#club-liste").innerHTML = liste.length ? `<ul class="matchs">${liste.map((m) => ligneMatch(m, C.d.clubs, { detail: detail(m), jourDansHeure: true, prefixe: "c" })).join("")}</ul>` : `<p class="vide">Aucun match.</p>`;
 }
 
 /* ---------- face-à-face */
@@ -159,13 +166,21 @@ function ouvrirDepuisAdresse() {
 }
 async function main() {
   const slug = document.body.dataset.competition;
-  try {
-    [C.d, { matchs: C.h2h }] = await Promise.all([donnees(`foot/${slug}`), donnees(`foot/h2h_${slug}`)]);
-  } catch (err) {
-    erreur($("#j-liste"), err);
+  const [d, h] = await Promise.allSettled([donnees(`foot/${slug}`), donnees(`foot/h2h_${slug}`)]);
+  if (d.status !== "fulfilled") { erreur($("#j-liste"), d.reason); return; }
+  C.d = d.value;
+  C.h2h = h.status === "fulfilled" ? h.value.matchs : [];   // sans face-à-face, le reste de la page s'affiche quand même
+  $("#c-chapeau").textContent = `Saison ${C.d.saison}. Chances de victoire, de nul et de défaite pour chaque match, recalculées plusieurs fois par jour. Mise à jour : ${quand(C.d.maj_utc)}.`;
+  if (!C.d.matchs.length) {   // calendrier indisponible : on n'affiche que la fiabilité
+    $(".pager").hidden = true;
+    $("#j-liste").innerHTML = `<p class="vide">Le calendrier de cette compétition n'est pas disponible pour l'instant. Il sera repris à la prochaine mise à jour.</p>`;
+    for (const id of ["classement", "club", "face"]) {
+      $(`#${id}`).hidden = true;
+      document.querySelector(`.sommaire a[href="#${id}"]`).hidden = true;
+    }
+    rendreFiabilite();
     return;
   }
-  $("#c-chapeau").textContent = `Saison ${C.d.saison}. Chances de victoire, de nul et de défaite pour chaque match, recalculées toutes les heures. Mise à jour : ${quand(C.d.maj_utc)}.`;
   C.journee = C.d.prochaine || C.d.journees[0];
   $("#j-select").innerHTML = C.d.journees.map((j) => `<option>${esc(j)}</option>`).join("");
   const keys = Object.keys(C.d.clubs).sort((x, y) => nom(x).localeCompare(nom(y), "fr"));

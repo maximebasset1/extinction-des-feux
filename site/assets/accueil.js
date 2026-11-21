@@ -56,7 +56,7 @@ function rendreFoot(i) {
     : `<li class="vide">Pas de match annoncé cette semaine.</li>`;
   $("#surprises").innerHTML = i.surprises.length
     ? i.surprises.map((m) => ligneMatch(m, i.clubs, { lien: lien(m, m.competition), comp: i.noms[m.competition], jourDansHeure: true })).join("")
-    : `<li class="vide">Aucune surprise ces quinze derniers jours : les favoris ont tenu.</li>`;
+    : `<li class="vide">Aucune surprise ces deux dernières semaines : les favoris ont tenu.</li>`;
   listeCompetitions($("#competitions"), i.competitions);
   const t = i.fiabilite, coupes = t.filter((r) => !r.avec_cotes), ligues = t.filter((r) => r.avec_cotes);
   const gain = (r) => r.habitudes.rps - r.modele.rps;

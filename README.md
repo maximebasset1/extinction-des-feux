@@ -11,7 +11,7 @@ Pages : accueil (prochains départs, matchs à la une, surprises récentes), For
 | Élément | Rôle |
 | --- | --- |
 | `site/` | le site : pages HTML (générées par `scripts/build_site.py`), `assets/` (style, scripts, polices, icône) et `data/` (les chiffres) |
-| `.github/workflows/mise-a-jour.yml` | le calcul automatique, toutes les 3 heures et à chaque modification du code |
+| `.github/workflows/mise-a-jour.yml` | le calcul automatique : toutes les heures du vendredi au dimanche, toutes les 3 heures le reste de la semaine, et à chaque modification du code |
 | `data/calendar.json` | les horaires des séances (mis à jour par `scripts/update_calendar.py`) |
 | `data/journal/predictions.csv` | le journal des pronostics de F1 : chaque pronostic est enregistré **avant** la séance, jamais réécrit |
 | `data/journal/foot.csv` | le journal des pronostics de football, au moins 30 minutes avant chaque coup d'envoi |
@@ -148,17 +148,19 @@ Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions et Ligue Europa. 
 Comment c'est calculé :
 - un seul modèle note ensemble les clubs de 22 championnats européens (football-data.co.uk, depuis 2010) et des coupes d'Europe (openfootball, domaine public, puis football-data.org pour la saison en cours) ;
 - chaque club a une force d'attaque et de défense, estimée sur ses matchs récents avec les buts et les tirs cadrés, et rappelée vers le niveau moyen de son championnat ; ce niveau n'est connu que grâce aux matchs européens et aux clubs qui montent ou descendent, ce qui permet de comparer Lille et le Bayern ;
-- quand les cotes d'avant-match existent (football-data.co.uk pour les championnats, The Odds API pour les coupes), elles sont mélangées au modèle, car elles résument blessures et actualité ; elles ne sont jamais affichées et nos statistiques gardent toujours au moins 30 % du poids.
+- quand les cotes d'avant-match existent (football-data.co.uk pour les championnats, The Odds API pour les coupes), elles sont mélangées au modèle, car elles résument blessures et actualité ; elles ne sont jamais affichées et nos statistiques en gardent toujours une part (environ 30 % aujourd'hui, chiffre affiché sur la page Méthode).
 
 **Le modèle apprend-il ?** À chaque lancement, toutes les forces sont réestimées avec les derniers résultats (football-data.org les donne dans l'heure) : une victoire ou une défaite déplace les chances des matchs suivants. Une surprise ne bouge pourtant les choses que de peu, volontairement : un match tient beaucoup du hasard. Les réglages (mémoire, part des tirs cadrés, poids des cotes) ont été choisis sur la saison 2021-22 et ne changent pas ; le journal sert à vérifier qu'ils tiennent.
 
-Réglages choisis sur 2021-22, puis jugement semaine par semaine de 2022 à 2026. En coupe d'Europe, le modèle fait nettement mieux que les pourcentages habituels (score RPS 0,193 contre 0,236 en Ligue des champions, 0,196 contre 0,230 en Ligue Europa). En championnat, il est au niveau des bookmakers une fois les cotes ajoutées. Les matchs déjà joués de la saison affichent ce que le modèle aurait annoncé avant (reconstitution) tant que le journal n'existait pas.
+Réglages choisis sur 2021-22, puis jugement semaine par semaine de 2022 à 2026. En coupe d'Europe, le modèle fait nettement mieux que les pourcentages habituels (score RPS d'environ 0,19 contre 0,24 en Ligue des champions, 0,20 contre 0,23 en Ligue Europa). En championnat, il est au niveau des bookmakers une fois les cotes ajoutées. Pour les matchs joués avant l'ouverture du journal, le site montre ce que le modèle aurait annoncé avant le match (reconstitution, faite sans connaître le résultat) : sous le score, « annoncé » désigne un pronostic publié, « estimé » une reconstitution.
 
 Deux clés gratuites, rangées dans les secrets du dépôt (*Settings > Secrets and variables > Actions*) :
 - `FOOTBALL_DATA_ORG_TOKEN` (football-data.org) : calendriers complets avec les heures, résultats récents, Ligue des champions ;
 - `ODDS_API_KEY` (The Odds API, 500 crédits par mois) : Ligue Europa et cotes des coupes, demandées au plus toutes les 3 heures, seulement quand un match a lieu dans les 3 jours, avec une réserve de 50 crédits.
 
 Sans ces clés, les quatre championnats fonctionnent avec le calendrier openfootball.
+
+Essai sur un PC : `python football/pipeline.py --offline` réutilise les fichiers déjà téléchargés et n'utilise aucune clé. Hors de GitHub, le calcul travaille toujours sur une copie du journal et des résultats de coupe, dans un dossier temporaire : seul GitHub écrit les vrais. Variables utiles : `EU_DATA_DIR` (fichiers téléchargés), `ODDS_STATE_DIR` (suivi des crédits The Odds API), `FOOT_OUT_DIR` (fichiers JSON du site), `FOOT_JOURNAL` et `FOOT_CUP_RESULTS` (pour viser un journal ou un fichier de résultats précis).
 
 ## Limites
 

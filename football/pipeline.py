@@ -13,7 +13,9 @@ import json
 import os
 import pickle
 import re
+import shutil
 import sys
+import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -122,8 +124,11 @@ def download() -> None:
             jobs.append((RAW / f"{code}_{y}.csv", f"https://www.football-data.co.uk/mmz4281/{season_code(y)}/{code}.csv", None))
     jobs += [(RAW / f"new_{c}.csv", f"https://www.football-data.co.uk/new/{c}.csv", 20) for c in leagues.NEW]
     jobs.append((RAW / "fixtures.csv", "https://www.football-data.co.uk/fixtures.csv", 0))
-    jobs += [(RAW / f"{v['of']}.json", LEAGUE_FILE.format(season=season_dir(C.CURRENT_SEASON), file=v["of"]), 0)
+    jobs += [(of_path(v["of"]), LEAGUE_FILE.format(season=season_dir(C.CURRENT_SEASON), file=v["of"]), 0)
              for v in COMPS.values() if "of" in v]
+    for v in COMPS.values():   # anciens calendriers sans saison dans le nom : plus lus
+        if "of" in v:
+            (RAW / f"{v['of']}.json").unlink(missing_ok=True)
     for y in range(2011, C.CURRENT_SEASON):
         for c, first in CUP_FIRST.items():
             if y >= first:
@@ -134,10 +139,25 @@ def download() -> None:
             continue
         try:
             data = _get(url)
+            if not looks_valid(f, data):   # page d'erreur servie avec un code 200 : on ne la garde pas
+                raise ValueError("contenu inattendu")
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_bytes(data)
         except Exception as e:  # noqa: BLE001
             print(f"   {f.name} indisponible ({type(e).__name__}) : on garde la version précédente s'il y en a une")
+
+
+def looks_valid(f: Path, data: bytes) -> bool:
+    head = data[:600].decode("utf-8", errors="ignore").lstrip("\ufeff")
+    if f.suffix == ".csv":
+        return "HomeTeam" in head or "Home," in head
+    if f.suffix == ".json":
+        return head.lstrip().startswith("{")
+    return "v " in data[:20000].decode("utf-8", errors="ignore") or "=" in head
+
+
+def of_path(file: str) -> Path:
+    return RAW / f"{file}_{season_dir(C.CURRENT_SEASON)}.json"
 
 
 # ---------------------------------------------------------------- données
@@ -162,24 +182,36 @@ def calendar_for(comp: str, js: dict | None, idx: SRC.TeamIndex) -> pd.DataFrame
         f = SRC.fdorg_frame(js, comp, idx)
     else:
         info = COMPS[comp]
-        path = RAW / f"{info.get('of')}.json"
-        if "of" not in info or not path.exists():
+        if "of" not in info or not of_path(info["of"]).exists():
             return pd.DataFrame()
+        path = of_path(info["of"])
         f = SRC.openfootball_league(path, comp, info["cc"], info["tz"], idx)
         n = pd.to_numeric(f["round"].astype(str).str.extract(r"(\d+)")[0], errors="coerce").fillna(0).astype(int)
         f["journee"], f["ordre"] = [f"Journée {k}" for k in n], n
         f["heure_connue"], f["stage"], f["status"] = f["kickoff"].notna(), None, None
         f["home_tla"] = f["away_tla"] = None
+    if not len(f):
+        return pd.DataFrame()
     f["jour"] = [S.paris_day(k) if isinstance(k, str) else j for k, j in zip(f["kickoff"], f.get("jour", [None] * len(f)))]
     f.loc[~f["heure_connue"].astype(bool), "kickoff"] = None
     return f
 
 
-def europa_calendar(events: list, odds: dict, results: pd.DataFrame, idx: SRC.TeamIndex, now: datetime) -> pd.DataFrame:
-    """Ligue Europa : matchs à venir de The Odds API et résultats déjà relevés. Pas de numéro de journée :
-    les matchs d'une même semaine forment une journée."""
+def europa_calendar(events: list, odds: dict, results: pd.DataFrame, idx: SRC.TeamIndex, now: datetime,
+                    seen: dict | None = None) -> pd.DataFrame:
+    """Ligue Europa : matchs à venir de The Odds API, matchs commencés depuis moins de 3 jours dont le résultat
+    n'est pas encore relevé, et résultats déjà relevés. Pas de numéro de journée : les matchs d'une même semaine
+    forment une journée."""
     up = SRC.odds_frame(events, odds, "LEC", idx, now)
     rows = [up] if len(up) else []
+    known = set(results["id"]) if len(results) and "id" in results else set()
+    t = now.timestamp()
+    started = [e for e in (seen or {}).values()
+               if 0 <= t - SRC._ts(e["commence_time"]) < 3 * 86400 and e["id"] not in known]
+    if started:
+        rows.append(pd.DataFrame([{"competition": "LEC", "kickoff": e["commence_time"], "home": idx.resolve(e["home_team"]),
+                                   "away": idx.resolve(e["away_team"]), "home_name": e["home_team"], "away_name": e["away_team"],
+                                   "hg": None, "ag": None, "played": False, "neutral": False} for e in started]))
     if len(results):
         r = results.copy()
         r["home"] = [idx.resolve(n) for n in r["home_name"]]
@@ -207,7 +239,11 @@ def load(now: datetime):
     dom["is_cup"], dom["neutral"] = False, False
     old = leagues.load(RAW, H2H_FIRST, FIRST_SEASON - 1)
     idx = SRC.TeamIndex(list(pd.unique(pd.concat([dom, old])[["home", "away"]].values.ravel())))
-    hist = cups.load(RAW / "cups").dropna(subset=["hg", "ag"])
+    hist = cups.load(RAW / "cups")
+    if not len(hist):
+        hist = pd.DataFrame(columns=["competition", "season", "stage", "date", "home_of", "home_cc", "away_of", "away_cc",
+                                     "hg", "ag", "neutral"])
+    hist = hist.dropna(subset=["hg", "ag"])
     hist["home"] = [idx.resolve(n, "FRA" if c == "MCO" else c) for n, c in zip(hist["home_of"], hist["home_cc"])]
     hist["away"] = [idx.resolve(n, "FRA" if c == "MCO" else c) for n, c in zip(hist["away_of"], hist["away_cc"])]
     hist["league"], hist["is_cup"] = hist["competition"], True
@@ -218,24 +254,36 @@ def load(now: datetime):
     token, key = os.environ.get("FOOTBALL_DATA_ORG_TOKEN"), os.environ.get("ODDS_API_KEY")
     cal = {}
     for comp in ("E0", "D1", "SP1", "F1", "LDC"):
+        # une source en panne, une clé refusée ou une réponse inattendue ne bloque pas les autres compétitions
         try:
             js = SRC.football_data_org(SRC.FDORG_CODES[comp], C.CURRENT_SEASON, token, RAW, now)
-        except RuntimeError as e:   # une source en panne ou une clé refusée ne bloque pas le reste
-            print(f"   {COMPS[comp]['nom']} (football-data.org) indisponible : {e}")
+        except Exception as e:  # noqa: BLE001
+            print(f"   {COMPS[comp]['nom']} (football-data.org) indisponible : {type(e).__name__} {e}")
             js = SRC.football_data_org(SRC.FDORG_CODES[comp], C.CURRENT_SEASON, None, RAW, now)
-        cal[comp] = calendar_for(comp, js, idx)
+        try:
+            cal[comp] = calendar_for(comp, js, idx)
+        except Exception as e:  # noqa: BLE001
+            print(f"   {COMPS[comp]['nom']} : calendrier illisible ({type(e).__name__} {e})")
+            cal[comp] = pd.DataFrame()
     odds_cups = {}
     for comp in ("LDC", "LEC"):
+        # cotes de Ligue des champions inutiles sans son calendrier : pas de crédit dépensé
+        use_key = key if comp == "LEC" or len(cal.get("LDC", [])) else None
         try:
-            events, odds = SRC.odds_api(comp, key, ODDS_STATE, now)
+            events, odds = SRC.odds_api(comp, use_key, ODDS_STATE, now)
             if comp == "LEC":
-                SRC.odds_scores(comp, key, ODDS_STATE, now, CUP_RESULTS)
-        except RuntimeError as e:
-            print(f"   {COMPS[comp]['nom']} (The Odds API) indisponible : {e}")
+                SRC.odds_scores(comp, use_key, ODDS_STATE, now, CUP_RESULTS)
+        except Exception as e:  # noqa: BLE001
+            print(f"   {COMPS[comp]['nom']} (The Odds API) indisponible : {type(e).__name__} {e}")
             events, odds = SRC.odds_api(comp, None, ODDS_STATE, now)
         odds_cups[comp] = (events, odds)
     results = pd.read_csv(CUP_RESULTS) if CUP_RESULTS.exists() and CUP_RESULTS.stat().st_size else pd.DataFrame()
-    cal["LEC"] = europa_calendar(*odds_cups["LEC"], results[results["competition"] == "LEC"] if len(results) else results, idx, now)
+    try:
+        cal["LEC"] = europa_calendar(*odds_cups["LEC"], results[results["competition"] == "LEC"] if len(results) else results, idx, now,
+                                     SRC.read_json(ODDS_STATE / "seen_LEC.json", {}))
+    except Exception as e:  # noqa: BLE001
+        print(f"   Ligue Europa : calendrier illisible ({type(e).__name__} {e})")
+        cal["LEC"] = pd.DataFrame()
     if len(cal["LDC"]):
         for c in ("oh", "od", "oa"):
             cal["LDC"][c] = np.nan
@@ -396,6 +444,39 @@ def predict(fit: dict, r, bt: dict) -> dict:
             "plus25": round(float(mat[g > 2].sum()), 2)}
 
 
+POSTPONED = {"POSTPONED", "SUSPENDED", "CANCELLED"}
+
+
+def etat(r, now: datetime) -> str:
+    """joue, a_venir, en_cours (commencé il y a moins de 3 h), en_attente (résultat pas encore connu) ou reporte."""
+    if bool(r["played"]):
+        return "joue"
+    if r.get("status") in POSTPONED:
+        return "reporte"
+    if isinstance(r["kickoff"], str) and ts(r["kickoff"]) <= now:
+        return "en_cours" if now - ts(r["kickoff"]) < timedelta(hours=3) else "en_attente"
+    return "a_venir"
+
+
+def choose_matchday(ahead: list[dict], now: datetime) -> str | None:
+    """Journée montrée par défaut : celle qui a le plus de matchs dans les 7 prochains jours (un match en retard
+    d'une ancienne journée ne la fait pas revenir en tête) ; sinon la prochaine journée complète."""
+    if not ahead:
+        return None
+    horizon = (now + timedelta(days=7)).astimezone(S.PARIS).strftime("%Y-%m-%d")
+    soon = {}
+    for m in ahead:
+        if (m["jour"] or "9999") <= horizon:
+            soon.setdefault(m["journee"], []).append(m)
+    if soon:
+        return max(soon.items(), key=lambda kv: (len(kv[1]), -min(m["ordre"] for m in kv[1])))[0]
+    count = {}
+    for m in ahead:
+        count[m["journee"]] = count.get(m["journee"], 0) + 1
+    full = [m for m in ahead if count[m["journee"]] >= 3] or ahead
+    return min(full, key=lambda m: (m["jour"] or "9999", m["ordre"]))["journee"]
+
+
 def strength(fit: dict, t: str) -> float:
     i = fit["teams"].get(t)
     return float(fit["att"][i] + fit["def"][i]) if i is not None else -1.0
@@ -443,8 +524,26 @@ def zones_for(comp: str, n: int) -> list:
 
 
 def main(offline: bool = False) -> None:
+    global JOURNAL, CUP_RESULTS
     now = datetime.now(timezone.utc)
     today = now.astimezone(S.PARIS).strftime("%Y-%m-%d")
+    if not os.environ.get("GITHUB_ACTIONS"):
+        # essai sur un PC : seul GitHub écrit le vrai journal, on travaille sur une copie
+        scratch = Path(tempfile.gettempdir()) / "extinction-des-feux-essai"
+        scratch.mkdir(exist_ok=True)
+        for name, src in (("JOURNAL", JOURNAL), ("CUP_RESULTS", CUP_RESULTS)):
+            if f"FOOT_{name}" in os.environ:   # chemin choisi explicitement : on le respecte
+                continue
+            dst = scratch / src.name
+            if src.exists():
+                shutil.copyfile(src, dst)
+            elif dst.exists():
+                dst.unlink()
+            globals()[name] = dst
+        if offline:   # hors ligne : aucune clé utilisée
+            os.environ.pop("FOOTBALL_DATA_ORG_TOKEN", None)
+            os.environ.pop("ODDS_API_KEY", None)
+        print(f"   essai hors de GitHub : journal de travail dans {scratch}")
     if not offline:
         print("1/5 Téléchargement")
         download()
@@ -460,36 +559,28 @@ def main(offline: bool = False) -> None:
     for comp, f in cal.items():
         if not len(f):
             continue
-        preds = []
-        for _, r in f.iterrows():
-            started = isinstance(r["kickoff"], str) and ts(r["kickoff"]) <= now
-            preds.append(None if bool(r["played"]) or started else predict(fit, r, bt))
-        f["pred"] = preds
-        for r in f[f["pred"].notna()].itertuples():
+        # tous les matchs non joués sont prédits (la fin de saison simulée en a besoin, même reportés ou en cours) ;
+        # seuls ceux qui n'ont pas commencé et ne sont pas reportés sont affichés comme « à venir »
+        f["pred"] = [None if bool(r["played"]) else predict(fit, r, bt) for _, r in f.iterrows()]
+        f["etat"] = [etat(r, now) for _, r in f.iterrows()]
+        for r in f[f["etat"] == "a_venir"].itertuples():
             upcoming_rows.append({"competition": comp, "journee": r.journee, "jour": r.jour, "kickoff": r.kickoff,
                                   "home": r.home, "away": r.away, "p": r.pred["p"], "avec_cotes": r.pred["avec_cotes"]})
     added = JR.record(upcoming_rows, JOURNAL, now)
     print(f"   journal : {added} pronostic(s) publié(s)")
 
-    # résultats connus, pour juger le journal (un match reporté garde son identifiant d'origine)
-    results, by_pair = {}, {}
+    # chaque pronostic publié est relié au match joué (même s'il a été reporté) ; un seul pronostic par match
+    played = {}
     for comp, f in cal.items():
-        if not len(f):
-            continue
-        for r in f[f["played"].astype(bool)].itertuples():
-            results[JR.match_id(comp, r.home, r.away, r.jour)] = (int(r.hg), int(r.ag))
-            by_pair.setdefault(f"{comp}|{r.home}|{r.away}", []).append((r.jour, (int(r.hg), int(r.ag))))
+        if len(f):
+            for r in f[f["played"].astype(bool)].itertuples():
+                played[JR.match_id(comp, r.home, r.away, r.jour)] = (r.jour, (int(r.hg), int(r.ag)))
+    links = JR.link(JOURNAL, played)
+    evals = JR.evaluate(JOURNAL, played, links)
+    published = {e["joue_id"]: e for e in evals}
     jr = JR.read(JOURNAL)
-    for r in jr.itertuples():
-        if r.match_id in results:
-            continue
-        cand = [x for x in by_pair.get(r.match_id.rsplit("|", 1)[0], []) if x[0] >= r.publie_utc[:10]]
-        if cand:
-            results[r.match_id] = min(cand)[1]
-    evals = JR.evaluate(JOURNAL, results)
-    published = {e["match_id"]: e for e in evals}
-    published_pair = {e["match_id"].rsplit("|", 1)[0]: e for e in evals}   # match reporté : même affiche, autre date
-    pending = {r.match_id: [r.p_dom, r.p_nul, r.p_ext] for r in jr.itertuples()}
+    pending = {r.match_id: (r.publie_utc, [r.p_dom, r.p_nul, r.p_ext]) for r in jr.sort_values("publie_utc").itertuples()
+               if r.match_id not in links}
 
     print("5/5 Classements, simulations et fichiers du site")
     files, summary, search, recent = {}, [], [], []
@@ -501,13 +592,13 @@ def main(offline: bool = False) -> None:
             mid = JR.match_id(comp, r["home"], r["away"], r["jour"])
             item = {"id": mid, "journee": r["journee"], "ordre": int(r["ordre"]), "jour": r["jour"],
                     "kickoff": r["kickoff"] if isinstance(r["kickoff"], str) else None, "home": r["home"], "away": r["away"]}
-            if bool(r["played"]):
+            if r["etat"] == "joue":
                 hg, ag = int(r["hg"]), int(r["ag"])
                 item.update(etat="joue", score=[hg, ag])
                 y = JR.outcome(hg, ag)
-                pub = published.get(mid) or (published_pair.get(mid.rsplit("|", 1)[0]) if info["type"] == "ligue" else None)
+                pub = published.get(mid)
                 if pub:
-                    item.update(p=pub["p"], source="publie")
+                    item.update(p=pub["p"], source="publie", publie=pub["publie_utc"])
                 else:
                     cands = [q for d, q in rec.get((comp, r["home"], r["away"]), []) if abs((d - pd.Timestamp(r["jour"])).days) <= 3]
                     if cands:
@@ -516,17 +607,21 @@ def main(offline: bool = False) -> None:
                     item["surprise"] = bool(item["p"][y] < JR.SURPRISE)
                     if (now.date() - pd.Timestamp(r["jour"]).date()).days <= RECENT_DAYS and item["surprise"]:
                         recent.append({**item, "competition": comp})
-            elif isinstance(r["pred"], dict):
+            elif r["etat"] == "a_venir":
                 pr = r["pred"]
                 item.update(etat="a_venir", p=pr["p"], avec_cotes=pr["avec_cotes"], xg=pr["xg"], scores=pr["scores"],
                             plus25=pr["plus25"])
+                if mid in pending:   # déjà publié : on montre le pronostic figé, celui qui sera jugé
+                    when, q = pending[mid]
+                    item.update(p=S.round_probs(q), source="publie", publie=when)
             else:
-                item["etat"] = "en_cours" if isinstance(r["kickoff"], str) and now - ts(r["kickoff"]) < timedelta(hours=3) else "en_attente"
+                item["etat"] = r["etat"]
                 if mid in pending:
-                    item.update(p=S.round_probs(pending[mid]), source="publie")
+                    when, q = pending[mid]
+                    item.update(p=S.round_probs(q), source="publie", publie=when)
             matchs.append(item)
         ahead = [m for m in matchs if m["etat"] == "a_venir" and (m["jour"] or "9999") >= today]
-        prochaine = min(ahead, key=lambda m: (m["jour"] or "9999", m["ordre"]))["journee"] if ahead else (matchs[-1]["journee"] if matchs else None)
+        prochaine = choose_matchday(ahead, now) or (matchs[-1]["journee"] if matchs else None)
         journees = []
         for m in matchs:
             if m["journee"] not in journees:
@@ -540,7 +635,7 @@ def main(offline: bool = False) -> None:
             played = league_part[league_part["played"].astype(bool)][["home", "away", "hg", "ag"]].astype({"hg": int, "ag": int})
             tab = S.table(played, teams)
             classement = [{"club": t, **{k: int(v) for k, v in row.items()}} for t, row in tab.to_dict("index").items()]
-            rest = league_part[league_part["pred"].notna()]
+            rest = league_part[league_part["pred"].notna()]   # tous les matchs non joués, même reportés ou en cours
             if len(rest):
                 up = pd.DataFrame({"home": rest["home"], "away": rest["away"], "lam_h": [x["lam"][0] for x in rest["pred"]],
                                    "lam_a": [x["lam"][1] for x in rest["pred"]]})
@@ -569,7 +664,7 @@ def main(offline: bool = False) -> None:
             "zones": [{"cle": k, "nom": nm, "de": lo, "a": hi} for k, nm, lo, hi in zones],
             "fiabilite": perf, "journal": jc[-60:], "simulations": S.N_SIM,
         }
-        nxt = [m for m in ahead if m["journee"] == prochaine]
+        nxt = [m for m in matchs if m["journee"] == prochaine]   # toute la journée, y compris ses matchs déjà commencés
         summary.append({"code": comp, "slug": info["slug"], "nom": info["nom"], "type": info["type"], "prochaine": prochaine,
                         "du": min((m["jour"] for m in nxt), default=None), "au": max((m["jour"] for m in nxt), default=None),
                         "a_venir": len(ahead), "leader": classement[0]["club"] if classement and classement[0]["j"] else None,

@@ -44,7 +44,7 @@
       <p class="chapeau">Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions et Ligue Europa : les chances de chaque match à venir.</p>
       <div class="recherche">
         <label for="q">Chercher un club ou un match</label>
-        <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Lille, ou Lille Bayern" role="combobox" aria-controls="suggest" aria-expanded="false">
+        <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Lille, ou Lille Bayern" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
         <ul id="suggest" class="suggest" role="listbox" hidden></ul>
       </div>
     </div>
@@ -55,7 +55,7 @@
       <div class="bloc-tete"><h2 id="h-matchs">Prochains matchs</h2></div>
       <div class="pastilles" id="chips" role="group" aria-label="Compétition"></div>
       <p class="note" id="note" aria-live="polite"></p>
-      <div id="results"></div>
+      <div id="results" class="avec-comp"></div>
       <p class="plus"><button type="button" id="more" hidden>Voir plus de matchs</button></p>
     </section>
 

@@ -47,8 +47,16 @@ async function main() {
   }
   if (location.hash.startsWith("#match=")) {
     try {
-      const id = decodeURIComponent(location.hash.slice(7)), comp = id.split("|")[0];
-      if (F.r.competitions[comp]) { location.replace(`${ROOT}foot/${F.r.competitions[comp].slug}.html${location.hash}`); return; }
+      let id = decodeURIComponent(location.hash.slice(7)), comp = id.split("|")[0];
+      if (!F.r.competitions[comp]) {
+        // ancien lien de la page Recherche, sans la compétition : on la retrouve
+        const m = F.r.matchs.find((x) => x.id.endsWith(`|${id}`));
+        const [h, a] = id.split("|");
+        const communes = m ? [m.c] : ((F.r.clubs[h] || {}).competitions || []).filter((c) => ((F.r.clubs[a] || {}).competitions || []).includes(c));
+        comp = communes[0];
+        if (comp) id = `${comp}|${id}`;
+      }
+      if (F.r.competitions[comp]) { location.replace(`${ROOT}foot/${F.r.competitions[comp].slug}.html#match=${encodeURIComponent(id)}`); return; }
     } catch { /* lien abîmé : on reste sur la page */ }
   }
   F.idx = indexClubs(F.r.clubs);

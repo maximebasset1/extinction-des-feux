@@ -89,5 +89,22 @@ def test_journal_records_once_respects_the_margin_and_waits_for_odds(tmp_path):
     assert JR.record(rows, path, now + timedelta(hours=1)) == 0              # jamais réécrit
     j = JR.read(path)
     assert list(j["domicile"]) == ["FRA:A"] and j.loc[0, "p_dom"] == pytest.approx(0.6)
-    e = JR.evaluate(path, {j.loc[0, "match_id"]: (0, 2)})
+    played = {j.loc[0, "match_id"]: ("2026-11-20", (0, 2))}
+    e = JR.evaluate(path, played, JR.link(path, played))
     assert e[0]["resultat"] == 2 and e[0]["surprise"] and not e[0]["favori_juste"]
+
+
+def test_a_postponed_match_is_recorded_once_and_judged_on_its_real_result(tmp_path):
+    path = tmp_path / "foot.csv"
+    now = datetime(2026, 11, 20, 12, 0, tzinfo=timezone.utc)
+    row = {"competition": "F1", "journee": "Journée 11", "jour": "2026-11-21", "kickoff": "2026-11-21T19:45:00Z",
+           "home": "FRA:A", "away": "FRA:B", "p": [0.5, 0.3, 0.2], "avec_cotes": True}
+    assert JR.record([row], path, now) == 1
+    moved = {**row, "jour": "2026-12-16", "kickoff": "2026-12-16T19:45:00Z"}
+    assert JR.record([moved], path, datetime(2026, 12, 15, 12, tzinfo=timezone.utc)) == 0      # reporté : pas de second pronostic
+    played = {JR.match_id("F1", "FRA:A", "FRA:B", "2026-12-16"): ("2026-12-16", (1, 1))}
+    links = JR.link(path, played)
+    assert list(links.values()) == [JR.match_id("F1", "FRA:A", "FRA:B", "2026-12-16")]
+    # la saison suivante, la même affiche n'est pas jugée avec le vieux pronostic
+    later = {JR.match_id("F1", "FRA:A", "FRA:B", "2027-10-02"): ("2027-10-02", (3, 0))}
+    assert JR.link(path, later) == {}

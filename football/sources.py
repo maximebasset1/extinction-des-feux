@@ -129,6 +129,8 @@ STAGES = {"LEAGUE_STAGE": None, "REGULAR_SEASON": None, "PLAYOFFS": "Barrages", 
 
 
 STAGE_ORDER = {s: i for i, s in enumerate(STAGES)}
+FRAME_COLUMNS = ["competition", "kickoff", "stage", "status", "heure_connue", "journee", "ordre", "home", "away", "home_name",
+                 "away_name", "home_tla", "away_tla", "hg", "ag", "neutral", "played"]
 
 
 def fdorg_frame(js: dict, comp: str, idx: TeamIndex) -> pd.DataFrame:
@@ -141,20 +143,27 @@ def fdorg_frame(js: dict, comp: str, idx: TeamIndex) -> pd.DataFrame:
             continue   # tirage pas encore fait
         sc = x.get("score") or {}
         reg = sc.get("regularTime") or sc.get("fullTime") or {}
-        done = x.get("status") == "FINISHED" and reg.get("home") is not None
+        # match attribué sur tapis vert : il compte comme joué, avec le score décidé
+        done = x.get("status") in ("FINISHED", "AWARDED") and reg.get("home") is not None
         stage = x.get("stage")
-        label = STAGES.get(stage, stage)
+        if stage in STAGES:
+            label = STAGES[stage]
+        elif "QUALIF" in str(stage):
+            label = "Qualifications"
+        else:
+            label = str(stage or "").replace("_", " ").capitalize() or None
         journee = f"Journée {x['matchday']}" if label is None and x.get("matchday") else (label or "")
         rows.append({"competition": comp, "kickoff": x.get("utcDate"), "stage": stage, "status": x.get("status"),
                      # heure pas encore fixée par la ligue : football-data.org met une heure de remplissage
                      "heure_connue": x.get("status") != "SCHEDULED",
                      # phase à élimination : après les journées de la phase de ligue, dans l'ordre des tours
-                     "journee": journee, "ordre": (x.get("matchday") or 0) if label is None else 100 + STAGE_ORDER.get(stage, 0),
+                     "journee": journee, "ordre": (x.get("matchday") or 0) if label is None
+                     else (-1 if label == "Qualifications" else 100 + STAGE_ORDER.get(stage, len(STAGE_ORDER))),
                      "home": idx.resolve(h["name"], area.get(h.get("id"))), "away": idx.resolve(a["name"], area.get(a.get("id"))),
                      "home_name": h["name"], "away_name": a["name"], "home_tla": h.get("tla"), "away_tla": a.get("tla"),
                      "hg": reg.get("home") if done else None, "ag": reg.get("away") if done else None,
                      "neutral": stage == "FINAL", "played": done})
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=FRAME_COLUMNS)
 
 
 def _ts(iso: str) -> float:
@@ -193,7 +202,8 @@ def odds_api(comp: str, key: str | None, state: Path, now: datetime) -> tuple[li
 
 def odds_scores(comp: str, key: str | None, state: Path, now: datetime, results_csv: Path) -> int:
     """Résultats des matchs vus ces 3 derniers jours (2 crédits l'appel), ajoutés au fichier des résultats.
-    Appelé au plus toutes les 12 h, seulement s'il manque le résultat d'un match commencé il y a plus de 2 h."""
+    Appelé au plus toutes les 12 h, seulement s'il manque le résultat d'un match commencé il y a plus de 2 h.
+    En phase à élimination, le score peut inclure la prolongation : The Odds API ne la distingue pas."""
     if not key:
         return 0
     seen = read_json(state / f"seen_{comp}.json", {})

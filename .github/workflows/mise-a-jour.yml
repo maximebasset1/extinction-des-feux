@@ -69,8 +69,10 @@ jobs:
           restore-keys: recherche-cotes-
 
       # clés gratuites rangées dans les secrets du dépôt ; sans elles, les coupes d'Europe sont simplement absentes
+      # limite de temps : une source qui ne répond plus ne doit pas retarder la publication de la F1
       - name: "Football : six compétitions"
         continue-on-error: true
+        timeout-minutes: 30
         env:
           FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}

@@ -193,3 +193,51 @@ def test_site_pages_are_up_to_date():
     root = Path(__file__).resolve().parents[1]
     r = subprocess.run([sys.executable, str(root / "scripts" / "build_site.py"), "--check"], capture_output=True, text=True)
     assert r.returncode == 0, r.stdout
+
+
+def test_default_matchday_ignores_a_single_late_match():
+    from football import pipeline as P
+    now = datetime(2026, 11, 20, 12, tzinfo=timezone.utc)
+    ahead = [{"journee": "Journée 6", "jour": "2026-11-21", "ordre": 6}] + \
+            [{"journee": "Journée 13", "jour": "2026-11-22", "ordre": 13} for _ in range(9)]
+    assert P.choose_matchday(ahead, now) == "Journée 13"
+    assert P.choose_matchday([], now) is None
+
+
+def test_match_states():
+    from football import pipeline as P
+    now = datetime(2026, 11, 20, 21, tzinfo=timezone.utc)
+    base = {"played": False, "status": "TIMED", "kickoff": "2026-11-20T19:45:00Z"}
+    assert P.etat(pd.Series(base), now) == "en_cours"
+    assert P.etat(pd.Series({**base, "kickoff": "2026-11-19T19:45:00Z"}), now) == "en_attente"
+    assert P.etat(pd.Series({**base, "status": "POSTPONED"}), now) == "reporte"
+    assert P.etat(pd.Series({**base, "kickoff": "2026-11-21T19:45:00Z"}), now) == "a_venir"
+    assert P.etat(pd.Series({**base, "played": True}), now) == "joue"
+
+
+def test_europa_league_match_stays_listed_until_its_result_arrives():
+    from football import pipeline as P
+    idx = sources.TeamIndex(["FRA:Lille", "ESP:Betis"])
+    now = datetime(2026, 11, 26, 21, 30, tzinfo=timezone.utc)
+    seen = {"a": {"id": "a", "commence_time": "2026-11-26T20:00:00Z", "home_team": "Lille OSC", "away_team": "Real Betis"}}
+    f = P.europa_calendar([], {}, pd.DataFrame(), idx, now, seen)
+    assert len(f) == 1 and not f.loc[0, "played"] and P.etat(f.iloc[0], now) == "en_cours"
+    done = pd.DataFrame([{"id": "a", "competition": "LEC", "kickoff": "2026-11-26T20:00:00Z", "home_name": "Lille OSC",
+                          "away_name": "Real Betis", "hg": 2, "ag": 1}])
+    f = P.europa_calendar([], {}, done, idx, now, seen)
+    assert len(f) == 1 and bool(f.loc[0, "played"])
+
+
+def test_europa_scores_are_fetched_only_after_a_match_and_twice_a_day_at_most(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(sources, "_get_json", lambda url, h=None: (calls.append(url.split("?")[0]) or ([
+        {"id": "a", "completed": True, "commence_time": "2026-11-26T20:00:00Z", "home_team": "Lille OSC", "away_team": "Real Betis",
+         "scores": [{"name": "Lille OSC", "score": "2"}, {"name": "Real Betis", "score": "1"}]}], {"x-requests-remaining": "300"})))
+    sources.write_json(tmp_path / "seen_LEC.json", {"a": {"id": "a", "commence_time": "2026-11-26T20:00:00Z",
+                                                         "home_team": "Lille OSC", "away_team": "Real Betis"}})
+    csv = tmp_path / "res.csv"
+    assert sources.odds_scores("LEC", "k", tmp_path, datetime(2026, 11, 26, 21, tzinfo=timezone.utc), csv) == 0   # trop tôt
+    assert calls == []
+    assert sources.odds_scores("LEC", "k", tmp_path, datetime(2026, 11, 27, 8, tzinfo=timezone.utc), csv) == 1
+    assert sources.odds_scores("LEC", "k", tmp_path, datetime(2026, 11, 27, 9, tzinfo=timezone.utc), csv) == 0   # déjà relevé
+    assert len(calls) == 1 and pd.read_csv(csv).loc[0, "hg"] == 2

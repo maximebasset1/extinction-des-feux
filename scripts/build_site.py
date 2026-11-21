@@ -81,7 +81,7 @@ HOME = """  <section class="depart" aria-labelledby="h-depart">
     <div class="depart-in">
       <div class="feux-grands" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <h1 id="h-depart">Les prochains départs</h1>
-      <p class="chapeau">Les chances de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, recalculées toutes les heures et comparées ensuite aux vrais résultats.</p>
+      <p class="chapeau">Les chances de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, recalculées plusieurs fois par jour et comparées ensuite aux vrais résultats.</p>
       <div class="departs">
         <a class="dep" href="f1.html" id="dep-f1"><span class="dep-quoi">Formule 1</span><b id="dep-f1-titre">Chargement…</b><span id="dep-f1-quand"></span><span id="dep-f1-detail" class="dep-detail"></span></a>
         <a class="dep" href="foot.html" id="dep-foot"><span class="dep-quoi">Football</span><b id="dep-foot-titre">Chargement…</b><span id="dep-foot-quand"></span><span id="dep-foot-detail" class="dep-detail"></span></a>
@@ -93,13 +93,13 @@ HOME = """  <section class="depart" aria-labelledby="h-depart">
     <section class="bloc" aria-labelledby="h-une">
       <div class="bloc-tete"><h2 id="h-une">À la une cette semaine</h2><a href="foot.html">Tous les matchs</a></div>
       <p class="note">Les affiches de la semaine : coupes d'Europe, grands clubs et matchs à l'issue la plus ouverte.</p>
-      <ul class="matchs" id="une"></ul>
+      <ul class="matchs avec-comp" id="une"></ul>
     </section>
 
     <section class="bloc" aria-labelledby="h-surprises">
       <div class="bloc-tete"><h2 id="h-surprises">Surprises récentes</h2></div>
-      <p class="note">Le modèle se trompe aussi. Voici les résultats des quinze derniers jours qu'il donnait à moins de 20 %.</p>
-      <ul class="matchs" id="surprises"></ul>
+      <p class="note">Le modèle se trompe aussi. Voici les résultats des deux dernières semaines auxquels il donnait moins de 20&#8239;% de chances.</p>
+      <ul class="matchs avec-comp" id="surprises"></ul>
     </section>
 
     <section class="bloc" aria-labelledby="h-grille">
@@ -180,7 +180,7 @@ FOOT = """  <section class="titre-page">
       <p class="chapeau">Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions et Ligue Europa : les chances de chaque match à venir.</p>
       <div class="recherche">
         <label for="q">Chercher un club ou un match</label>
-        <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Lille, ou Lille Bayern" role="combobox" aria-controls="suggest" aria-expanded="false">
+        <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Lille, ou Lille Bayern" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
         <ul id="suggest" class="suggest" role="listbox" hidden></ul>
       </div>
     </div>
@@ -191,7 +191,7 @@ FOOT = """  <section class="titre-page">
       <div class="bloc-tete"><h2 id="h-matchs">Prochains matchs</h2></div>
       <div class="pastilles" id="chips" role="group" aria-label="Compétition"></div>
       <p class="note" id="note" aria-live="polite"></p>
-      <div id="results"></div>
+      <div id="results" class="avec-comp"></div>
       <p class="plus"><button type="button" id="more" hidden>Voir plus de matchs</button></p>
     </section>
 
@@ -316,7 +316,7 @@ REDIRECT = """<!DOCTYPE html>
 def pages() -> dict[str, str]:
     out = {
         "index.html": page("index.html", "Extinction des feux : pronostics F1 et football",
-                           "Probabilités de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, mises à jour toutes les heures.",
+                           "Probabilités de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, mises à jour plusieurs fois par jour.",
                            HOME, ["accueil.js"], "accueil"),
         "f1.html": page("f1.html", "Formule 1 : pole et victoire au prochain Grand Prix - Extinction des feux",
                         "Probabilités de pole et de victoire pour chaque pilote au prochain Grand Prix, comparées ensuite aux vrais résultats.",

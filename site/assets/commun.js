@@ -6,7 +6,8 @@ const ROOT = document.body.dataset.root || "./";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const couleur = (c) => (/^#[0-9a-f]{6}$/i.test(c || "") ? c : null);
 const nombre = (v) => (Number.isFinite(Number(v)) ? Number(v) : "–");
-const pct = (p) => (p == null ? "–" : p < 0.005 ? "<1 %" : p >= 0.995 ? ">99 %" : `${Math.round(p * 100)} %`);
+// espace fine insécable avant « % » : « 14 % » ne se coupe jamais en fin de ligne
+const pct = (p) => (p == null ? "–" : p < 0.005 ? "<1\u202f%" : p >= 0.995 ? ">99\u202f%" : `${Math.round(p * 100)}\u202f%`);
 const pnum = (p) => (p == null ? "–" : p < 0.005 ? "<1" : p >= 0.995 ? ">99" : String(Math.round(p * 100)));
 const virgule = (x, d = 1) => Number(x).toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
 const plier = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ");
@@ -57,28 +58,31 @@ function barre(p, dom, ext) {
   const lab = `Victoire ${dom} ${pct(p[0])}, match nul ${pct(p[1])}, victoire ${ext} ${pct(p[2])}`;
   const seg = (k, cls) => `<span class="${cls}" style="width:${(p[k] * 100).toFixed(1)}%"></span>`;
   const chiffre = (k) => `<span${k === fav ? ' class="fav"' : ""}>${pnum(p[k])}<small>%</small></span>`;
-  return `<div class="proba" role="img" aria-label="${esc(lab)}"><div class="barre">${seg(0, "b1")}${seg(1, "bn")}${seg(2, "b2")}</div>
-    <div class="trois">${chiffre(0)}${chiffre(1)}${chiffre(2)}</div></div>`;
+  // des « span » seulement : la barre peut se trouver dans le « summary » d'une ligne dépliable
+  return `<span class="proba" role="img" aria-label="${esc(lab)}"><span class="barre">${seg(0, "b1")}${seg(1, "bn")}${seg(2, "b2")}</span>
+    <span class="trois">${chiffre(0)}${chiffre(1)}${chiffre(2)}</span></span>`;
 }
 const issue = (s) => (s[0] > s[1] ? 0 : s[0] === s[1] ? 1 : 2);
 
 /* ---------- une ligne de match ; `detail` (HTML) la rend dépliable, `lien` en fait un lien vers la page de la compétition */
-function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDansHeure = false } = {}) {
+function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDansHeure = false, prefixe = "m" } = {}) {
   const c = (k) => clubs[k] || { nom: String(k).split(":").pop(), sigle: String(k).split(":").pop().slice(0, 3).toUpperCase() };
   const dom = c(m.home), ext = c(m.away);
   let centre, sous = "";
   if (m.etat === "joue" || m.score) {
     const s = m.score;
     if (m.p) {
-      const y = issue(s);
-      sous = m.surprise ? `<small class="surprise">surprise : ${pct(m.p[y])}</small>` : `<small>${y === 1 ? "nul annoncé à" : "annoncé à"} ${pct(m.p[y])}</small>`;
+      const y = issue(s), verbe = m.source === "publie" ? "annoncé" : "estimé";
+      const txt = `${y === 1 ? "nul " : ""}${verbe} à ${pct(m.p[y])}`;
+      sous = m.surprise ? `<small class="surprise">surprise : ${txt}</small>` : `<small>${txt}</small>`;
     }
     centre = `<span class="m-score">${nombre(s[0])} - ${nombre(s[1])}${sous}</span>`;
   } else if (m.etat === "en_cours") {
     centre = `<span class="m-etat">en cours</span>`;
   } else if (m.etat === "en_attente") {
-    const recent = m.kickoff && Date.now() - new Date(m.kickoff).getTime() < 864e5;
-    centre = `<span class="m-etat">${recent ? "résultat bientôt disponible" : "reporté, date à fixer"}</span>`;
+    centre = `<span class="m-etat">résultat en attente</span>`;
+  } else if (m.etat === "reporte") {
+    centre = `<span class="m-etat">reporté, date à fixer</span>`;
   } else {
     centre = barre(m.p, dom.nom, ext.nom);
   }
@@ -91,9 +95,16 @@ function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDan
       <span class="m-club m-ext">${ecusson(ext)}<b>${esc(ext.nom)}</b></span>`;
   if (lien) return `<li class="match"><a class="m-ligne" href="${esc(lien)}">${corps}</a></li>`;
   if (detail === null) return `<li class="match"><div class="m-ligne">${corps}</div></li>`;
-  return `<li class="match"><details id="m-${esc(cleId(m.id))}"><summary class="m-ligne">${corps}</summary><div class="m-detail">${detail}</div></details></li>`;
+  return `<li class="match"><details id="${prefixe}-${esc(cleId(m.id))}"><summary class="m-ligne">${corps}</summary><div class="m-detail">${detail}</div></details></li>`;
 }
 const cleId = (id) => String(id).replace(/[^A-Za-z0-9]+/g, "-");
+
+/* explique « annoncé » et « estimé » quand une liste contient des matchs joués avant l'ouverture du journal */
+const legendeJoues = (liste) => (liste.some((m) => m.etat === "joue" && m.p && m.source !== "publie")
+  ? "« Annoncé » : pronostic publié avant le match. « Estimé » : reconstitution faite sans connaître le résultat." : "");
+
+/* accord en nombre : zéro et un au singulier */
+const accord = (n, mot, pluriel = `${mot}s`) => `${nombre(n)} ${Math.abs(n) < 2 ? mot : pluriel}`;
 
 /* ---------- matchs groupés par jour */
 function parJour(matchs, rendu) {
@@ -144,7 +155,9 @@ function correspond(req, m) {
 /* ---------- compétitions (accueil et page football) */
 function listeCompetitions(el, comps) {
   el.innerHTML = comps.map((c) => {
-    const dates = c.du ? (c.du === c.au ? jourLong(c.du) : `du ${midi(c.du).getDate()} au ${jourLong(c.au).replace(/^\S+ /, "")}`) : "";
+    const finJ = (j) => jourLong(j).replace(/^\S+ /, "");
+    const memeMois = c.du && c.au && c.du.slice(0, 7) === c.au.slice(0, 7);
+    const dates = c.du ? (c.du === c.au ? jourLong(c.du) : `du ${memeMois ? midi(c.du).getDate() : finJ(c.du)} au ${finJ(c.au)}`) : "";
     const prochain = c.prochaine && dates ? `${esc(c.prochaine)}, ${esc(dates)}` : c.a_venir ? `${c.a_venir} matchs à venir` : "Pas de match annoncé pour l'instant";
     let tete = "";
     if (c.favori && c.zone_favori === "Titre") tete = `Favori pour le titre : <strong>${esc(c.favori.nom)}</strong> (${pct(c.favori.p)})`;

@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#26292e">
-<meta name="description" content="Probabilités de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, mises à jour toutes les heures.">
+<meta name="description" content="Probabilités de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, mises à jour plusieurs fois par jour.">
 <title>Extinction des feux : pronostics F1 et football</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/signal.woff2" as="font" type="font/woff2" crossorigin>
@@ -31,7 +31,7 @@
     <div class="depart-in">
       <div class="feux-grands" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <h1 id="h-depart">Les prochains départs</h1>
-      <p class="chapeau">Les chances de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, recalculées toutes les heures et comparées ensuite aux vrais résultats.</p>
+      <p class="chapeau">Les chances de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, recalculées plusieurs fois par jour et comparées ensuite aux vrais résultats.</p>
       <div class="departs">
         <a class="dep" href="f1.html" id="dep-f1"><span class="dep-quoi">Formule 1</span><b id="dep-f1-titre">Chargement…</b><span id="dep-f1-quand"></span><span id="dep-f1-detail" class="dep-detail"></span></a>
         <a class="dep" href="foot.html" id="dep-foot"><span class="dep-quoi">Football</span><b id="dep-foot-titre">Chargement…</b><span id="dep-foot-quand"></span><span id="dep-foot-detail" class="dep-detail"></span></a>
@@ -43,13 +43,13 @@
     <section class="bloc" aria-labelledby="h-une">
       <div class="bloc-tete"><h2 id="h-une">À la une cette semaine</h2><a href="foot.html">Tous les matchs</a></div>
       <p class="note">Les affiches de la semaine : coupes d'Europe, grands clubs et matchs à l'issue la plus ouverte.</p>
-      <ul class="matchs" id="une"></ul>
+      <ul class="matchs avec-comp" id="une"></ul>
     </section>
 
     <section class="bloc" aria-labelledby="h-surprises">
       <div class="bloc-tete"><h2 id="h-surprises">Surprises récentes</h2></div>
-      <p class="note">Le modèle se trompe aussi. Voici les résultats des quinze derniers jours qu'il donnait à moins de 20 %.</p>
-      <ul class="matchs" id="surprises"></ul>
+      <p class="note">Le modèle se trompe aussi. Voici les résultats des deux dernières semaines auxquels il donnait moins de 20&#8239;% de chances.</p>
+      <ul class="matchs avec-comp" id="surprises"></ul>
     </section>
 
     <section class="bloc" aria-labelledby="h-grille">

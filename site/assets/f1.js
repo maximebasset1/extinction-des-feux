@@ -31,7 +31,7 @@ function rendreGP() {
   else bouts.push(avecEssais() ? "Mis à jour avec les essais libres du week-end." : "Pronostic fait avant les essais. Il est mis à jour après chaque séance.");
   const mq = n.meteo && n.meteo.Q;
   if (!fini && !n.qualif_disputee && mq && mq.pluie != null)
-    bouts.push(mq.pluie < 0.05 ? "Qualifications sur piste sèche attendues." : `${Math.round(mq.pluie * 100)} % de risque de pluie pendant les qualifications, pris en compte.`);
+    bouts.push(mq.pluie < 0.05 ? "Qualifications sur piste sèche attendues." : `${Math.round(mq.pluie * 100)}\u202f% de risque de pluie pendant les qualifications, pris en compte.`);
   if (n.debut_saison) bouts.push("Début de saison : le modèle connaît encore mal les voitures de l'année.");
   $("#status").textContent = bouts.join(" ");
 }
@@ -41,7 +41,7 @@ function rendreSeances() {
   const k0 = keys.find((k) => new Date(s[k]).getTime() + (DUREE[k] || 60) * 6e4 > now);
   $("#sessions").innerHTML = keys.map((k) => {
     const debut = new Date(s[k]).getTime(), fini = now >= debut + (DUREE[k] || 60) * 6e4, w = E.next.meteo && E.next.meteo[k];
-    const meteo = !fini && w ? `<span${w.pluie >= 0.05 ? ' class="pluie"' : ""}>${w.temperature != null ? `${Math.round(w.temperature)} °C, ` : ""}${w.pluie >= 0.05 ? `${Math.round(w.pluie * 100)} % de pluie` : "sec"}</span>` : "";
+    const meteo = !fini && w ? `<span${w.pluie >= 0.05 ? ' class="pluie"' : ""}>${w.temperature != null ? `${Math.round(w.temperature)} °C, ` : ""}${w.pluie >= 0.05 ? `${Math.round(w.pluie * 100)}\u202f% de pluie` : "sec"}</span>` : "";
     return `<li class="${fini ? "fini" : ""}${k === k0 ? " prochaine" : ""}"><b>${SEANCES[k]}</b><span>${quand(s[k])}</span>${meteo}</li>`;
   }).join("");
   let tz = "";
@@ -105,7 +105,7 @@ function rendreGraphe() {
   const W = 900, H = 230, gauche = 34, bas = 70, haut = 10, n = Math.max(gps.length, 1), bw = (W - gauche) / n;
   const y = (v) => haut + (H - haut - bas) * (1 - v);
   const hasard = gps.length ? 1 / gps[0].pilotes.length : 0.045;
-  const grille = [0, 0.25, 0.5, 0.75, 1].map((v) => `<line x1="${gauche}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="#d4d8d1"/><text x="${gauche - 6}" y="${y(v) + 4}" text-anchor="end">${v * 100} %</text>`).join("");
+  const grille = [0, 0.25, 0.5, 0.75, 1].map((v) => `<line x1="${gauche}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="#d4d8d1"/><text x="${gauche - 6}" y="${y(v) + 4}" text-anchor="end">${v * 100}\u202f%</text>`).join("");
   const barres = gps.map((g, i) => {
     const p = chancePole(g) ?? 0, x = gauche + i * bw + bw * 0.15, w = bw * 0.7, c = couleur(personne(g.poleman).couleur) || "#888";
     const nomg = (g.gp_fr || nomGP(g.gp)).replace(/^Grand Prix (de |du |des |d’|d')?/, "");

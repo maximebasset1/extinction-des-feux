@@ -43,3 +43,25 @@ publie_utc,season,grand_prix,type,etape,driver,team,proba,modele
 2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),STR,Aston Martin,0.00156,place sur la grille
 2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),BOT,Cadillac,0.00147,place sur la grille
 2026-11-19T14:33:39Z,2026,Las Vegas,victoire,avant la qualif (avant le week-end (aucun essai libre disponible)),PER,Cadillac,0.00142,place sur la grille
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",ANT,Mercedes,0.27584,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",RUS,Mercedes,0.20562,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",VER,Red Bull Racing,0.13031,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",LEC,Ferrari,0.10721,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",NOR,McLaren,0.09911,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",HAM,Ferrari,0.08545,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",HAD,Red Bull Racing,0.04343,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",PIA,McLaren,0.02775,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",LAW,Racing Bulls,0.01062,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",GAS,Alpine,0.00416,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",LIN,Racing Bulls,0.00399,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",HUL,Audi,0.00203,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",COL,Alpine,0.00195,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",BOR,Audi,0.00089,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",SAI,Williams,0.00038,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",BEA,Haas F1 Team,0.00032,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",ALO,Aston Martin,0.00027,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",ALB,Williams,0.00025,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",PER,Cadillac,0.00014,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",STR,Aston Martin,0.0001,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",BOT,Cadillac,9e-05,grille + écart en qualif + forme (depuis 2018) + effet de la pluie
+2026-11-21T03:59:18Z,2026,Las Vegas,victoire,"avant la qualif (après EL1, EL2, EL3)",CAM,Haas F1 Team,9e-05,grille + écart en qualif + forme (depuis 2018) + effet de la pluie

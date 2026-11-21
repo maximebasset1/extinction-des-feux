@@ -24,7 +24,7 @@ jobs:
     permissions:
       contents: write   # enregistrer les nouvelles données et le journal des pronostics
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:

@@ -36,7 +36,7 @@ jobs:
         run: pip install -r requirements-ci.txt
 
       - name: Reprendre les données déjà téléchargées
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             data/raw
@@ -52,7 +52,7 @@ jobs:
 
       # si le calcul football échoue, les pages gardent les pronostics précédents et la F1 est publiée quand même
       - name: Reprendre les données football
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             data/football/eu
@@ -62,7 +62,7 @@ jobs:
 
       # état du quota de cotes : gardé à chaque lancement, pas une fois par jour, sinon la limite de 3 h ne tiendrait pas
       - name: Reprendre l'état des cotes
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: data/football/cotes
           key: recherche-cotes-aucune
@@ -88,7 +88,7 @@ jobs:
 
       - name: Garder les données pour la prochaine fois
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             data/raw
@@ -97,7 +97,7 @@ jobs:
 
       - name: Enregistrer l'état des cotes
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: data/football/cotes
           key: recherche-cotes-${{ github.run_id }}-${{ github.run_attempt }}
@@ -111,7 +111,7 @@ jobs:
 
       - name: Enregistrer le cache football
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             data/football/eu

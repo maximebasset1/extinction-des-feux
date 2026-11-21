@@ -147,6 +147,7 @@ F1 = """  <section class="depart depart-f1" aria-labelledby="gp-name">
 
     <section class="bloc" id="drivers" aria-labelledby="h-pilotes">
       <div class="bloc-tete"><h2 id="h-pilotes">Tous les pilotes</h2></div>
+      <p class="note" id="field-note"></p>
       <div class="defile"><table class="tableau" id="field"></table></div>
     </section>
 

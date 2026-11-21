@@ -22,21 +22,30 @@ function rendreF1(n) {
   } else {
     $("#dep-f1-quand").textContent = `${SEANCES[k]} ${quand(n.sessions[k])}, ${relatif(n.sessions[k])}`;
   }
-  let liste, titre;
-  if (n.qualif_disputee && n.victoire && n.victoire.length) {
-    liste = [...n.victoire].sort((a, b) => (b.proba ?? 0) - (a.proba ?? 0)).map((d) => ({ ...d, p: d.proba }));
-    titre = "Chances de victoire, sur la vraie grille de départ.";
+  let liste, titre, h2, favoris;
+  if (!n.saison_terminee && !k && (n.arrivee || []).length) {
+    liste = n.arrivee.map((d) => ({ ...d, pos: d.place, p: null }));
+    h2 = "Formule 1, résultat de la course"; titre = "Les six premiers à l'arrivée."; favoris = [];
+  } else if (n.qualif_disputee && n.victoire && n.victoire.length) {
+    // grille connue : les vraies places de départ, avec les chances de victoire
+    liste = [...n.victoire].sort((a, b) => (a.grille ?? 99) - (b.grille ?? 99)).map((d, i) => ({ ...d, pos: d.grille ?? i + 1, p: d.proba }));
+    favoris = [...liste].sort((a, b) => (b.p ?? 0) - (a.p ?? 0));
+    h2 = "Formule 1, qui va gagner ?";
+    titre = `${n.poleman ? `${n.poleman.nom} part en pole. ` : ""}Grille de départ et chances de victoire.`;
   } else {
-    liste = favorisPole(n);
+    liste = favorisPole(n).map((d, i) => ({ ...d, pos: i + 1 }));
+    favoris = liste;
+    h2 = "Formule 1, la grille la plus probable";
     titre = n.pole.some((d) => d.apres != null) ? "Chances de pole, mises à jour avec les essais du week-end." : "Chances de pole, avant les essais du week-end.";
   }
-  $("#dep-f1-detail").textContent = liste.slice(0, 3).map((d) => `${d.famille} ${pct(d.p)}`).join(", ");
+  $("#dep-f1-detail").textContent = favoris.slice(0, 3).map((d) => `${d.famille} ${pct(d.p)}`).join(", ");
+  $("#h-grille").textContent = h2;
   $("#grille-note").textContent = titre;
   const max = Math.max(...liste.map((d) => d.p ?? 0), 0.01);
-  $("#grille").innerHTML = liste.slice(0, 6).map((d, i) => `<li><span class="pos">${i + 1}</span>
+  $("#grille").innerHTML = liste.slice(0, 6).map((d) => `<li><span class="pos">${esc(d.pos)}</span>
     <span class="pilote"><b>${esc(d.famille)}</b><span><i class="ecurie" style="background:${couleur(d.couleur) || "#888"}"></i>${esc(d.equipe)}</span></span>
-    <span class="jauge"><i style="width:${((100 * (d.p ?? 0)) / max).toFixed(1)}%;background:${couleur(d.couleur) || "#888"}"></i></span>
-    <span class="pct">${pct(d.p)}</span></li>`).join("");
+    <span class="jauge">${d.p != null ? `<i style="width:${((100 * d.p) / max).toFixed(1)}%;background:${couleur(d.couleur) || "#888"}"></i>` : ""}</span>
+    <span class="pct">${d.p != null ? pct(d.p) : ""}</span></li>`).join("");
 }
 
 function rendreFoot(i) {

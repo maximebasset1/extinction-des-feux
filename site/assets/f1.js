@@ -15,6 +15,8 @@ function lignesPole() {
   const cle = avecEssais() ? "apres" : "avant";
   return [...E.next.pole].map((d) => ({ ...d, p: d[cle] })).sort((a, b) => (b.p ?? 0) - (a.p ?? 0));
 }
+/* chance de pole annoncée avant la séance, pour le pilote donné */
+function poleAnnoncee(code) { const d = lignesPole().find((x) => x.code === code); return d ? d.p : null; }
 function courseFinie() {
   const n = E.next, r = n.sessions && n.sessions.R;
   return n.saison_terminee || (r && Date.now() > new Date(r).getTime() + DUREE.R * 6e4);
@@ -27,7 +29,13 @@ function rendreGP() {
   const bouts = [];
   if (n.saison_terminee) bouts.push("La saison est terminée. Les pronostics de la saison prochaine arriveront avec le calendrier.");
   else if (fini) bouts.push("Course terminée. Le prochain pronostic sera en ligne dans quelques heures.");
-  else if (n.qualif_disputee) bouts.push(n.poleman ? `${n.poleman.nom} a fait la pole. Les chances de victoire partent de la vraie grille de départ.` : "Les chances de victoire partent de la vraie grille de départ.");
+  else if (n.qualif_disputee) {
+    const fav = lignesPole()[0], p = n.poleman ? poleAnnoncee(n.poleman.code) : null;
+    let avant = "";
+    if (p != null && fav) avant = fav.code === n.poleman.code ? ` C'était le favori du modèle (${pct(p)}).`
+      : ` Avant la séance, le modèle lui donnait ${pct(p)} de chances ; son favori, ${fav.famille}, était à ${pct(fav.p)}.`;
+    bouts.push(`${n.poleman ? `${n.poleman.nom} a fait la pole.${avant} ` : ""}Les chances de victoire partent maintenant de la vraie grille de départ.`);
+  }
   else bouts.push(avecEssais() ? "Mis à jour avec les essais libres du week-end." : "Pronostic fait avant les essais. Il est mis à jour après chaque séance.");
   const mq = n.meteo && n.meteo.Q;
   if (!fini && !n.qualif_disputee && mq && mq.pluie != null)
@@ -80,14 +88,21 @@ function rendreGrille() {
 }
 
 function rendrePilotes() {
-  const lignes = lignesPole();
-  if (!lignes.length || courseFinie()) { $("#drivers").hidden = true; return; }
-  const vic = new Map(E.next.victoire.map((d) => [d.code, d.proba]));
-  const maxP = Math.max(...lignes.map((d) => d.p ?? 0), 0.01), maxV = Math.max(...lignes.map((d) => vic.get(d.code) ?? 0), 0.01);
+  const pole = lignesPole(), apres = E.next.qualif_disputee;
+  if (!pole.length || courseFinie()) { $("#drivers").hidden = true; return; }
+  const vic = new Map(E.next.victoire.map((d) => [d.code, d]));
+  const proba = (d) => (vic.get(d.code) || {}).proba, depart = (d) => (vic.get(d.code) || {}).grille;
+  // après la qualif, l'ordre est celui de la grille : le pronostic de pole n'est plus qu'un rappel
+  const lignes = apres ? [...pole].sort((a, b) => (depart(a) ?? 99) - (depart(b) ?? 99)) : pole;
+  const maxP = Math.max(...lignes.map((d) => d.p ?? 0), 0.01), maxV = Math.max(...lignes.map((d) => proba(d) ?? 0), 0.01);
   const jauge = (v, max, c) => `<span class="barcell"><span class="jauge"><i style="width:${((100 * (v ?? 0)) / max).toFixed(1)}%;background:${couleur(c) || "#888"}"></i></span><span class="num">${pct(v)}</span></span>`;
-  $("#field").innerHTML = `<thead><tr><th>#</th><th>Pilote</th><th>Pole</th><th>Victoire</th></tr></thead><tbody>${lignes.map((d, i) => `<tr>
-      <td class="rang">${i + 1}</td><td><span class="club">${ecurie(d.couleur)}<span><b>${esc(d.famille)}</b> <span class="note">${esc(d.equipe)}</span></span></span></td>
-      <td>${jauge(d.p, maxP, d.couleur)}</td><td>${jauge(vic.get(d.code), maxV, d.couleur)}</td></tr>`).join("")}</tbody>`;
+  const cellP = (d) => `<td>${jauge(d.p, maxP, d.couleur)}</td>`, cellV = (d) => `<td>${jauge(proba(d), maxV, d.couleur)}</td>`;
+  $("#field").innerHTML = `<thead><tr><th>${apres ? "Départ" : "#"}</th><th>Pilote</th>${apres ? "<th>Victoire</th><th>Pole, annoncée avant la séance</th>" : "<th>Pole</th><th>Victoire</th>"}</tr></thead><tbody>${lignes.map((d, i) => `<tr>
+      <td class="rang">${apres ? esc(depart(d) ?? "–") : i + 1}</td><td><span class="club">${ecurie(d.couleur)}<span><b>${esc(d.famille)}</b> <span class="note">${esc(d.equipe)}</span></span></span></td>
+      ${apres ? cellV(d) + cellP(d) : cellP(d) + cellV(d)}</tr>`).join("")}</tbody>`;
+  $("#field-note").textContent = apres
+    ? "Dans l'ordre de la grille de départ. Les chances de pole sont celles annoncées avant les qualifications, gardées pour comparer."
+    : "Dans l'ordre des chances de pole. La grille n'étant pas connue, les chances de victoire font la moyenne de milliers de grilles possibles.";
 }
 
 /* ---------- le modèle face à la réalité */

@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from football import config as C  # noqa: E402
 from football import cups, joint, leagues  # noqa: E402
 from football import journal as JR  # noqa: E402
+from football import live as LV  # noqa: E402
 from football import joint_backtest as JB  # noqa: E402
 from football import model as M  # noqa: E402
 from football import season as S  # noqa: E402
@@ -705,6 +706,16 @@ def main(offline: bool = False) -> None:
                       "clubs": {t: all_clubs[t] for t in shown if t in all_clubs}}
     files["recherche"] = {"maj_utc": iso(now), "clubs": all_clubs, "matchs": search,
                           "competitions": {c: {"nom": v["nom"], "slug": v["slug"]} for c, v in COMPS.items()}}
+    # direct : buts attendus calés sur les chances publiées (rien de plus que ces chances arrondies)
+    live_params = LV.load_params()
+    need = [m for f in files.values() for m in f.get("matchs", []) if isinstance(m, dict) and m.get("p") and m.get("etat") != "joue"]
+    if need:
+        lam = LV.calibrate(np.array([m["p"] for m in need], float), live_params)
+        for m, (lh, la) in zip(need, lam):
+            m["lam"] = [round(float(lh), 3), round(float(la), 3)]
+    files["direct"] = {"maj_utc": iso(now), "minutes_mi_temps": list(LV.HALF_MINUTES), "pas_par_mi_temps": LV.STEPS_PER_HALF,
+                       **{k: live_params.get(k) for k in ("part_1re_mi_temps", "rythme_selon_ecart", "periode_choix",
+                                                          "periode_test", "matchs_test", "jugement_mi_temps", "fiabilite_mi_temps")}}
     write_all(files)
     print(f"   {len(search)} matchs à venir, {len(all_clubs)} clubs, {len(recent)} surprise(s) récente(s). Terminé.")
 

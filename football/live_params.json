@@ -1,0 +1,191 @@
+{
+ "part_1re_mi_temps": 0.43375515054342306,
+ "rythme_selon_ecart": [
+  1.0967800824787206,
+  1.0967800824787206,
+  1.0,
+  0.9769023178444244,
+  0.9769023178444244
+ ],
+ "periode_choix": "2010-2021",
+ "periode_test": "2022-2026",
+ "matchs_test": 17402,
+ "jugement_mi_temps": [
+  {
+   "methode": "avant le match (le score de la pause est ignoré)",
+   "log_loss": 0.967,
+   "rps": 0.1949,
+   "favori_juste": 0.536
+  },
+  {
+   "methode": "temps restant seulement, buts répartis à parts égales",
+   "log_loss": 0.8097,
+   "rps": 0.1508,
+   "favori_juste": 0.627
+  },
+  {
+   "methode": "temps restant, part réelle de chaque mi-temps",
+   "log_loss": 0.8045,
+   "rps": 0.1497,
+   "favori_juste": 0.628
+  },
+  {
+   "methode": "modèle complet (temps restant et écart au score)",
+   "log_loss": 0.8001,
+   "rps": 0.1487,
+   "favori_juste": 0.628
+  }
+ ],
+ "fiabilite_mi_temps": [
+  {
+   "issue": "domicile",
+   "annonce": 0.047,
+   "observe": 0.05,
+   "matchs": 2703
+  },
+  {
+   "issue": "domicile",
+   "annonce": 0.144,
+   "observe": 0.149,
+   "matchs": 1915
+  },
+  {
+   "issue": "domicile",
+   "annonce": 0.255,
+   "observe": 0.236,
+   "matchs": 1855
+  },
+  {
+   "issue": "domicile",
+   "annonce": 0.349,
+   "observe": 0.347,
+   "matchs": 2683
+  },
+  {
+   "issue": "domicile",
+   "annonce": 0.444,
+   "observe": 0.439,
+   "matchs": 1461
+  },
+  {
+   "issue": "domicile",
+   "annonce": 0.551,
+   "observe": 0.554,
+   "matchs": 944
+  },
+  {
+   "issue": "domicile",
+   "annonce": 0.655,
+   "observe": 0.653,
+   "matchs": 1205
+  },
+  {
+   "issue": "domicile",
+   "annonce": 0.748,
+   "observe": 0.733,
+   "matchs": 1741
+  },
+  {
+   "issue": "domicile",
+   "annonce": 0.849,
+   "observe": 0.848,
+   "matchs": 1209
+  },
+  {
+   "issue": "domicile",
+   "annonce": 0.956,
+   "observe": 0.951,
+   "matchs": 1686
+  },
+  {
+   "issue": "nul",
+   "annonce": 0.046,
+   "observe": 0.052,
+   "matchs": 2858
+  },
+  {
+   "issue": "nul",
+   "annonce": 0.155,
+   "observe": 0.155,
+   "matchs": 3230
+  },
+  {
+   "issue": "nul",
+   "annonce": 0.249,
+   "observe": 0.256,
+   "matchs": 4773
+  },
+  {
+   "issue": "nul",
+   "annonce": 0.358,
+   "observe": 0.376,
+   "matchs": 5320
+  },
+  {
+   "issue": "nul",
+   "annonce": 0.416,
+   "observe": 0.404,
+   "matchs": 1219
+  },
+  {
+   "issue": "exterieur",
+   "annonce": 0.041,
+   "observe": 0.046,
+   "matchs": 5162
+  },
+  {
+   "issue": "exterieur",
+   "annonce": 0.15,
+   "observe": 0.142,
+   "matchs": 2271
+  },
+  {
+   "issue": "exterieur",
+   "annonce": 0.249,
+   "observe": 0.235,
+   "matchs": 3141
+  },
+  {
+   "issue": "exterieur",
+   "annonce": 0.343,
+   "observe": 0.354,
+   "matchs": 1581
+  },
+  {
+   "issue": "exterieur",
+   "annonce": 0.449,
+   "observe": 0.464,
+   "matchs": 858
+  },
+  {
+   "issue": "exterieur",
+   "annonce": 0.551,
+   "observe": 0.534,
+   "matchs": 888
+  },
+  {
+   "issue": "exterieur",
+   "annonce": 0.651,
+   "observe": 0.619,
+   "matchs": 1257
+  },
+  {
+   "issue": "exterieur",
+   "annonce": 0.748,
+   "observe": 0.714,
+   "matchs": 835
+  },
+  {
+   "issue": "exterieur",
+   "annonce": 0.85,
+   "observe": 0.868,
+   "matchs": 722
+  },
+  {
+   "issue": "exterieur",
+   "annonce": 0.953,
+   "observe": 0.955,
+   "matchs": 687
+  }
+ ]
+}

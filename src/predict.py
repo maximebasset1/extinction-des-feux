@@ -21,6 +21,7 @@ from features import (  # noqa: E402
     CANDIDATES_FP, CANDIDATES_PRE, FP_COLUMNS, current_wet_skill, features_for_race, practice_deficit,
     qualifying_table, training_table,
 )
+import sprint  # noqa: E402
 import weather  # noqa: E402
 from model import (  # noqa: E402
     HISTORIES, NOISE_LAWS, bootstrap_gain, fit_logit, fit_regression, latest_sigma, logit_probabilities, per_race_logloss,
@@ -32,6 +33,10 @@ TEST_SEASON = 2026
 SPLIT_RACE = 12
 FAMILIES = [("avant le week-end", CANDIDATES_PRE), ("après les essais libres", CANDIDATES_FP)]
 METHODS = ["régression + aléa", "logit conditionnel"]
+# Étude de novembre 2026 (etude_sprint.py) : l'écart en qualif sprint, en plus des essais, améliore la log-loss et le
+# Brier de la pole sur les week-ends sprint 2024-2025 et se confirme sur 2026. Il est ajouté au modèle choisi
+# « après les essais libres » ; il vaut 0 hors week-end sprint et tant que la qualif sprint n'a pas eu lieu.
+SPRINT_POLE = "ecart_qualif_sprint"
 NOISE_DF = list(NOISE_LAWS.values())[0]
 
 
@@ -78,12 +83,19 @@ def backtest(table: pd.DataFrame):
         res.loc[best.name, "choisi"] = "oui"
         chosen[family] = store[(hname, family, best["variables"], best["methode"])] | {
             "key": (family, best["variables"], best["methode"])}
+    # 1 bis) qualif sprint ajoutée au modèle choisi après les essais (voir SPRINT_POLE)
+    fp = chosen["après les essais libres"]
+    if SPRINT_POLE in table and SPRINT_POLE not in fp["feats"]:
+        feats_s = fp["feats"] + [SPRINT_POLE]
+        chosen["après les essais libres"] = fp | run_method(table, feats_s, fp["method"], fp["hist"]) | {
+            "feats": feats_s, "label": fp["label"].replace(" (", " + qualif sprint (", 1), "sprint": True}
     # 2) module pluie : jugé sur les qualifs mouillées (avant 2026 pour choisir, 2026 pour contrôler).
     #    Il y en a peu : on rejoue le même modèle depuis 2018 pour en avoir une quinzaine au lieu de cinq.
     long = HISTORIES["depuis 2018"]
     for family, c in chosen.items():
         feats_w = c["feats"] + ["pluie_talent"]
-        base_long = store[("depuis 2018",) + c["key"]]["probs"]
+        base_long = store[("depuis 2018",) + c["key"]]["probs"] if not c.get("sprint") else \
+            run_method(table, c["feats"], c["method"], long)["probs"]
         w_long = run_method(table, feats_w, c["method"], long)
         c["wet"] = weather.evaluate_module(base_long, w_long["probs"])
         c["wet"] |= {"feats": feats_w, "hist": long, "sigma": w_long["sigma"]}
@@ -160,6 +172,9 @@ def predict_target(best: pd.DataFrame, table: pd.DataFrame, chosen: dict, foreca
     f = f.merge(fp[["driver"] + FP_COLUMNS], on="driver", how="left")
     for c in FP_COLUMNS:
         f[c] = f[c].fillna(f[c].median() if has_fp else 1.5)
+    f["season"], f["grand_prix"] = TARGET_SEASON, gp
+    f = sprint.add_quali_sprint(f, best, ["essais"])      # qualif sprint du week-end, si elle a déjà eu lieu
+    has_sq = bool(f["sprint_connu"].any())
 
     out = f[["driver", "team"]].copy()
     for family, c in chosen.items():
@@ -185,6 +200,8 @@ def predict_target(best: pd.DataFrame, table: pd.DataFrame, chosen: dict, foreca
                                & best["session"].str.startswith("Practice"), "session"].unique())
     status = ("après " + ", ".join(s.replace("Practice ", "EL") for s in sessions)) if has_fp \
         else "avant le week-end (aucun essai libre disponible)"
+    if has_fp and has_sq:
+        status += " et la qualif sprint"
     return out, status
 
 
@@ -229,7 +246,7 @@ def cached_backtest(table: pd.DataFrame):
 
 def run(best: pd.DataFrame, forecast: dict | None = None):
     gp = TARGET_GP.replace(" Grand Prix", "")
-    table = training_table(best, MAX_DEFICIT_PCT, exclude=(TARGET_SEASON, gp))
+    table = sprint.add_quali_sprint(training_table(best, MAX_DEFICIT_PCT, exclude=(TARGET_SEASON, gp)), best, ["essais"])
     res, chosen, gains, base = cached_backtest(table)
     pred, status = predict_target(best, table, chosen, forecast)
     return {"table": table, "res": res, "chosen": chosen, "pred": pred, "status": status,

@@ -18,6 +18,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent))
 from features import ewm_mean  # noqa: E402
+from sprint import add_race_sprint  # noqa: E402
 from model import HISTORIES, bootstrap_gain, fit_logit, logit_probabilities, per_race_logloss, scores  # noqa: E402
 
 CANDIDATES = {
@@ -55,9 +56,10 @@ def add_pace(r: pd.DataFrame, pace: pd.DataFrame | None) -> pd.DataFrame:
 
 
 def race_table(best: pd.DataFrame, results: pd.DataFrame, min_prior: int = 3, grids: pd.DataFrame | None = None,
-               pace: pd.DataFrame | None = None) -> pd.DataFrame:
+               pace: pd.DataFrame | None = None, sprints: pd.DataFrame | None = None) -> pd.DataFrame:
     """`grids` : grilles réelles (f1db). Sans elles, la grille est l'ordre de la qualif (pénalités ignorées).
-    `pace` : rythme des longs relais aux essais (rythme.py)."""
+    `pace` : rythme des longs relais aux essais (rythme.py). `sprints` : classements des courses sprint
+    (season, grand_prix, driver, sprint), pour les variables sprint (sprint.py)."""
     q = best[best["session"] == "Qualifying"][["season", "grand_prix", "driver", "deficit_pct", "pole", "quali_pos"]].copy()
     q["ecart_qualif"] = q["deficit_pct"].fillna(5.0).clip(upper=5.0)
     q["grille"] = q["quali_pos"]   # ordre officiel de la qualif (Q3, puis Q2, puis Q1)
@@ -85,6 +87,7 @@ def race_table(best: pd.DataFrame, results: pd.DataFrame, min_prior: int = 3, gr
     r["forme_course"] = r["forme_course"].fillna(r.groupby(["season", "grand_prix"])["forme_course"].transform("max")).fillna(15)
     r["is_pole"] = r["finish"] == 1          # « gagnant » : on réutilise le même code que pour la pole
     r = add_pace(r, pace)
+    r = add_race_sprint(r, sprints)     # avant le filtre : la forme compte aussi les premières courses
     r = r[r["race_idx"] > min_prior]
     return r.sort_values(["date", "finish"]).reset_index(drop=True)
 

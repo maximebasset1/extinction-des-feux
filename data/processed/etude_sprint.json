@@ -1,0 +1,161 @@
+{
+ "date": "novembre 2026",
+ "pole": {
+  "modele": "pole, après les essais (forme + type + essais)",
+  "periode_choix": "2024-2025",
+  "periode_test": "2026",
+  "week_ends_choix": 11,
+  "week_ends_test": 5,
+  "sans": {
+   "log_loss": 1.396,
+   "brier": 0.646,
+   "log_loss_test": 1.688,
+   "brier_test": 0.833
+  },
+  "variables": [
+   {
+    "variable": "qualif sprint à la place des essais",
+    "log_loss_choix": [
+     1.396,
+     1.494
+    ],
+    "brier_choix": [
+     0.646,
+     0.706
+    ],
+    "log_loss_test": [
+     1.688,
+     1.238
+    ],
+    "brier_test": [
+     0.833,
+     0.618
+    ],
+    "log_loss_tous_gp": [
+     1.688,
+     1.691
+    ],
+    "brier_tous_gp": [
+     0.749,
+     0.747
+    ],
+    "gain_choix_ic95": [
+     -0.778,
+     0.532
+    ],
+    "retenue": false
+   },
+   {
+    "variable": "qualif sprint en plus des essais",
+    "log_loss_choix": [
+     1.396,
+     1.296
+    ],
+    "brier_choix": [
+     0.646,
+     0.621
+    ],
+    "log_loss_test": [
+     1.688,
+     1.464
+    ],
+    "brier_test": [
+     0.833,
+     0.751
+    ],
+    "log_loss_tous_gp": [
+     1.688,
+     1.651
+    ],
+    "brier_tous_gp": [
+     0.749,
+     0.739
+    ],
+    "gain_choix_ic95": [
+     0.023,
+     0.207
+    ],
+    "retenue": true
+   }
+  ]
+ },
+ "victoire": {
+  "modele": "victoire (grille + qualif + écart + forme)",
+  "periode_choix": "2023-2025",
+  "periode_test": "2026",
+  "week_ends_choix": 17,
+  "week_ends_test": 5,
+  "sans": {
+   "log_loss": 1.427,
+   "brier": 0.665,
+   "log_loss_test": 1.183,
+   "brier_test": 0.554
+  },
+  "variables": [
+   {
+    "variable": "place au sprint (par rapport à la grille)",
+    "log_loss_choix": [
+     1.427,
+     1.334
+    ],
+    "brier_choix": [
+     0.665,
+     0.589
+    ],
+    "log_loss_test": [
+     1.183,
+     1.52
+    ],
+    "brier_test": [
+     0.554,
+     0.691
+    ],
+    "log_loss_tous_gp": [
+     1.103,
+     1.097
+    ],
+    "brier_tous_gp": [
+     0.531,
+     0.518
+    ],
+    "gain_choix_ic95": [
+     -0.192,
+     0.343
+    ],
+    "retenue": false
+   },
+   {
+    "variable": "sprints comptés dans la forme en course",
+    "log_loss_choix": [
+     1.427,
+     1.402
+    ],
+    "brier_choix": [
+     0.665,
+     0.626
+    ],
+    "log_loss_test": [
+     1.183,
+     1.245
+    ],
+    "brier_test": [
+     0.554,
+     0.614
+    ],
+    "log_loss_tous_gp": [
+     1.103,
+     1.084
+    ],
+    "brier_tous_gp": [
+     0.531,
+     0.514
+    ],
+    "gain_choix_ic95": [
+     -0.215,
+     0.192
+    ],
+    "retenue": false
+   }
+  ]
+ }
+}

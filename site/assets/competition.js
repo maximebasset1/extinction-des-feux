@@ -189,6 +189,7 @@ async function main() {
   options($("#club-select"), keys, C.club); options($("#f-a"), keys, C.a); options($("#f-b"), keys, C.b);
   rendreJournee(); rendreClassement(); rendreClub(); rendreFace(); rendreFiabilite();
   ouvrirDepuisAdresse();
+  suivreDirect([{ matchs: C.d.matchs, clubs: C.d.clubs, comp: C.d.code }]);
   $("#j-select").addEventListener("change", (e) => { C.journee = e.target.value; rendreJournee(); });
   $("#j-prev").addEventListener("click", () => { C.journee = C.d.journees[Math.max(0, C.d.journees.indexOf(C.journee) - 1)]; rendreJournee(); });
   $("#j-next").addEventListener("click", () => { C.journee = C.d.journees[Math.min(C.d.journees.length - 1, C.d.journees.indexOf(C.journee) + 1)]; rendreJournee(); });

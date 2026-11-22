@@ -74,7 +74,7 @@ function chancesEnDirect(lh, la, hg, ag, miTemps, reste, params) {
 /* minute affichée (« 67 », « 45+2 ») -> mi-temps et part de cette mi-temps encore à jouer */
 function tempsRestant(minute, miTemps, params = {}) {
   const [m1, m2] = params.minutes_mi_temps || DIRECT.MINUTES_MI_TEMPS;
-  const [base, plus] = String(minute).split("+").map((x) => parseInt(x, 10) || 0);
+  const [base = 0, plus = 0] = String(minute).split("+").map((x) => parseInt(x, 10) || 0);
   const ecoule = base + plus;
   // dans les arrêts de jeu, il reste toujours un peu de temps tant que l'arbitre n'a pas sifflé
   if (miTemps === 1) return { miTemps: 1, reste: Math.max(0.5, m1 - ecoule) / m1 };

@@ -93,9 +93,9 @@ function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDan
       <span class="m-club m-dom"><b>${esc(dom.nom)}</b>${ecusson(dom)}</span>
       <span class="m-centre">${centre}</span>
       <span class="m-club m-ext">${ecusson(ext)}<b>${esc(ext.nom)}</b></span>`;
-  if (lien) return `<li class="match"><a class="m-ligne" href="${esc(lien)}">${corps}</a></li>`;
-  if (detail === null) return `<li class="match"><div class="m-ligne">${corps}</div></li>`;
-  return `<li class="match"><details id="${prefixe}-${esc(cleId(m.id))}"><summary class="m-ligne">${corps}</summary><div class="m-detail">${detail}</div></details></li>`;
+  if (lien) return `<li class="match" data-match="${esc(cleId(m.id))}"><a class="m-ligne" href="${esc(lien)}">${corps}</a></li>`;
+  if (detail === null) return `<li class="match" data-match="${esc(cleId(m.id))}"><div class="m-ligne">${corps}</div></li>`;
+  return `<li class="match" data-match="${esc(cleId(m.id))}"><details id="${prefixe}-${esc(cleId(m.id))}"><summary class="m-ligne">${corps}</summary><div class="m-detail">${detail}</div></details></li>`;
 }
 const cleId = (id) => String(id).replace(/[^A-Za-z0-9]+/g, "-");
 

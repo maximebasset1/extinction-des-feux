@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
 CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; "
-       "connect-src 'self'; base-uri 'self'; form-action 'none'")
+       "connect-src 'self' https://extinction-direct.maximebasset1.workers.dev; base-uri 'self'; form-action 'none'")
 COMPETITIONS = [("E0", "premier-league", "Premier League"), ("D1", "bundesliga", "Bundesliga"), ("SP1", "liga", "Liga"),
                 ("F1", "ligue-1", "Ligue 1"), ("LDC", "ligue-des-champions", "Ligue des champions"),
                 ("LEC", "ligue-europa", "Ligue Europa")]
@@ -361,7 +361,7 @@ def pages() -> dict[str, str]:
     out = {
         "index.html": page("index.html", "Extinction des feux : pronostics F1 et football",
                            "Probabilités de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, mises à jour plusieurs fois par jour.",
-                           HOME, ["accueil.js"], "accueil"),
+                           HOME, ["modele-direct.js", "direct.js", "accueil.js"], "accueil"),
         "f1.html": page("f1.html", "Formule 1 : pole et victoire au prochain Grand Prix - Extinction des feux",
                         "Probabilités de pole et de victoire pour chaque pilote au prochain Grand Prix, comparées ensuite aux vrais résultats.",
                         F1, ["f1.js"], "f1", styles=("f1.css",), common=False, name="f1"),
@@ -378,7 +378,7 @@ def pages() -> dict[str, str]:
     for _, slug, nom in COMPETITIONS:
         out[f"foot/{slug}.html"] = page(f"foot/{slug}.html", f"{nom} : pronostics, classement et fin de saison - Extinction des feux",
                                         f"{nom} : probabilités de chaque match, classement, fin de saison simulée, face-à-face et fiabilité du modèle.",
-                                        COMP.replace("{nom}", nom), ["competition.js"], "foot", slug).replace(
+                                        COMP.replace("{nom}", nom), ["modele-direct.js", "direct.js", "competition.js"], "foot", slug).replace(
             '<body data-root="../">', f'<body data-root="../" data-competition="{slug}">')
     out["ligue1.html"] = REDIRECT.format(csp=CSP, target="foot/ligue-1.html", label="Ligue 1")
     out["recherche.html"] = REDIRECT.format(csp=CSP, target="foot.html", label="Football")

@@ -181,7 +181,9 @@ async function main() {
     rendreFiabilite();
     return;
   }
-  C.journee = C.d.prochaine || C.d.journees[0];
+  // un match en cours (coup d'envoi il y a moins de 2 h 30) passe avant la prochaine journée : on ouvre la sienne
+  const t = Date.now(), enCours = C.d.matchs.find((m) => m.kickoff && m.etat !== "joue" && t >= Date.parse(m.kickoff) && t - Date.parse(m.kickoff) < 9e6);
+  C.journee = enCours?.journee || C.d.prochaine || C.d.journees[0];
   $("#j-select").innerHTML = C.d.journees.map((j) => `<option>${esc(j)}</option>`).join("");
   const keys = Object.keys(C.d.clubs).sort((x, y) => nom(x).localeCompare(nom(y), "fr"));
   const tete = C.d.classement.map((r) => r.club);

@@ -1,0 +1,40 @@
+name: Direct football
+on:
+  schedule:
+    # deux créneaux par jour (heure UTC) : un lancement annule le précédent, chacun dure au plus 5 h 40
+    - cron: "55 10 * * *"
+    - cron: "25 16 * * *"
+  push:
+    branches: ["feat/direct-relais"]
+    paths: ["relais/boucle.mjs", "relais/relais.js", ".github/workflows/direct.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: direct
+  cancel-in-progress: true
+jobs:
+  boucle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Stockage KV du relais
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          id=$(curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces?per_page=100" \
+            | jq -r '.result[] | select(.title=="extinction-direct") | .id')
+          test -n "$id"
+          echo "KV_ID=$id" >> "$GITHUB_ENV"
+      - name: Suivre les matchs du jour
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+        run: node relais/boucle.mjs

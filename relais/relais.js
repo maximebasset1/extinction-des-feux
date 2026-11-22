@@ -1,5 +1,6 @@
-/* Relais du direct : interroge API-Football seulement pendant nos matchs et sert les scores au site.
-   La clé reste un secret du Worker ; le site ne reçoit que des scores, des minutes et des noms de clubs. */
+/* Relais du direct. `tour` (lancé chaque minute par relais/boucle.mjs dans GitHub Actions) interroge API-Football
+   seulement pendant nos matchs et range les scores dans le stockage KV ; le Worker sert ces scores au site.
+   API-Football limite les appels venus de Cloudflare (adresses partagées) : la clé ne sert donc que dans GitHub. */
 
 const API = "https://v3.football.api-sports.io";
 // identifiants API-Football de nos compétitions (codes du site entre parenthèses)
@@ -11,7 +12,6 @@ const DUREE_MATCH_MIN = 125;     // 90 min, mi-temps, arrêts de jeu ; prolongé
 const EN_JEU = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
 const FINI = new Set(["FT", "AET", "PEN", "PST", "CANC", "ABD", "AWD", "WO"]);
 const CLE_ETAT = "etat";
-const RETARD_TOLERE_MIN = 2;     // au-delà, une visite relance le tour que la minuterie aurait dû faire
 const PAUSE_ERREUR_MIN = 5;
 const ESSAIS = 2;
 const ATTENTE_ESSAI_MS = 7000;      // après une erreur de l'API, on attend avant de réessayer pour ne pas user le quota
@@ -122,24 +122,9 @@ const ENTETES = {
   "x-content-type-options": "nosniff",
 };
 
-/* vrai si le tour programmé a pris du retard : programme du jour absent, ou direct plus vieux que prévu pendant un match */
-function enRetard(etat, maintenant) {
-  if (etat.erreur_ms && maintenant - etat.erreur_ms < PAUSE_ERREUR_MIN * minute) return false;
-  if (etat.secours_ms && maintenant - etat.secours_ms < RETARD_TOLERE_MIN * minute) return false;
-  if (etat.jour !== jourUtc(maintenant)) return true;
-  if (!aCouvrir(etat.matchs || [], maintenant).actif) return false;
-  return !etat.direct_ms || maintenant - etat.direct_ms > ((etat.intervalle_min || 1) + RETARD_TOLERE_MIN) * minute;
-}
-
-/* réponse publique : les matchs du jour de nos compétitions ; relance un tour si le programmé est en retard */
-async function servir(env, ctx) {
+/* réponse publique : les matchs du jour de nos compétitions */
+async function servir(env) {
   const etat = (await env.DIRECT.get(CLE_ETAT, { type: "json", cacheTtl: 30 })) || {};
-  const maintenant = Date.now();
-  if (enRetard(etat, maintenant)) {
-    // une seule relance à la fois : la marque posée avant l'appel écarte les visites suivantes pendant 2 min
-    await env.DIRECT.put(CLE_ETAT, JSON.stringify({ ...etat, secours_ms: maintenant }));
-    ctx.waitUntil(tour(env).catch((error) => console.error("Tour de secours en échec", error)));
-  }
   const corps = {
     jour: etat.jour || null, maj_utc: etat.direct_utc || etat.programme_utc || null,
     intervalle_min: etat.intervalle_min || null, source: "API-Football", erreur: etat.erreur || null, matchs: etat.matchs || [],
@@ -148,16 +133,13 @@ async function servir(env, ctx) {
 }
 
 export default {
-  async fetch(req, env, ctx) {
+  async fetch(req, env) {
     const url = new URL(req.url);
     if (req.method === "OPTIONS") return new Response(null, { headers: { ...ENTETES, "access-control-allow-methods": "GET" } });
     if (req.method !== "GET") return new Response("Méthode non permise", { status: 405 });
-    if (url.pathname === "/direct") return servir(env, ctx);
+    if (url.pathname === "/direct") return servir(env);
     return new Response("Relais du direct d'Extinction des feux. Données : /direct", { headers: { "content-type": "text/plain; charset=utf-8" } });
-  },
-  async scheduled(_evt, env, ctx) {
-    ctx.waitUntil(tour(env).catch((error) => console.error("Tour programmé en échec", error)));
   },
 };
 
-export { tour, avancer, enRetard, aCouvrir, fenetre, nosMatchs, LIGUES };
+export { tour, avancer, aCouvrir, fenetre, nosMatchs, LIGUES };

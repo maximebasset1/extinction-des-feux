@@ -1,4 +1,4 @@
-# relais du direct : déployé par .github/workflows/relais.yml (l'identifiant KV y est écrit au déploiement)
+# relais du direct : sert les scores rangés dans KV par relais/boucle.mjs ; déployé par .github/workflows/relais.yml
 name = "extinction-direct"
 main = "relais.js"
 compatibility_date = "2026-11-01"
@@ -7,8 +7,9 @@ workers_dev = true
 [observability]
 enabled = true
 
+# aucune minuterie : le Worker n'appelle plus API-Football
 [triggers]
-crons = ["* * * * *"]
+crons = []
 
 [[kv_namespaces]]
 binding = "DIRECT"

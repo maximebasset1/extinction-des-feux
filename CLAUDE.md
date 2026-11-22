@@ -56,7 +56,7 @@ Carte du dépôt :
   2. vérifier les empreintes de cache des fichiers statiques (`?v=...`) : `build_site.py` les calcule (sha256 du fichier, 8 premiers caractères) et les écrit dans les pages. Après tout changement d'un CSS/JS de `site/assets/`, relancer `python scripts/build_site.py` et commiter les pages régénérées. `python scripts/build_site.py --check` (appelé par `pytest`) échoue si une page est périmée. Les JSON de `data/` ne portent pas d'empreinte : ils sont demandés avec `?t=<minute>` ;
   3. lancer `/review` (relecture indépendante du `git diff main`).
 - Le site se régénère avec `scripts/build_site.py`. Ne jamais éditer à la main les pages HTML générées.
-- **Piège Windows (fins de ligne)** : `empreinte()` hache les octets du fichier. Avec `core.autocrlf=true`, les assets sont en CRLF sur le disque, donc le hash local diffère de celui calculé sur GitHub (Linux, LF). Conséquence connue : `test_site_pages_are_up_to_date` échoue en local alors que `main` est correct. Ne pas régénérer les pages sur ce PC pour « corriger » : on commiterait de fausses empreintes. Pour régénérer ou valider proprement, passer par GitHub Actions ou normaliser les fins de ligne en LF (`.gitattributes` avec `* text=auto eol=lf`, ou hacher en normalisant `\r\n` dans `empreinte()`).
+- **Fins de ligne (Windows)** : `empreinte()` normalise `\r\n` en `\n` avant de hacher, donc l'empreinte est identique sur ce PC (`core.autocrlf=true`) et sur GitHub. Le test `test_asset_fingerprint_ignores_line_endings` protège ce comportement : ne pas le retirer.
 
 ## Environnement local
 

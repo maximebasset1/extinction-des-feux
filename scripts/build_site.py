@@ -20,8 +20,11 @@ LIGHTS = '<span class="feux" aria-hidden="true">' + '<i></i>' * 5 + "</span>"
 
 def empreinte(nom: str) -> str:
     """8 caractères tirés du contenu d'un fichier de site/assets : le lien change dès que le fichier change,
-    un navigateur ne mélange donc jamais une page neuve et un script ou un style gardé en cache."""
-    return hashlib.sha256((SITE / "assets" / nom).read_bytes()).hexdigest()[:8]
+    un navigateur ne mélange donc jamais une page neuve et un script ou un style gardé en cache.
+    Les fins de ligne sont normalisées en LF avant le calcul : l'empreinte est la même sur Windows
+    (`core.autocrlf=true`, fichiers en CRLF sur le disque) et sur GitHub (Linux, LF). Réservé aux fichiers texte (CSS, JS)."""
+    contenu = (SITE / "assets" / nom).read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(contenu).hexdigest()[:8]
 
 
 def page(path: str, title: str, description: str, body: str, scripts: list[str], section: str, sub: str = "",

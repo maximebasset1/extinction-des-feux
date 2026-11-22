@@ -79,3 +79,13 @@ test("après une erreur de l'API, le relais attend avant de réessayer", async (
   await tour(w.env, T0 + min);
   assert.equal(w.appels.length, 1);
 });
+
+test("une visite relance le tour quand la minuterie est en retard", async () => {
+  const { enRetard } = await import("../relais/relais.js");
+  const ko = "2026-11-22T13:00:00Z";
+  const etat = { jour: "2026-11-22", matchs: [{ id: 1, ko, st: "1H" }], direct_ms: T0 + 10 * min, intervalle_min: 4 };
+  assert.equal(enRetard({}, T0), true);
+  assert.equal(enRetard(etat, T0 + 13 * min), false);
+  assert.equal(enRetard(etat, T0 + 17 * min), true);
+  assert.equal(enRetard({ ...etat, matchs: [{ id: 1, ko, st: "FT" }] }, T0 + 30 * min), false);
+});

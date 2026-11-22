@@ -4,6 +4,9 @@ main = "relais.js"
 compatibility_date = "2026-11-01"
 workers_dev = true
 
+[observability]
+enabled = true
+
 [triggers]
 crons = ["* * * * *"]
 

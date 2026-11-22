@@ -15,7 +15,8 @@
   const virgule = (x, d = 3) => Number(x).toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
   const quand = (iso) => new Date(iso).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   async function donnees(nom) {
-    const r = await fetch(`${ROOT}data/${nom}.json`, { cache: "no-cache" });
+    // paramètre changé chaque minute : le CDN de GitHub Pages (10 min) et les navigateurs mobiles ne servent pas de copie périmée
+    const r = await fetch(`${ROOT}data/${nom}.json?t=${Math.floor(Date.now() / 6e4)}`, { cache: "no-cache" });
     if (!r.ok) throw new Error(`${nom}.json : réponse ${r.status}`);
     return r.json();
   }

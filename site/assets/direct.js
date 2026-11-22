@@ -99,7 +99,7 @@ function appliquer() {
 const aSuivre = (m, t) => m.kickoff && t >= Date.parse(m.kickoff) - SUIVI_AVANT_MS && t <= Date.parse(m.kickoff) + SUIVI_APRES_MS;
 
 async function lireRelais() {
-  const r = await fetch(RELAIS, { cache: "no-cache" });
+  const r = await fetch(`${RELAIS}?t=${Math.floor(Date.now() / 6e4)}`, { cache: "no-cache" });
   if (!r.ok) throw new Error(`relais du direct : réponse ${r.status}`);
   return r.json();
 }

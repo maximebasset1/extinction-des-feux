@@ -4,6 +4,7 @@ python scripts/build_site.py          écrit les pages dans site/
 python scripts/build_site.py --check  vérifie seulement qu'elles sont à jour (utilisé par les tests)
 """
 import argparse
+import hashlib
 import sys
 from pathlib import Path
 
@@ -15,6 +16,12 @@ COMPETITIONS = [("E0", "premier-league", "Premier League"), ("D1", "bundesliga",
                 ("F1", "ligue-1", "Ligue 1"), ("LDC", "ligue-des-champions", "Ligue des champions"),
                 ("LEC", "ligue-europa", "Ligue Europa")]
 LIGHTS = '<span class="feux" aria-hidden="true">' + '<i></i>' * 5 + "</span>"
+
+
+def empreinte(nom: str) -> str:
+    """8 caractères tirés du contenu d'un fichier de site/assets : le lien change dès que le fichier change,
+    un navigateur ne mélange donc jamais une page neuve et un script ou un style gardé en cache."""
+    return hashlib.sha256((SITE / "assets" / nom).read_bytes()).hexdigest()[:8]
 
 
 def page(path: str, title: str, description: str, body: str, scripts: list[str], section: str, sub: str = "",
@@ -38,8 +45,8 @@ def page(path: str, title: str, description: str, body: str, scripts: list[str],
       {items}
     </div>
   </nav>'''
-    js = "\n".join(f'<script src="{r}assets/{s}" defer></script>' for s in (["commun.js"] if common else []) + scripts)
-    css = "".join(f'\n<link rel="stylesheet" href="{r}assets/{c}">' for c in styles)
+    js = "\n".join(f'<script src="{r}assets/{s}?v={empreinte(s)}" defer></script>' for s in (["commun.js"] if common else []) + scripts)
+    css = "".join(f'\n<link rel="stylesheet" href="{r}assets/{c}?v={empreinte(c)}">' for c in styles)
     return f"""<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -53,7 +60,7 @@ def page(path: str, title: str, description: str, body: str, scripts: list[str],
 <link rel="icon" href="{r}assets/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="{r}assets/fonts/titillium-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{r}assets/fonts/titillium-900.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{r}assets/style.css">{css}
+<link rel="stylesheet" href="{r}assets/style.css?v={empreinte("style.css")}">{css}
 {js}
 </head>
 <body data-root="{r or './'}"{f' data-page="{name}"' if name else ""}>
@@ -354,7 +361,7 @@ REDIRECT = """<!DOCTYPE html>
 <meta http-equiv="refresh" content="0; url={target}">
 <link rel="canonical" href="{target}">
 <title>Page déplacée</title>
-<script src="assets/redirection.js" defer data-cible="{target}"></script>
+<script src="assets/redirection.js?v={version}" defer data-cible="{target}"></script>
 </head>
 <body>
 <p>Cette page a déménagé : <a href="{target}">{label}</a>.</p>
@@ -386,8 +393,8 @@ def pages() -> dict[str, str]:
                                         f"{nom} : probabilités de chaque match, classement, fin de saison simulée, face-à-face et fiabilité du modèle.",
                                         COMP.replace("{nom}", nom), ["modele-direct.js", "direct.js", "competition.js"], "foot", slug).replace(
             '<body data-root="../">', f'<body data-root="../" data-competition="{slug}">')
-    out["ligue1.html"] = REDIRECT.format(csp=CSP, target="foot/ligue-1.html", label="Ligue 1")
-    out["recherche.html"] = REDIRECT.format(csp=CSP, target="foot.html", label="Football")
+    out["ligue1.html"] = REDIRECT.format(csp=CSP, target="foot/ligue-1.html", label="Ligue 1", version=empreinte("redirection.js"))
+    out["recherche.html"] = REDIRECT.format(csp=CSP, target="foot.html", label="Football", version=empreinte("redirection.js"))
     return out
 
 

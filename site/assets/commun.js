@@ -12,8 +12,10 @@ const pnum = (p) => (p == null ? "–" : p < 0.005 ? "<1" : p >= 0.995 ? ">99" :
 const virgule = (x, d = 1) => Number(x).toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
 const plier = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ");
 
+// paramètre changé chaque minute : le CDN de GitHub Pages (10 min) et les navigateurs mobiles ne servent pas de copie périmée
+const fraicheur = () => `t=${Math.floor(Date.now() / 6e4)}`;
 async function donnees(chemin) {
-  const r = await fetch(`${ROOT}data/${chemin}.json`, { cache: "no-cache" });
+  const r = await fetch(`${ROOT}data/${chemin}.json?${fraicheur()}`, { cache: "no-cache" });
   if (!r.ok) throw new Error(`${chemin}.json : réponse ${r.status}`);
   return r.json();
 }

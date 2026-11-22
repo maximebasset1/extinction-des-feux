@@ -12,17 +12,28 @@ const EN_JEU = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"
 const FINI = new Set(["FT", "AET", "PEN", "PST", "CANC", "ABD", "AWD", "WO"]);
 const CLE_ETAT = "etat";
 const RETARD_TOLERE_MIN = 2;     // au-delà, une visite relance le tour que la minuterie aurait dû faire
-const PAUSE_ERREUR_MIN = 5;      // après une erreur de l'API, on attend avant de réessayer pour ne pas user le quota
+const PAUSE_ERREUR_MIN = 5;
+const ESSAIS = 2;
+const ATTENTE_ESSAI_MS = 7000;      // après une erreur de l'API, on attend avant de réessayer pour ne pas user le quota
 
 const minute = 60000;
 
 /* appel à API-Football ; renvoie la réponse et le nombre d'appels encore permis aujourd'hui */
-async function appeler(env, chemin) {
+async function appeler(env, chemin, essai = 1) {
   const r = await fetch(`${API}/${chemin}`, { headers: { "x-apisports-key": env.API_FOOTBALL_KEY } });
   if (!r.ok) throw new Error(`API-Football ${chemin} : ${r.status}`);
   const corps = await r.json();
   const erreurs = corps.errors && (Array.isArray(corps.errors) ? corps.errors.length : Object.keys(corps.errors).length);
-  if (erreurs) throw new Error(`API-Football ${chemin} : ${JSON.stringify(corps.errors)}`);
+  if (erreurs && corps.errors.rateLimit && essai < ESSAIS) {
+    // limite à la minute : un second essai quelques secondes plus tard passe souvent
+    await new Promise((ok) => setTimeout(ok, ATTENTE_ESSAI_MS));
+    return appeler(env, chemin, essai + 1);
+  }
+  if (erreurs) {
+    const quota = ["x-ratelimit-requests-limit", "x-ratelimit-requests-remaining", "x-ratelimit-limit", "x-ratelimit-remaining"]
+      .map((h) => `${h}=${r.headers.get(h)}`).join(" ");
+    throw new Error(`API-Football ${chemin} : ${JSON.stringify(corps.errors)} (essai ${essai}, ${quota})`);
+  }
   const restant = Number(r.headers.get("x-ratelimit-requests-remaining"));
   return { liste: corps.response || [], restant: Number.isFinite(restant) ? restant : null };
 }

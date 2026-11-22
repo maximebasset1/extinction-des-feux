@@ -69,7 +69,8 @@ def driver_directory(raw_dir: Path) -> dict:
 
 
 def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results: pd.DataFrame,
-           journal_eval: pd.DataFrame, raw_dir: Path, cfg, forecast: dict | None = None) -> None:
+           journal_eval: pd.DataFrame, raw_dir: Path, cfg, forecast: dict | None = None,
+           grid: pd.DataFrame | None = None, grid_source: str = "inconnue") -> None:
     people = driver_directory(raw_dir)
     gp = cfg.TARGET_GP.replace(" Grand Prix", "")
     pred = out["pred"]
@@ -84,8 +85,18 @@ def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results
              "avant": r.get("proba_pole_avant"), "apres": r.get("proba_pole_apres"),
              "sec": r.get("proba_pole_apres_sec", r.get("proba_pole_avant_sec")),
              "pluie": r.get("proba_pole_apres_pluie", r.get("proba_pole_avant_pluie"))} for _, r in pred.iterrows()]
+    g = grid.set_index("driver") if grid is not None and len(grid) else None
+
+    def depart(code, field, default):
+        return default if g is None or code not in g.index else g.at[code, field]
+
+    # « grille » : vraie place de départ (pénalités comprises quand la grille officielle est publiée) ;
+    # « qualif », « penalite », « stands » : ajoutés sans changer les champs existants (lus par PitLane Insider)
     wins = [{**person(r["driver"]), "equipe": r["team"], "proba": r["proba_victoire"],
-             "grille": int(r["grille"]) if "grille" in win and pd.notna(r["grille"]) else None} for _, r in win.iterrows()]
+             "grille": int(r["grille"]) if "grille" in win and pd.notna(r["grille"]) else None,
+             "qualif": int(depart(r["driver"], "qualif", 0)) or None,
+             "penalite": int(depart(r["driver"], "penalite", 0)),
+             "stands": bool(depart(r["driver"], "stands", False))} for _, r in win.iterrows()]
     finished = results[(results["season"] == cfg.TARGET_SEASON) & (results["grand_prix"] == gp)].sort_values("finish")
     done_before = best[(best["season"] == cfg.TARGET_SEASON) & (best["session"] == "Qualifying")
                        & (best["grand_prix"] != gp)]["grand_prix"].nunique()
@@ -97,7 +108,7 @@ def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results
         "ville": cfg.TARGET_INFO.get("city"), "pays": cfg.TARGET_INFO.get("country"),
         "manche": cfg.TARGET_INFO.get("round"), "sessions": cfg.TARGET_INFO.get("sessions", {}),
         "horaires_estimes": cfg.TARGET_INFO.get("approx", False), "saison_terminee": cfg.SEASON_OVER,
-        "statut": out["status"], "qualif_disputee": bool(len(quali)),
+        "statut": out["status"], "qualif_disputee": bool(len(quali)), "grille_source": grid_source,
         "poleman": person(pole_sitter[0]) if pole_sitter else None,
         "modeles": {k: v["label"] for k, v in out["chosen"].items()} | {"course": race["chosen"]},
         "pole": pole, "victoire": wins,

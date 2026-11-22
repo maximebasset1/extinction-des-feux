@@ -24,22 +24,33 @@ CANDIDATES = {
     "place sur la grille": ["log_grille"],
     "grille + forme en course": ["log_grille", "forme_course"],
     "grille + écart en qualif + forme": ["log_grille", "ecart_qualif", "forme_course"],
+    # grille réelle (pénalités comprises) + place en qualif : la vitesse d'un pilote pénalisé reste visible
+    "grille + qualif + forme": ["log_grille", "log_qualif", "forme_course"],
+    "grille + qualif + écart + forme": ["log_grille", "log_qualif", "ecart_qualif", "forme_course"],
 }
 # L'effet de la pluie n'est PAS un candidat ordinaire : il utilise le fait qu'une course a été mouillée,
 # connu seulement après coup. Il est jugé à part, sur les courses mouillées (comme pour la qualif).
 RACE_HISTORIES = {k: HISTORIES[k] for k in ("2023 et après", "depuis 2018")}
-RACE_FEATURES = ["log_grille", "ecart_qualif", "forme_course", "grille_pluie"]  # toutes les colonnes calculées
+RACE_FEATURES = ["log_grille", "log_qualif", "ecart_qualif", "forme_course", "grille_pluie"]  # toutes les colonnes calculées
 
 
-def race_table(best: pd.DataFrame, results: pd.DataFrame, min_prior: int = 3) -> pd.DataFrame:
+def race_table(best: pd.DataFrame, results: pd.DataFrame, min_prior: int = 3, grids: pd.DataFrame | None = None) -> pd.DataFrame:
+    """`grids` : grilles réelles (f1db). Sans elles, la grille est l'ordre de la qualif (pénalités ignorées)."""
     q = best[best["session"] == "Qualifying"][["season", "grand_prix", "driver", "deficit_pct", "pole", "quali_pos"]].copy()
     q["ecart_qualif"] = q["deficit_pct"].fillna(5.0).clip(upper=5.0)
     q["grille"] = q["quali_pos"]   # ordre officiel de la qualif (Q3, puis Q2, puis Q1)
+    if grids is not None and len(grids):
+        g = grids[["season", "grand_prix", "driver", "grille_officielle"]]
+        q = q.merge(g, on=["season", "grand_prix", "driver"], how="left")
+        q["grille"] = q["grille_officielle"].fillna(q["grille"])   # vraie place de départ, pénalités comprises
+        q = q.drop(columns="grille_officielle")
     r = results.merge(q, on=["season", "grand_prix", "driver"], how="inner")
     order = r.drop_duplicates(["season", "grand_prix"]).sort_values("date")
     order["race_idx"] = order.groupby("season").cumcount() + 1
     r = r.merge(order[["season", "grand_prix", "race_idx"]], on=["season", "grand_prix"])
     r["log_grille"] = np.log(r["grille"])
+    # place obtenue en qualif : la vitesse du pilote, même s'il part plus loin après une pénalité
+    r["log_qualif"] = np.log(r["quali_pos"].fillna(r["grille"]))
     wet = r["wet"].fillna(False).astype(bool) if "wet" in r else pd.Series(False, index=r.index)
     r["grille_pluie"] = r["log_grille"].where(wet, 0.0)
     form = []
@@ -82,8 +93,8 @@ def grid_baseline(table: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(out, ignore_index=True)
 
 
-def evaluate(best: pd.DataFrame, results: pd.DataFrame) -> dict:
-    table = race_table(best, results)
+def evaluate(best: pd.DataFrame, results: pd.DataFrame, grids: pd.DataFrame | None = None) -> dict:
+    table = race_table(best, results, grids=grids)
     runs, hists = {}, {}
     for hname, hist in RACE_HISTORIES.items():
         for name, feats in CANDIDATES.items():
@@ -130,9 +141,10 @@ def evaluate(best: pd.DataFrame, results: pd.DataFrame) -> dict:
 
 def predict_race(best: pd.DataFrame, results: pd.DataFrame, entrants: pd.DataFrame, quali: pd.DataFrame | None,
                  pole_probs: pd.Series, feats: list[str], weights: np.ndarray, n_sim: int = 4000,
-                 seed: int = 0, rain: float = 0.0) -> pd.DataFrame:
+                 seed: int = 0, rain: float = 0.0, grid: pd.DataFrame | None = None) -> pd.DataFrame:
     """Probabilités de victoire au GP cible.
-    - qualif disputée : on utilise la vraie grille ;
+    - qualif disputée : on utilise la grille de départ (`grid` : officielle, pénalités comprises ;
+      sinon l'ordre de la qualif) ;
     - sinon : on tire au sort 4 000 grilles possibles (ordre tiré selon les probabilités de pole,
       modèle de Plackett-Luce) et on fait la moyenne des probabilités de victoire."""
     from config import TARGET_SEASON
@@ -143,9 +155,13 @@ def predict_race(best: pd.DataFrame, results: pd.DataFrame, entrants: pd.DataFra
     if quali is not None and len(quali):
         q = quali.set_index("driver")
         f["ecart_qualif"] = f["driver"].map(q["deficit_pct"]).fillna(5.0).clip(upper=5.0)
-        pos = f["driver"].map(q["quali_pos"]).fillna(len(f))
-        f["grille"] = pos.rank(method="first").astype(int)
+        qualif = f["driver"].map(q["quali_pos"]).fillna(len(f)).rank(method="first").astype(int)
+        if grid is not None and len(grid):
+            f["grille"] = f["driver"].map(grid.set_index("driver")["grille"]).fillna(len(f) + 1).astype(int)
+        else:
+            f["grille"] = qualif
         f["log_grille"] = np.log(f["grille"])
+        f["log_qualif"] = np.log(qualif)
         f["proba_victoire"] = _mixed(f, feats, weights, rain)
     else:
         rng = np.random.default_rng(seed)
@@ -156,7 +172,7 @@ def predict_race(best: pd.DataFrame, results: pd.DataFrame, entrants: pd.DataFra
         total = np.zeros(len(f))
         for g in grids:
             # ecart_qualif simulé = approximation (0,1 % par place) ; non utilisé par le modèle « grille »
-            sim = f.assign(log_grille=np.log(g), ecart_qualif=(g - 1) * 0.1)
+            sim = f.assign(log_grille=np.log(g), log_qualif=np.log(g), ecart_qualif=(g - 1) * 0.1)
             total += _mixed(sim, feats, weights, rain)
         f["proba_victoire"] = total / n_sim
     return f.sort_values("proba_victoire", ascending=False).reset_index(drop=True)

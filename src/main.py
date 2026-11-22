@@ -16,7 +16,9 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent))
 import build_dataset  # noqa: E402
+import f1db  # noqa: E402
 import fetch_data  # noqa: E402
+import grille  # noqa: E402
 import plots  # noqa: E402
 import race_model  # noqa: E402
 import report  # noqa: E402
@@ -42,6 +44,14 @@ def main() -> None:
     build_dataset.main()
     best = pd.read_csv(DATA_PROCESSED / "best_laps.csv")
     results = pd.read_csv(DATA_PROCESSED / "race_results.csv")
+    # données officielles des courses passées : vraie grille (pénalités, stands) et classement final
+    if not args.offline:
+        f1db.sync(TARGET_SEASON)
+    official = f1db.load()
+    results = f1db.official_results(results, official)
+    grids = f1db.official_grids(results, official)
+    print(f"f1db : {grids.groupby(['season', 'grand_prix']).ngroups} grilles officielles, "
+          f"{int(grids['stands'].sum())} départs des stands, {int(grids['penalite'].notna().sum())} pénalités")
 
     step("3/5 Modèle de pole (backtest mis en cache tant que l'historique ne change pas)")
     import config as cfg
@@ -54,14 +64,22 @@ def main() -> None:
           .to_string(index=False))
 
     step("4/5 Modèle de victoire en course")
-    race = race_model.evaluate(best, results)
+    race = race_model.evaluate(best, results, grids=grids)
     gp = TARGET_GP.replace(" Grand Prix", "")
     quali = best[(best["season"] == TARGET_SEASON) & (best["grand_prix"] == gp) & (best["session"] == "Qualifying")]
     pred = out["pred"]
     col = "proba_pole_apres" if "proba_pole_apres" in pred else "proba_pole_avant"
+    # hors ligne : pas d'appel à OpenF1, la grille reste celle de la qualif (provisoire)
+    grid, grid_source = (grille.official(TARGET_SEASON, TARGET_GP, {} if args.offline else cfg.TARGET_INFO, quali)
+                         if len(quali) else (None, "inconnue"))
+    if grid is not None:
+        moved = grid[grid["stands"] | (grid["penalite"] > 0)]
+        print(f"Grille {grid_source} : " + (", ".join(f"{r.driver} {'stands' if r.stands else f'+{r.penalite}'}"
+                                                      for r in moved.itertuples()) or "aucune pénalité"))
     win = race_model.predict_race(best, results, entry_list(best), quali if len(quali) else None,
                                   pred.set_index("driver")[col], race["feats"], race["weights"],
-                                  rain=float(((forecast or {}).get("R") or {}).get("pluie") or 0.0))
+                                  rain=float(((forecast or {}).get("R") or {}).get("pluie") or 0.0),
+                                  grid=grid if grid_source == "officielle" else None)
 
     step("5/5 Enregistrement, journal des prédictions et export du site")
     import config as cfg
@@ -69,13 +87,14 @@ def main() -> None:
     import journal
     from config import DATA_RAW
     col = "proba_pole_apres" if "proba_pole_apres" in pred else "proba_pole_avant"
-    win_stage = "après la qualif" if len(quali) else f"avant la qualif ({out['status']})"
+    win_stage = f"après la qualif, grille {grid_source}" if len(quali) else f"avant la qualif ({out['status']})"
     added = journal.record(TARGET_SEASON, gp, cfg.TARGET_INFO, pred, col, out["status"],
                            out["chosen"]["après les essais libres" if col.endswith("apres") else "avant le week-end"]["label"],
                            win, win_stage, race["chosen"])
     print(f"Journal : {added} nouvelles lignes publiées")
     journal_eval = journal.evaluate(best, results)
-    export_site.export(out, race, win, best, results, journal_eval, DATA_RAW, cfg, forecast)
+    export_site.export(out, race, win, best, results, journal_eval, DATA_RAW, cfg, forecast,
+                       grid=grid, grid_source=grid_source)
     RESULTS.mkdir(parents=True, exist_ok=True)
     files = {
         "probabilites_pole.csv": pred, "backtest.csv": out["res"], "gains_vs_references.csv": out["gains"],

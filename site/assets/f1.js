@@ -8,6 +8,9 @@ const E = { next: null, history: null, perf: null, journal: null, season: null, 
 const NOMS_GP = {};
 const nomGP = (g) => NOMS_GP[g] || `Grand Prix ${g}`;
 const personne = (code) => (E.history && E.history.pilotes[code]) || { nom: code, famille: code, couleur: "#888888" };
+/* badge quand un pilote ne part pas à sa place de qualif */
+const badgeDepart = (d) => (d.stands ? ` <span class="penalite">départ des stands</span>`
+  : d.penalite > 0 ? ` <span class="penalite">pénalité : ${esc(d.penalite)} place${d.penalite > 1 ? "s" : ""}</span>` : "");
 const ecurie = (c) => `<i class="ecurie" style="background:${couleur(c) || "#888888"}"></i>`;
 
 function avecEssais() { return E.next.pole.some((d) => d.apres != null); }
@@ -34,7 +37,9 @@ function rendreGP() {
     let avant = "";
     if (p != null && fav) avant = fav.code === n.poleman.code ? ` C'était le favori du modèle (${pct(p)}).`
       : ` Avant la séance, le modèle lui donnait ${pct(p)} de chances ; son favori, ${fav.famille}, était à ${pct(fav.p)}.`;
-    bouts.push(`${n.poleman ? `${n.poleman.nom} a fait la pole.${avant} ` : ""}Les chances de victoire partent maintenant de la vraie grille de départ.`);
+    const grilleTxt = n.grille_source === "officielle" ? "Les chances de victoire partent de la grille officielle, pénalités comprises."
+      : "Grille provisoire : c'est l'ordre de la qualif, les pénalités ne sont pas encore publiées.";
+    bouts.push(`${n.poleman ? `${n.poleman.nom} a fait la pole.${avant} ` : ""}${grilleTxt}`);
   }
   else bouts.push(avecEssais() ? "Mis à jour avec les essais libres du week-end." : "Pronostic fait avant les essais. Il est mis à jour après chaque séance.");
   const mq = n.meteo && n.meteo.Q;
@@ -82,7 +87,7 @@ function rendreGrille() {
   $("#grid-title").textContent = titre;
   const max = Math.max(...lignes.map((d) => d.p ?? 0), 0.01);
   $("#grid").innerHTML = lignes.map((d) => `<li><span class="pos">${esc(d.pos)}</span>
-      <span class="pilote"><b>${esc(d.famille)}</b><span>${ecurie(d.couleur)}${esc(d.equipe)}</span></span>
+      <span class="pilote"><b>${esc(d.famille)}${badgeDepart(d)}</b><span>${ecurie(d.couleur)}${esc(d.equipe)}</span></span>
       <span class="jauge">${d.p != null ? `<i style="width:${((100 * d.p) / max).toFixed(1)}%;background:${couleur(d.couleur) || "#888"}"></i>` : ""}</span>
       <span class="pct">${d.p != null ? pct(d.p) : ""}</span></li>`).join("");
 }
@@ -91,14 +96,14 @@ function rendrePilotes() {
   const pole = lignesPole(), apres = E.next.qualif_disputee;
   if (!pole.length || courseFinie()) { $("#drivers").hidden = true; return; }
   const vic = new Map(E.next.victoire.map((d) => [d.code, d]));
-  const proba = (d) => (vic.get(d.code) || {}).proba, depart = (d) => (vic.get(d.code) || {}).grille;
+  const proba = (d) => (vic.get(d.code) || {}).proba, depart = (d) => (vic.get(d.code) || {}).grille, info = (d) => vic.get(d.code) || {};
   // après la qualif, l'ordre est celui de la grille : le pronostic de pole n'est plus qu'un rappel
   const lignes = apres ? [...pole].sort((a, b) => (depart(a) ?? 99) - (depart(b) ?? 99)) : pole;
   const maxP = Math.max(...lignes.map((d) => d.p ?? 0), 0.01), maxV = Math.max(...lignes.map((d) => proba(d) ?? 0), 0.01);
   const jauge = (v, max, c) => `<span class="barcell"><span class="jauge"><i style="width:${((100 * (v ?? 0)) / max).toFixed(1)}%;background:${couleur(c) || "#888"}"></i></span><span class="num">${pct(v)}</span></span>`;
   const cellP = (d) => `<td>${jauge(d.p, maxP, d.couleur)}</td>`, cellV = (d) => `<td>${jauge(proba(d), maxV, d.couleur)}</td>`;
   $("#field").innerHTML = `<thead><tr><th>${apres ? "Départ" : "#"}</th><th>Pilote</th>${apres ? "<th>Victoire</th><th>Pole, annoncée avant la séance</th>" : "<th>Pole</th><th>Victoire</th>"}</tr></thead><tbody>${lignes.map((d, i) => `<tr>
-      <td class="rang">${apres ? esc(depart(d) ?? "–") : i + 1}</td><td><span class="club">${ecurie(d.couleur)}<span><b>${esc(d.famille)}</b> <span class="note">${esc(d.equipe)}</span></span></span></td>
+      <td class="rang">${apres ? esc(depart(d) ?? "–") : i + 1}</td><td><span class="club">${ecurie(d.couleur)}<span><b>${esc(d.famille)}</b> <span class="note">${esc(d.equipe)}</span>${apres ? badgeDepart(info(d)) : ""}</span></span></td>
       ${apres ? cellV(d) + cellP(d) : cellP(d) + cellV(d)}</tr>`).join("")}</tbody>`;
   $("#field-note").textContent = apres
     ? "Dans l'ordre de la grille de départ. Les chances de pole sont celles annoncées avant les qualifications, gardées pour comparer."
@@ -170,7 +175,7 @@ function rendreJournal() {
     return;
   }
   $("#journal").innerHTML = `<div class="defile"><table class="tableau"><thead><tr><th>Grand Prix</th><th>Publié</th><th>Réel</th><th class="num">Chance donnée</th><th class="num">Rang</th></tr></thead><tbody>${ev.slice().reverse().map((e) => `<tr>
-      <td>${esc(nomGP(e.grand_prix))} ${esc(e.season)}, ${e.type === "pole" ? "pole" : "victoire"}</td><td>${esc(quand(e.publie_utc))}</td>
+      <td>${esc(nomGP(e.grand_prix))} ${esc(e.season)}, ${e.type === "pole" ? "pole" : "victoire"}${e.recalcule ? " <span class=\"note\">(recalculé après la course sur la grille officielle : le pronostic publié ignorait les pénalités)</span>" : ""}</td><td>${esc(quand(e.publie_utc))}</td>
       <td><b>${esc(personne(e.reel).famille)}</b></td><td class="num">${pct(e.proba_du_vainqueur)}</td><td class="num">${esc(e.rang_du_vainqueur ?? "–")}</td></tr>`).join("")}</tbody></table></div>`;
 }
 

@@ -31,7 +31,10 @@ function rendreF1(n) {
     liste = [...n.victoire].sort((a, b) => (a.grille ?? 99) - (b.grille ?? 99)).map((d, i) => ({ ...d, pos: d.grille ?? i + 1, p: d.proba }));
     favoris = [...liste].sort((a, b) => (b.p ?? 0) - (a.p ?? 0));
     h2 = "Formule 1, qui va gagner ?";
-    titre = `${n.poleman ? `${n.poleman.nom} part en pole. ` : ""}Grille de départ et chances de victoire.`;
+    const enTete = liste[0];
+    titre = n.grille_source === "officielle"
+      ? `Grille officielle, pénalités comprises${enTete ? ` : ${enTete.nom} part en tête` : ""}. Chances de victoire.`
+      : `${n.poleman ? `${n.poleman.nom} a fait la pole. ` : ""}Grille provisoire (ordre de la qualif) et chances de victoire.`;
   } else {
     liste = favorisPole(n).map((d, i) => ({ ...d, pos: i + 1 }));
     favoris = liste;
@@ -43,7 +46,7 @@ function rendreF1(n) {
   $("#grille-note").textContent = titre;
   const max = Math.max(...liste.map((d) => d.p ?? 0), 0.01);
   $("#grille").innerHTML = liste.slice(0, 6).map((d) => `<li><span class="pos">${esc(d.pos)}</span>
-    <span class="pilote"><b>${esc(d.famille)}</b><span><i class="ecurie" style="background:${couleur(d.couleur) || "#888"}"></i>${esc(d.equipe)}</span></span>
+    <span class="pilote"><b>${esc(d.famille)}${d.stands ? ` <span class="penalite">départ des stands</span>` : d.penalite > 0 ? ` <span class="penalite">pénalité : ${esc(d.penalite)} place${d.penalite > 1 ? "s" : ""}</span>` : ""}</b><span><i class="ecurie" style="background:${couleur(d.couleur) || "#888"}"></i>${esc(d.equipe)}</span></span>
     <span class="jauge">${d.p != null ? `<i style="width:${((100 * d.p) / max).toFixed(1)}%;background:${couleur(d.couleur) || "#888"}"></i>` : ""}</span>
     <span class="pct">${d.p != null ? pct(d.p) : ""}</span></li>`).join("");
 }

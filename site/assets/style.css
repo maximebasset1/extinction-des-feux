@@ -247,3 +247,5 @@ img.ecusson { background: transparent; object-fit: contain; }
   .classement-f1 .jauge { grid-column: 2 / 4; grid-row: 2; }
   .m-trois b { font-size: 2.1rem; }
 }
+
+.penalite { display: inline-block; margin-left: .4rem; padding: .05rem .4rem; border-radius: 4px; font: 700 .72rem/1.4 "Lisible", sans-serif; background: var(--feu); color: #fff; vertical-align: middle; }

@@ -6,6 +6,9 @@ AVANT chaque séance. Règles :
   de victoire qu'avant le départ de la course ;
 - pour chaque étape (avant le week-end, après EL1, EL2, EL3, après la qualif), seule la
   PREMIÈRE version publiée est gardée : on ne peut pas la corriger après coup.
+Exception, toujours visible : un pronostic publié sur une grille fausse (pénalités ignorées, bug corrigé
+en novembre 2026) peut être recalculé après la course avec les seules données d'avant le départ.
+La ligne d'origine reste dans le fichier ; le bilan utilise le recalcul, signalé comme tel.
 """
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -57,6 +60,28 @@ def record(season: int, gp: str, info: dict, pole: pd.DataFrame, pole_col: str, 
     return len(rows)
 
 
+RECALCUL = "(recalculé après la course)"
+
+
+def record_correction(season: int, gp: str, win: pd.DataFrame, win_model: str, now: datetime | None = None) -> int:
+    """Ajoute le recalcul d'un pronostic de victoire publié sur une grille fausse (une seule fois)."""
+    stage = f"après la qualif, grille officielle {RECALCUL}"
+    j = load()
+    if ((j["season"] == season) & (j["grand_prix"] == gp) & (j["etape"] == stage)).any():
+        return 0
+    stamp = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    rows = [[stamp, season, gp, "victoire", stage, r.driver, r.team, round(float(r.proba_victoire), 5), win_model]
+            for r in win.itertuples()]
+    pd.DataFrame(rows, columns=COLUMNS).to_csv(JOURNAL, mode="a", header=not JOURNAL.exists(), index=False)
+    return len(rows)
+
+
+def superseded(j: pd.DataFrame) -> set:
+    """Étapes « après la qualif » remplacées par un recalcul sur la grille officielle."""
+    redone = j[j["etape"].str.endswith(RECALCUL)][["season", "grand_prix", "type"]].drop_duplicates()
+    return {(r.season, r.grand_prix, r.type, "après la qualif") for r in redone.itertuples()}
+
+
 def evaluate(best: pd.DataFrame, results: pd.DataFrame) -> pd.DataFrame:
     """Pour chaque prédiction publiée dont le résultat est connu : probabilité donnée au vrai
     vainqueur, son rang, et la log-loss (comparée au hasard)."""
@@ -68,7 +93,10 @@ def evaluate(best: pd.DataFrame, results: pd.DataFrame) -> pd.DataFrame:
     w = results[results["finish"] == 1][["season", "grand_prix", "driver"]].rename(columns={"driver": "reel"})
     truth = pd.concat([q, w.assign(type="victoire")])
     out = []
+    skip = superseded(j)
     for (season, gp, kind, stage), g in j.groupby(["season", "grand_prix", "type", "etape"], sort=False):
+        if (season, gp, kind, stage) in skip:
+            continue
         t = truth[(truth["season"] == season) & (truth["grand_prix"] == gp) & (truth["type"] == kind)]
         if t.empty:
             continue
@@ -79,5 +107,5 @@ def evaluate(best: pd.DataFrame, results: pd.DataFrame) -> pd.DataFrame:
         out.append({"season": season, "grand_prix": gp, "type": kind, "etape": stage, "publie_utc": g["publie_utc"].iloc[0],
                     "reel": real, "proba_du_vainqueur": round(p, 4), "rang_du_vainqueur": int(hit[0]) + 1 if len(hit) else None,
                     "favori": g.loc[0, "driver"], "log_loss": round(float(-np.log(max(p, 1e-6))), 3),
-                    "log_loss_hasard": round(float(np.log(len(g))), 3)})
+                    "log_loss_hasard": round(float(np.log(len(g))), 3), "recalcule": stage.endswith(RECALCUL)})
     return pd.DataFrame(out)

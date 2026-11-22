@@ -99,7 +99,8 @@ def seasons_to_fetch() -> dict:
     return out
 TARGET_HISTORY: dict = {}  # l'historique complet 2023-2024 est maintenant dans SEASONS
 
-SESSIONS = ["Qualifying", "Practice 1", "Practice 2", "Practice 3", "Race"]
+# week-ends sprint : qualif sprint et sprint téléchargées aussi (rythme du week-end, étape 2)
+SESSIONS = ["Qualifying", "Practice 1", "Practice 2", "Practice 3", "Sprint Qualifying", "Sprint", "Race"]
 
 # Caractéristiques des circuits (hypothèse de l'équipe, d'après leur profil connu) :
 # appui aérodynamique demandé (low / medium / high) et circuit urbain ou non.

@@ -140,6 +140,11 @@ Ce qu'il faut en retenir :
    - *logit conditionnel* : on apprend directement qui fait la pole parmi les pilotes de la course.
    - 22 modèles au total ; le meilleur est choisi automatiquement.
 4. **Victoire :** logit conditionnel sur la place de départ. Avant la qualif, la grille est inconnue : on tire au sort 4 000 grilles possibles selon les probabilités de pole, puis on fait la moyenne.
+5. **Grille officielle (correction de novembre 2026).** Jusqu'au GP de Las Vegas 2026, la « grille » était l'ordre de la qualif : les pénalités moteur et les départs des stands étaient ignorés, à l'entraînement comme pour la course à venir (Antonelli annoncé à 70 % depuis une pole qu'il n'occupait pas : il partait 6e). Désormais :
+   - courses passées : grille réelle et classement officiel (pénalités après course, disqualifications) lus dans [f1db](https://github.com/f1db/f1db) (CC BY 4.0). 31 % des pilotes ne partent pas à leur place de qualif ; 2 vainqueurs changent (Canada 2019, Belgique 2024) ;
+   - course à venir : grille publiée par [OpenF1](https://openf1.org) quelques minutes après le site officiel ; en attendant, l'ordre de la qualif, annoncé comme « grille provisoire » ;
+   - nouvelle variable, la place en qualif, en plus de la place de départ : un pilote rapide pénalisé reste rapide. Jugée sur les mêmes courses (classement officiel) : log-loss 1,316 → 1,304 sur 2024-2025 (période de choix), 1,158 → 1,135 et score de Brier 0,572 → 0,538 sur 2026 (test) ; favori juste 10 → 11 fois sur 18. Sur 28 pilotes partis au moins 3 places derrière leur top 3 en qualif, le modèle donnait 11 % en moyenne ; 4 ont gagné (14 %) ;
+   - le pronostic de Las Vegas publié sur la mauvaise grille reste dans le journal ; le bilan utilise son recalcul sur la grille officielle (données d'avant le départ seulement), signalé « recalculé après la course » (`src/corriger_journal.py`).
 
 ## Football : six compétitions, un seul modèle
 

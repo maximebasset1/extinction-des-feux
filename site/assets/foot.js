@@ -5,6 +5,8 @@ const PAGE = 30;
 const F = { r: null, i: null, idx: {}, comp: "", q: "", club: null, montres: PAGE };
 const lienMatch = (m) => `${ROOT}foot/${F.r.competitions[m.c].slug}.html#match=${encodeURIComponent(m.id)}`;
 
+const etoile = (k, n, texte = false) => (typeof Favoris === "undefined" ? "" : Favoris.bouton(k, n, { texte }));
+
 function filtre() {
   const now = new Date(), today = aujourdhui();
   const req = F.club ? { un: new Set([F.club]) } : lireRequete(F.idx, F.q);
@@ -17,8 +19,23 @@ function rendre() {
     ? (cherche ? "Aucun match à venir pour cette recherche. Vérifie l'orthographe, ou essaie un seul club." : "Aucun match à venir.")
     : cherche ? `${liste.length} match${liste.length > 1 ? "s" : ""} à venir. Clique sur un match pour le détail.`
       : "Les prochains matchs des six compétitions, à l'heure de ton appareil. Clique sur un match pour le détail.";
+  const cf = $("#club-favori");
+  cf.hidden = !F.club;
+  if (F.club) cf.innerHTML = etoile(F.club, F.r.clubs[F.club].nom, true);
   $("#results").innerHTML = parJour(montres, (m) => ligneMatch(m, F.r.clubs, { lien: lienMatch(m), comp: F.r.competitions[m.c].nom }));
   $("#more").hidden = liste.length <= F.montres;
+}
+/* « Mes clubs favoris » : ceux de ce navigateur, avec de quoi les retirer et chercher leurs matchs */
+function rendreFavoris() {
+  if (typeof Favoris === "undefined") return;
+  const liste = Favoris.liste().filter((k) => F.r.clubs[k]);
+  $("#favoris").hidden = !liste.length;
+  $("#favoris-liste").innerHTML = liste.map((k) => `<li><button type="button" class="puce" data-club="${esc(k)}">${ecusson(F.r.clubs[k])}${esc(F.r.clubs[k].nom)}</button>${etoile(k, F.r.clubs[k].nom)}</li>`).join("");
+}
+function chercherClub(k) {
+  const q = $("#q");
+  q.value = F.r.clubs[k].nom; F.q = q.value; F.club = k; F.montres = PAGE;
+  $("#suggest").hidden = true; q.setAttribute("aria-expanded", "false"); rendre();
 }
 function suggerer() {
   const ws = mots(F.q), boite = $("#suggest");
@@ -66,7 +83,9 @@ async function main() {
     return `<button type="button" data-comp="${esc(c)}" aria-pressed="${c === "" ? "true" : "false"}"${on ? "" : " disabled"}>${esc(l)}</button>`;
   }).join("");
   listeCompetitions($("#competitions"), F.i.competitions);
-  rendre(); rendreFiabilite();
+  rendre(); rendreFiabilite(); rendreFavoris();
+  document.addEventListener("favoris", rendreFavoris);
+  $("#favoris-liste").addEventListener("click", (e) => { const b = e.target.closest("button.puce"); if (b) { chercherClub(b.dataset.club); $("#q").focus(); } });
   const q = $("#q");
   q.addEventListener("input", () => { F.q = q.value; F.club = null; F.montres = PAGE; rendre(); suggerer(); });
   q.addEventListener("keydown", (e) => {

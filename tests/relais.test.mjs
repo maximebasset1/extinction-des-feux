@@ -80,3 +80,44 @@ test("après une erreur de l'API, le relais attend avant de réessayer", async (
   assert.equal(w.appels.length, 1);
 });
 
+
+test("la chronologie des buts est relevée à chaque changement de score, sans doublon", async () => {
+  const ko = "2026-11-22T13:00:00+00:00";
+  let live = fixture(1, 61, ko, "1H", [0, 0], 10);
+  const w = monde((c) => (c.startsWith("fixtures?date") ? { response: [fixture(1, 61, ko, "NS")] } : { response: [live] }));
+  await tour(w.env, T0 - 3 * min);
+  const pas = [[10, [0, 0]], [20, [1, 0]], [21, [1, 0]], [47, [1, 0]], [70, [1, 2]], [71, [1, 2]]];
+  for (const [m, g] of pas) {
+    live = fixture(1, 61, ko, m > 45 ? "2H" : "1H", g, m);
+    await tour(w.env, T0 + m * min);
+  }
+  assert.deepEqual(w.etat().matchs[0].ev, [[20, 0, 1, 0], [70, 0, 1, 2]]);
+});
+
+test("un score déjà acquis au premier relevé et une annulation VAR sont notés tels quels", async () => {
+  const ko = "2026-11-22T13:00:00+00:00";
+  let live = fixture(1, 61, ko, "2H", [2, 0], 60);
+  const w = monde((c) => (c.startsWith("fixtures?date") ? { response: [fixture(1, 61, ko, "NS")] } : { response: [live] }));
+  await tour(w.env, T0 - 3 * min);
+  await tour(w.env, T0 + 60 * min);
+  live = fixture(1, 61, ko, "2H", [1, 0], 63);
+  await tour(w.env, T0 + 63 * min);
+  assert.deepEqual(w.etat().matchs[0].ev, [[60, 0, 2, 0], [63, 0, 1, 0]]);
+});
+
+test("la relecture du programme garde la chronologie et ajoute le score final", async () => {
+  const ko = "2026-11-22T13:00:00+00:00";
+  let fini = false;
+  const w = monde((c) => {
+    if (c.startsWith("fixtures?date")) return { response: [fixture(1, 61, ko, fini ? "FT" : "NS", fini ? [3, 1] : [null, null], fini ? 90 : null)] };
+    return { response: fini ? [] : [fixture(1, 61, ko, "2H", [2, 0], 80)] };
+  });
+  await tour(w.env, T0);
+  await tour(w.env, T0 + 80 * min);
+  fini = true;
+  await tour(w.env, T0 + 110 * min);
+  await tour(w.env, T0 + 111 * min);
+  const m = w.etat().matchs[0];
+  assert.equal(m.st, "FT");
+  assert.deepEqual(m.ev, [[80, 0, 2, 0], [90, 0, 3, 1]]);
+});

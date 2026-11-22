@@ -91,13 +91,15 @@ function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDan
   const h = m.kickoff ? heure(m.kickoff) : "–";
   const quandTxt = jourDansHeure && m.jour ? `<small>${esc(midi(m.jour).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }))}</small>` : "";
   const compTxt = comp ? `<small class="m-comp">${esc(comp)}</small>` : "";
+  // clubs du match, lus par les scripts du football (favoris) pour repérer les lignes concernées
+  const clubsData = ` data-home="${esc(m.home)}" data-away="${esc(m.away)}"`;
   const corps = `<span class="m-heure">${esc(h)}${quandTxt}${compTxt}</span>
       <span class="m-club m-dom"><b>${esc(dom.nom)}</b>${ecusson(dom)}</span>
       <span class="m-centre">${centre}</span>
       <span class="m-club m-ext">${ecusson(ext)}<b>${esc(ext.nom)}</b></span>`;
-  if (lien) return `<li class="match" data-match="${esc(cleId(m.id))}"><a class="m-ligne" href="${esc(lien)}">${corps}</a></li>`;
-  if (detail === null) return `<li class="match" data-match="${esc(cleId(m.id))}"><div class="m-ligne">${corps}</div></li>`;
-  return `<li class="match" data-match="${esc(cleId(m.id))}"><details id="${prefixe}-${esc(cleId(m.id))}"><summary class="m-ligne">${corps}</summary><div class="m-detail">${detail}</div></details></li>`;
+  if (lien) return `<li class="match" data-match="${esc(cleId(m.id))}"${clubsData}><a class="m-ligne" href="${esc(lien)}">${corps}</a></li>`;
+  if (detail === null) return `<li class="match" data-match="${esc(cleId(m.id))}"${clubsData}><div class="m-ligne">${corps}</div></li>`;
+  return `<li class="match" data-match="${esc(cleId(m.id))}"${clubsData}><details id="${prefixe}-${esc(cleId(m.id))}"><summary class="m-ligne">${corps}</summary><div class="m-detail">${detail}</div></details></li>`;
 }
 const cleId = (id) => String(id).replace(/[^A-Za-z0-9]+/g, "-");
 

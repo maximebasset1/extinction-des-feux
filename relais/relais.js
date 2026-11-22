@@ -49,6 +49,24 @@ function resume(f) {
 }
 const nosMatchs = (liste) => liste.filter((f) => LIGUES[f.league.id]).map(resume);
 
+/* Chronologie des buts : `ev` = [[minute, arrêts de jeu, buts domicile, buts extérieur], ...], un point à chaque changement de score
+   vu par le relais (donc à la minute du relevé, au plus à `intervalle_min` minutes du but). Le site en tire la courbe des chances
+   depuis le coup d'envoi, y compris pour qui arrive en cours de match. Rien n'est inventé : un score déjà acquis lors du premier
+   relevé (relais lancé en retard) apparaît à la minute de ce relevé. */
+const EV_MAX = 40;
+function avecChronologie(neuf, ancien) {
+  const ev = Array.isArray(ancien?.ev) ? ancien.ev.slice() : [];
+  const [h, a] = neuf.g || [];
+  if (neuf.st !== "NS" && Number.isInteger(h) && Number.isInteger(a)) {
+    const [dh, da] = ev.length ? ev[ev.length - 1].slice(2) : [0, 0];
+    if (h !== dh || a !== da) {
+      const dernier = ev.length ? ev[ev.length - 1][0] : 0;
+      ev.push([neuf.min ?? dernier, neuf.plus ?? 0, h, a]);
+    }
+  }
+  return { ...neuf, ev: ev.slice(-EV_MAX) };
+}
+
 /* fin de la fenêtre de suivi d'un match : prolongée tant que l'API le dit encore en jeu */
 function fenetre(m, maintenant) {
   const debut = Date.parse(m.ko) - AVANT_MATCH_MIN * minute;
@@ -89,7 +107,9 @@ async function avancer(env, etat, maintenant) {
   const jour = jourUtc(maintenant);
   if (etat.jour !== jour || etat.relire) {
     const { liste, restant } = await appeler(env, `fixtures?date=${jour}`);
-    const prog = nosMatchs(liste);
+    const avant = new Map((etat.matchs || []).map((m) => [m.id, m]));
+    // la relecture du programme (score final) ne doit pas effacer la chronologie déjà relevée
+    const prog = nosMatchs(liste).map((m) => (avant.has(m.id) || m.st !== "NS" ? avecChronologie(m, avant.get(m.id)) : m));
     Object.assign(etat, { jour, matchs: prog, relire: false, restant, programme_utc: new Date(maintenant).toISOString(),
       erreur: null, erreur_ms: null });
     await env.DIRECT.put(CLE_ETAT, JSON.stringify(etat));
@@ -104,7 +124,7 @@ async function avancer(env, etat, maintenant) {
   const enDirect = new Map(nosMatchs(liste).map((m) => [m.id, m]));
   let sortis = false;
   const matchs = (etat.matchs || []).map((m) => {
-    if (enDirect.has(m.id)) return enDirect.get(m.id);
+    if (enDirect.has(m.id)) return avecChronologie(enDirect.get(m.id), m);
     // sorti du direct après y être entré : terminé, le programme relu donnera le score final
     if (EN_JEU.has(m.st)) { sortis = true; return { ...m, st: "FT?" }; }
     return m;

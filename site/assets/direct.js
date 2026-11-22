@@ -94,6 +94,7 @@ function appliquer() {
       if (c) c.innerHTML = centreDirect(m, f, clubs);
     }
   }
+  if (typeof majFiche === "function") majFiche();   // la fiche du match, si elle est ouverte (fiche.js)
 }
 
 const aSuivre = (m, t) => m.kickoff && t >= Date.parse(m.kickoff) - SUIVI_AVANT_MS && t <= Date.parse(m.kickoff) + SUIVI_APRES_MS;
@@ -135,24 +136,30 @@ async function suivreDirect(listes, { apresTour = null } = {}) {
 }
 
 /* section « En direct » de l'accueil : les matchs du jour entre 15 min avant le coup d'envoi et la fin du suivi ;
-   la liste n'est refaite que quand un match y entre ou en sort, pour ne pas fermer ce que l'on regarde */
+   la liste n'est refaite que quand un match y entre ou en sort (ou qu'un favori change), pour ne pas fermer ce que l'on regarde ;
+   les matchs d'un club favori passent en tête */
 function sectionDirect(index, lien) {
   const section = $("#direct"), liste = $("#direct-liste"), note = $("#direct-note");
   if (!section) return () => {};
   let montres = "";
   const rendre = () => {
     const t = Date.now(), matchs = (index.du_jour || []).filter((m) => aSuivre(m, t));
+    // les matchs d'un club favori d'abord (le tri est stable : l'ordre du jour reste le même ensuite)
+    if (typeof Favoris !== "undefined") matchs.sort((x, y) => Favoris.matchFavori(y) - Favoris.matchFavori(x));
     const cle = matchs.map((m) => m.id).join("|");
     if (cle !== montres) {
       montres = cle;
       liste.innerHTML = matchs.map((m) => ligneMatch(m, index.clubs, { lien: lien(m, m.c), comp: index.noms[m.c] })).join("");
       section.hidden = !matchs.length;
+      if (typeof Favoris !== "undefined") Favoris.marquer(liste);
     }
     const n = D.relais?.intervalle_min;
-    note.textContent = `Les matchs en cours des six compétitions, avec les chances recalculées à chaque but.${n ? ` Scores relevés toutes les ${n === 1 ? "minutes" : `${n} minutes`} ; la minute avance entre deux relevés.` : ""}`;
+    note.textContent = `Les matchs en cours des six compétitions, avec les chances recalculées à chaque but. Clique un match pour sa fiche : courbe des chances, scores probables.${typeof Favoris !== "undefined" && Favoris.liste().length ? " Les matchs de tes clubs favoris passent en tête." : ""}${n ? ` Scores relevés toutes les ${n === 1 ? "minutes" : `${n} minutes`} ; la minute avance entre deux relevés.` : ""}`;
   };
   rendre();
   setInterval(rendre, TOUR_RELAIS_MS);
+  // un favori ajouté ou retiré réordonne la liste tout de suite
+  document.addEventListener("favoris", () => { montres = ""; rendre(); appliquer(); });
   return rendre;
 }
 

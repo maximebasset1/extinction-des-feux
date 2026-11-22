@@ -1,0 +1,53 @@
+/* Module Formule 1 : styles propres aux pages F1 (le thème général est dans style.css). */
+.f1 .bloc { margin-top: 2rem; }
+.f1-haut { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 1rem; align-items: start; margin-top: 2rem; }
+.f1-haut > .carte { margin: 0; }
+.f1-haut.seule { grid-template-columns: minmax(0, 46rem); }
+.f1-source { color: var(--accent-clair); font-weight: 700; font-size: .92rem; margin: .2rem 0 .8rem; }
+.f1 .carte h2 { font-size: 1.6rem; }
+.f1 .carte h3 { margin: 0 0 .6rem; font-size: 1.05rem; color: var(--texte-doux); font-weight: 700; }
+.f1 .classement-f1 { max-width: none; }
+.f1-favoris-cartes { display: grid; gap: 1rem; }
+.f1-favoris { list-style: none; margin: 0; padding: 0; counter-reset: fav; }
+.f1-favoris li { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .55rem 0; border-top: 1px solid var(--ligne); counter-increment: fav; }
+.f1-favoris li:first-child { border-top: 0; }
+.f1-favoris li::before { content: counter(fav); width: 1.4rem; color: var(--texte-faible); font-weight: 700; }
+.f1-fav-nom { flex: 1; display: inline-flex; align-items: center; gap: .45rem; min-width: 0; }
+.f1-fav-nom span { color: var(--texte-doux); font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.f1-fav-p { font-weight: 700; font-size: 1.5rem; line-height: 1; }
+.f1-favoris li:first-child .f1-fav-p { color: var(--accent-clair); }
+.f1-fait { font-size: 1.9rem; font-weight: 700; line-height: 1.1; margin: .2rem 0 .5rem; }
+.f1-equipe { color: var(--texte-doux); font-weight: 400; font-size: .92rem; }
+
+.seances { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); gap: .6rem; }
+.seances li { background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); padding: .75rem .9rem; }
+.seances li b { display: block; }
+.seances li span { display: block; color: var(--texte-doux); font-size: .93rem; }
+.seances li.fini { opacity: .5; }
+.seances li.prochaine { border-color: var(--accent-clair); box-shadow: inset 0 0 0 1px var(--accent-clair); }
+.seances .f1-meteo { margin-top: .25rem; color: var(--texte); font-weight: 600; }
+.seances .f1-meteo.pluie { color: var(--pluie); }
+
+.f1-reel-ligne { display: grid; grid-template-columns: 5.5rem minmax(9rem, auto) 1fr; align-items: baseline; gap: .4rem 1rem; padding: .6rem 0; border-top: 1px solid var(--ligne); }
+.f1-reel-ligne:first-child { border-top: 0; }
+.f1-reel-quoi { color: var(--texte-doux); font-weight: 700; }
+.f1-reel-qui { display: inline-flex; align-items: center; gap: .45rem; font-size: 1.15rem; }
+.barcell { display: grid; grid-template-columns: minmax(4rem, 1fr) 3.2rem; align-items: center; gap: .5rem; min-width: 9rem; }
+.barcell .num { text-align: right; font-weight: 700; }
+.graphe svg { width: 100%; height: auto; display: block; margin: .6rem 0 1rem; }
+.graphe text { fill: var(--texte-doux); font: 11px "Titillium", sans-serif; }
+.chiffres { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem; margin: .4rem 0 0; }
+.chiffres div { background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); padding: 1rem 1.1rem; }
+.chiffres dt { font-weight: 700; font-size: 2.2rem; line-height: 1; margin-bottom: .4rem; color: var(--accent-clair); }
+.chiffres dd { margin: 0; color: var(--texte-doux); }
+.f1-mouille { color: var(--pluie); font-weight: 700; font-size: .82rem; margin-left: .4rem; }
+.f1-texte p, .f1-texte li { max-width: 72ch; }
+.f1-texte li { margin-bottom: .4rem; }
+
+@media (max-width: 860px) {
+  .f1-haut { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .f1-reel-ligne { grid-template-columns: 1fr; gap: .1rem; }
+}
+.f1-texte .defile + p { margin-top: 1.2rem; }

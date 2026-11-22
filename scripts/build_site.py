@@ -17,7 +17,9 @@ COMPETITIONS = [("E0", "premier-league", "Premier League"), ("D1", "bundesliga",
 LIGHTS = '<span class="feux" aria-hidden="true">' + '<i></i>' * 5 + "</span>"
 
 
-def page(path: str, title: str, description: str, body: str, scripts: list[str], section: str, sub: str = "") -> str:
+def page(path: str, title: str, description: str, body: str, scripts: list[str], section: str, sub: str = "",
+         styles: tuple[str, ...] = (), common: bool = True, name: str = "") -> str:
+    """`common=False` : page d'un module autonome (F1), sans les scripts communs du site."""
     depth = path.count("/")
     r = "../" * depth or ""
     def link(href: str, label: str, key: str) -> str:
@@ -36,7 +38,8 @@ def page(path: str, title: str, description: str, body: str, scripts: list[str],
       {items}
     </div>
   </nav>'''
-    js = "\n".join(f'<script src="{r}assets/{s}" defer></script>' for s in ["commun.js", *scripts])
+    js = "\n".join(f'<script src="{r}assets/{s}" defer></script>' for s in (["commun.js"] if common else []) + scripts)
+    css = "".join(f'\n<link rel="stylesheet" href="{r}assets/{c}">' for c in styles)
     return f"""<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -44,15 +47,16 @@ def page(path: str, title: str, description: str, body: str, scripts: list[str],
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="{CSP}">
 <meta name="referrer" content="no-referrer">
-<meta name="theme-color" content="#26292e">
+<meta name="theme-color" content="#0f1115">
 <meta name="description" content="{description}">
 <title>{title}</title>
 <link rel="icon" href="{r}assets/favicon.svg" type="image/svg+xml">
-<link rel="preload" href="{r}assets/fonts/signal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{r}assets/style.css">
+<link rel="preload" href="{r}assets/fonts/titillium-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{r}assets/fonts/titillium-900.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{r}assets/style.css">{css}
 {js}
 </head>
-<body data-root="{r or './'}">
+<body data-root="{r or './'}"{f' data-page="{name}"' if name else ""}>
 <a class="evitement" href="#contenu">Aller au contenu</a>
 <header class="tete">
   <div class="tete-in">
@@ -132,17 +136,28 @@ F1 = """  <section class="depart depart-f1" aria-labelledby="gp-name">
     </div>
   </section>
 
-  <div class="page">
-    <section class="bloc" aria-labelledby="grid-title">
-      <div class="bloc-tete"><h2 id="grid-title">La grille la plus probable</h2></div>
-      <ol class="classement-f1" id="grid"></ol>
-      <p class="note">Un pronostic, pas un résultat : un tour raté et tout change.</p>
-    </section>
+  <div class="page f1">
+    <div class="f1-haut">
+      <section class="carte" aria-labelledby="grid-title">
+        <h2 id="grid-title">Grille probable</h2>
+        <p class="f1-source" id="grid-source"></p>
+        <ol class="classement-f1" id="grid"></ol>
+      </section>
+      <div class="f1-favoris-cartes" id="favoris">
+        <section class="carte" id="fav-pole" aria-label="Favoris pour la pole"></section>
+        <section class="carte" id="fav-victoire" aria-label="Favoris pour la victoire"></section>
+      </div>
+    </div>
 
     <section class="bloc" aria-labelledby="h-seances">
-      <div class="bloc-tete"><h2 id="h-seances">Programme du week-end</h2></div>
+      <div class="bloc-tete"><h2 id="h-seances">Week-end et météo</h2></div>
       <ul class="seances" id="sessions"></ul>
       <p class="note" id="sessions-note"></p>
+    </section>
+
+    <section class="bloc carte" id="reel" aria-labelledby="reel-titre">
+      <h2 id="reel-titre">Prévu et réel</h2>
+      <div id="reel-corps"></div>
     </section>
 
     <section class="bloc" id="drivers" aria-labelledby="h-pilotes">
@@ -151,27 +166,10 @@ F1 = """  <section class="depart depart-f1" aria-labelledby="gp-name">
       <div class="defile"><table class="tableau" id="field"></table></div>
     </section>
 
-    <section class="bloc" id="history" aria-labelledby="h-histo">
-      <div class="bloc-tete"><h2 id="h-histo">Le modèle face à la réalité</h2><div class="pastilles" id="seasons" role="group" aria-label="Saison"></div></div>
-      <p class="note">Pour chaque qualification, le modèle est rejoué avec les seules courses d'avant, comme s'il avait tourné à l'époque. Chaque barre montre la chance qu'il donnait au pilote qui a fait la pole. La ligne pointillée correspond à un pilote tiré au hasard.</p>
-      <p class="note">Les manches 4 à 11 de 2026 ont servi à choisir le modèle : il y part avec un avantage. Les pronostics vraiment publiés à l'avance sont dans le journal plus bas.</p>
-      <div class="graphe" id="chart"></div>
-      <div class="defile"><table class="tableau" id="history-table"></table></div>
-    </section>
-
-    <section class="bloc" id="record" aria-labelledby="h-bilan">
-      <div class="bloc-tete"><h2 id="h-bilan">Bilan</h2></div>
-      <dl class="chiffres" id="tiles"></dl>
-      <h3>Journal des pronostics publiés</h3>
-      <p class="note">Chaque pronostic est enregistré avant la séance, jamais réécrit, puis comparé au résultat.</p>
+    <section class="bloc" aria-labelledby="h-journal">
+      <div class="bloc-tete"><h2 id="h-journal">Derniers pronostics jugés</h2><a href="f1-methode.html#h-journal-complet">Tout le journal</a></div>
       <div id="journal"></div>
-    </section>
-
-    <section class="bloc encadre" id="method" aria-labelledby="h-meth">
-      <h2 id="h-meth">Comment ça marche</h2>
-      <p>Les temps au tour depuis 2018, la forme récente de chaque pilote, le rythme de la voiture, les essais du week-end et la météo prévue alimentent un modèle statistique réentraîné après chaque course. Le calcul tourne tout seul sur GitHub plusieurs fois par jour.</p>
-      <p id="updated" class="note"></p>
-      <p class="note">Données : chronométrage officiel via <a href="https://github.com/TracingInsights">TracingInsights</a> et <a href="https://docs.fastf1.dev/">FastF1</a>, calendrier <a href="https://jolpi.ca">Jolpica</a>, météo <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0).</p>
+      <p class="note"><a href="f1-methode.html">Méthode et bilan du modèle F1</a>. <span id="updated"></span></p>
     </section>
   </div>"""
 
@@ -286,7 +284,7 @@ METHODE = """  <section class="titre-page">
 
     <section class="bloc">
       <h2>Formule 1</h2>
-      <p>Les temps au tour depuis 2018, la forme récente de chaque pilote, le rythme de la voiture, les essais du week-end et la météo prévue alimentent un modèle statistique réentraîné après chaque course. Il donne, pour chaque pilote, la probabilité de faire la pole et de gagner la course. Le détail et le bilan sont sur la <a href="f1.html">page Formule 1</a>.</p>
+      <p>Les temps au tour depuis 2018, la forme récente de chaque pilote, le rythme de la voiture, les essais du week-end et la météo prévue alimentent un modèle statistique réentraîné après chaque course. Il donne, pour chaque pilote, la probabilité de faire la pole et de gagner la course. Le détail et le bilan sont sur la page <a href="f1-methode.html">Méthode et bilan F1</a>.</p>
     </section>
 
     <section class="bloc">
@@ -294,6 +292,51 @@ METHODE = """  <section class="titre-page">
       <p>Football : <a href="https://www.football-data.co.uk/">football-data.co.uk</a> (résultats, tirs, cotes), <a href="https://www.football-data.org/">football-data.org</a> (calendriers, résultats récents), <a href="https://github.com/openfootball">openfootball</a> (coupes d'Europe passées, domaine public), <a href="https://the-odds-api.com/">The Odds API</a> (Ligue Europa, cotes des coupes). Formule 1 : <a href="https://github.com/TracingInsights">TracingInsights</a>, <a href="https://docs.fastf1.dev/">FastF1</a>, <a href="https://jolpi.ca">Jolpica</a>, <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0).</p>
       <p>Logos : seuls ceux du domaine public sont utilisés (Wikimedia Commons) ; les autres clubs sont représentés par leur sigle. Les noms et logos des clubs appartiennent à leurs propriétaires.</p>
       <p class="note" id="m-maj"></p>
+    </section>
+  </div>"""
+
+F1_METHODE = """  <section class="titre-page">
+    <div class="titre-in">
+      <h1>Méthode et bilan F1</h1>
+      <p class="chapeau">Comment les chances de pole et de victoire sont calculées, et ce qu'elles valent face aux vrais résultats.</p>
+    </div>
+  </section>
+
+  <div class="page f1 f1-texte">
+    <section class="bloc" aria-labelledby="h-bilan">
+      <div class="bloc-tete"><h2 id="h-bilan">Le bilan en bref</h2></div>
+      <dl class="chiffres" id="tiles"></dl>
+    </section>
+
+    <section class="bloc" aria-labelledby="h-histo">
+      <div class="bloc-tete"><h2 id="h-histo">Le modèle face à la réalité</h2><div class="pastilles" id="seasons" role="group" aria-label="Saison"></div></div>
+      <p class="note">Pour chaque qualification, le modèle est rejoué avec les seules courses d'avant. Chaque barre montre la chance qu'il donnait au pilote qui a fait la pole ; la ligne pointillée correspond à un pilote tiré au hasard. Les manches 4 à 11 de 2026 ont servi à choisir le modèle : il y part avec un avantage.</p>
+      <div class="graphe" id="chart"></div>
+      <div class="defile"><table class="tableau" id="history-table"></table></div>
+    </section>
+
+    <section class="bloc" id="etude" aria-labelledby="h-etude">
+      <div class="bloc-tete"><h2 id="h-etude">Novembre 2026 : grille officielle et rythme de course</h2></div>
+      <p>Jusqu'au Grand Prix de Las Vegas 2026, la grille utilisée était l'ordre de la qualification : les pénalités moteur et les départs des stands étaient ignorés. Le modèle de victoire utilise désormais la grille officielle (f1db pour les courses passées, OpenF1 pour la course à venir), avec la place en qualif pour garder la vitesse d'un pilote pénalisé. Il est jugé sur le classement officiel, pénalités d'après course comprises.</p>
+      <div class="defile"><table class="tableau" id="etude-grille"></table></div>
+      <p>Nous avons ensuite testé le rythme des longs relais aux essais, l'usure des pneus et le rythme en course sprint. Tours écartés : sorties et entrées des stands, drapeaux, voiture de sécurité, tours supprimés, tours au-delà de 107 % du tour médian du relais. Règle fixée avant de voir les résultats : une variable n'entre que si elle améliore la log-loss et le score de Brier sur 2024-2025, puis se confirme sur 2026. Aucune n'a passé ce test : les écarts restent dans le bruit d'une vingtaine de courses par saison.</p>
+      <div class="defile"><table class="tableau" id="etude-variables"></table></div>
+      <p class="note">Log-loss : moins la chance donnée au vrai vainqueur est grande, plus le score monte. Brier : écart moyen entre les chances annoncées et ce qui s'est passé, pour tous les pilotes. Plus bas = mieux pour les deux.</p>
+    </section>
+
+    <section class="bloc" aria-labelledby="h-comment">
+      <div class="bloc-tete"><h2 id="h-comment">Comment c'est calculé</h2></div>
+      <ul>
+        <li><b>Pole.</b> Les temps au tour depuis 2018, la forme récente de chaque pilote et de sa voiture, le type de circuit, la météo et les essais du week-end alimentent plusieurs modèles ; le meilleur, sur des courses jamais utilisées pour le régler, est retenu.</li>
+        <li><b>Victoire.</b> Avant la qualif, on tire au sort des milliers de grilles possibles selon les chances de pole. Après la qualif, on part de la grille de départ : officielle quand elle est publiée, sinon l'ordre de la qualif, annoncé comme provisoire.</li>
+        <li><b>Journal.</b> Chaque pronostic est enregistré avant la séance et jamais réécrit. Seule exception, signalée : le pronostic de Las Vegas 2026, publié sur une grille sans pénalités, a été recalculé après la course avec les seules données d'avant le départ.</li>
+      </ul>
+    </section>
+
+    <section class="bloc" aria-labelledby="h-journal-complet">
+      <div class="bloc-tete"><h2 id="h-journal-complet">Journal des pronostics publiés</h2></div>
+      <div id="journal"></div>
+      <p class="note">Sources : TracingInsights (temps au tour), f1db (grilles et classements officiels, CC BY 4.0), OpenF1 (grille de la course à venir), Jolpica (calendrier), Open-Meteo (météo, CC BY 4.0). <span id="updated"></span></p>
     </section>
   </div>"""
 
@@ -321,7 +364,10 @@ def pages() -> dict[str, str]:
                            HOME, ["accueil.js"], "accueil"),
         "f1.html": page("f1.html", "Formule 1 : pole et victoire au prochain Grand Prix - Extinction des feux",
                         "Probabilités de pole et de victoire pour chaque pilote au prochain Grand Prix, comparées ensuite aux vrais résultats.",
-                        F1, ["f1.js"], "f1"),
+                        F1, ["f1.js"], "f1", styles=("f1.css",), common=False, name="f1"),
+        "f1-methode.html": page("f1-methode.html", "Méthode et bilan F1 - Extinction des feux",
+                                "Comment les chances de pole et de victoire sont calculées, et ce qu'elles valent face aux vrais résultats.",
+                                F1_METHODE, ["f1.js"], "f1", styles=("f1.css",), common=False, name="f1-methode"),
         "foot.html": page("foot.html", "Football : probabilités des prochains matchs - Extinction des feux",
                           "Chercher un club et voir les chances de ses prochains matchs : Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions, Ligue Europa.",
                           FOOT, ["foot.js"], "foot", "hub"),

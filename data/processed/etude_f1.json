@@ -1,0 +1,118 @@
+{
+ "periode_choix": "2024-2025",
+ "periode_test": "2026",
+ "grille": [
+  {
+   "modele": "grille = ordre de la qualif (avant)",
+   "log_loss_choix": 1.316,
+   "brier_choix": 0.649,
+   "log_loss_test": 1.158,
+   "brier_test": 0.572
+  },
+  {
+   "modele": "grille officielle + place en qualif (après)",
+   "log_loss_choix": 1.304,
+   "brier_choix": 0.641,
+   "log_loss_test": 1.135,
+   "brier_test": 0.538
+  }
+ ],
+ "variables": [
+  {
+   "variable": "rythme des longs relais",
+   "log_loss_choix": [
+    1.304,
+    1.308
+   ],
+   "brier_choix": [
+    0.641,
+    0.642
+   ],
+   "log_loss_test": [
+    1.135,
+    1.121
+   ],
+   "brier_test": [
+    0.538,
+    0.531
+   ],
+   "gain_choix_ic95": [
+    -0.023,
+    0.012
+   ],
+   "retenue": false
+  },
+  {
+   "variable": "usure des pneus",
+   "log_loss_choix": [
+    1.304,
+    1.297
+   ],
+   "brier_choix": [
+    0.641,
+    0.637
+   ],
+   "log_loss_test": [
+    1.135,
+    1.143
+   ],
+   "brier_test": [
+    0.538,
+    0.544
+   ],
+   "gain_choix_ic95": [
+    -0.024,
+    0.049
+   ],
+   "retenue": false
+  },
+  {
+   "variable": "rythme en course sprint",
+   "log_loss_choix": [
+    1.304,
+    1.349
+   ],
+   "brier_choix": [
+    0.641,
+    0.639
+   ],
+   "log_loss_test": [
+    1.135,
+    1.155
+   ],
+   "brier_test": [
+    0.538,
+    0.549
+   ],
+   "gain_choix_ic95": [
+    -0.217,
+    0.06
+   ],
+   "retenue": false
+  },
+  {
+   "variable": "longs relais et usure",
+   "log_loss_choix": [
+    1.304,
+    1.301
+   ],
+   "brier_choix": [
+    0.641,
+    0.638
+   ],
+   "log_loss_test": [
+    1.135,
+    1.13
+   ],
+   "brier_test": [
+    0.538,
+    0.538
+   ],
+   "gain_choix_ic95": [
+    -0.037,
+    0.049
+   ],
+   "retenue": false
+  }
+ ]
+}

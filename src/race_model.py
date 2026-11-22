@@ -34,8 +34,30 @@ RACE_HISTORIES = {k: HISTORIES[k] for k in ("2023 et après", "depuis 2018")}
 RACE_FEATURES = ["log_grille", "log_qualif", "ecart_qualif", "forme_course", "grille_pluie"]  # toutes les colonnes calculées
 
 
-def race_table(best: pd.DataFrame, results: pd.DataFrame, min_prior: int = 3, grids: pd.DataFrame | None = None) -> pd.DataFrame:
-    """`grids` : grilles réelles (f1db). Sans elles, la grille est l'ordre de la qualif (pénalités ignorées)."""
+PACE = ["rythme_relais", "usure", "rythme_sprint"]
+
+
+def add_pace(r: pd.DataFrame, pace: pd.DataFrame | None) -> pd.DataFrame:
+    """Rythme des longs relais (rythme.py) ; sans long relais : valeur médiane du week-end (aucun signal)."""
+    r = r.drop(columns=[c for c in PACE if c in r])
+    if pace is None or not len(pace):
+        return r.assign(**{c: 0.0 for c in PACE})
+    p = pace[["season", "grand_prix", "driver"] + PACE].copy()
+    for c in PACE:
+        p[c] = pd.to_numeric(p[c], errors="coerce")
+    r = r.merge(p, on=["season", "grand_prix", "driver"], how="left")
+    week = ["season", "grand_prix"]
+    r["rythme_relais"] = r["rythme_relais"].fillna(r.groupby(week)["rythme_relais"].transform("median")).fillna(0.0)
+    r["usure"] = r["usure"].fillna(0.0)
+    # sprint : 0 hors week-end sprint ; pilote sans tour exploitable en sprint = médiane du sprint
+    r["rythme_sprint"] = r["rythme_sprint"].fillna(r.groupby(week)["rythme_sprint"].transform("median")).fillna(0.0)
+    return r
+
+
+def race_table(best: pd.DataFrame, results: pd.DataFrame, min_prior: int = 3, grids: pd.DataFrame | None = None,
+               pace: pd.DataFrame | None = None) -> pd.DataFrame:
+    """`grids` : grilles réelles (f1db). Sans elles, la grille est l'ordre de la qualif (pénalités ignorées).
+    `pace` : rythme des longs relais aux essais (rythme.py)."""
     q = best[best["session"] == "Qualifying"][["season", "grand_prix", "driver", "deficit_pct", "pole", "quali_pos"]].copy()
     q["ecart_qualif"] = q["deficit_pct"].fillna(5.0).clip(upper=5.0)
     q["grille"] = q["quali_pos"]   # ordre officiel de la qualif (Q3, puis Q2, puis Q1)
@@ -62,6 +84,7 @@ def race_table(best: pd.DataFrame, results: pd.DataFrame, min_prior: int = 3, gr
     r = r.merge(f, on=["season", "grand_prix", "driver"])
     r["forme_course"] = r["forme_course"].fillna(r.groupby(["season", "grand_prix"])["forme_course"].transform("max")).fillna(15)
     r["is_pole"] = r["finish"] == 1          # « gagnant » : on réutilise le même code que pour la pole
+    r = add_pace(r, pace)
     r = r[r["race_idx"] > min_prior]
     return r.sort_values(["date", "finish"]).reset_index(drop=True)
 
@@ -93,8 +116,9 @@ def grid_baseline(table: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(out, ignore_index=True)
 
 
-def evaluate(best: pd.DataFrame, results: pd.DataFrame, grids: pd.DataFrame | None = None) -> dict:
-    table = race_table(best, results, grids=grids)
+def evaluate(best: pd.DataFrame, results: pd.DataFrame, grids: pd.DataFrame | None = None,
+             pace: pd.DataFrame | None = None) -> dict:
+    table = race_table(best, results, grids=grids, pace=pace)
     runs, hists = {}, {}
     for hname, hist in RACE_HISTORIES.items():
         for name, feats in CANDIDATES.items():

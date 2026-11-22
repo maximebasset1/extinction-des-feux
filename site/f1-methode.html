@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0f1115">
+<meta name="description" content="Comment les chances de pole et de victoire sont calculées, et ce qu'elles valent face aux vrais résultats.">
+<title>Méthode et bilan F1 - Extinction des feux</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/titillium-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/titillium-900.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/f1.css">
+<script src="assets/f1.js" defer></script>
+</head>
+<body data-root="./" data-page="f1-methode">
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header class="tete">
+  <div class="tete-in">
+    <a class="marque" href="index.html"><span class="feux" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Extinction des feux</span></a>
+    <nav class="menu" aria-label="Sections">
+    <a href="f1.html" aria-current="page">Formule 1</a>
+    <a href="foot.html">Football</a>
+    <a href="methode.html">Méthode</a>
+    </nav>
+  </div>
+</header>
+<main id="contenu">
+  <section class="titre-page">
+    <div class="titre-in">
+      <h1>Méthode et bilan F1</h1>
+      <p class="chapeau">Comment les chances de pole et de victoire sont calculées, et ce qu'elles valent face aux vrais résultats.</p>
+    </div>
+  </section>
+
+  <div class="page f1 f1-texte">
+    <section class="bloc" aria-labelledby="h-bilan">
+      <div class="bloc-tete"><h2 id="h-bilan">Le bilan en bref</h2></div>
+      <dl class="chiffres" id="tiles"></dl>
+    </section>
+
+    <section class="bloc" aria-labelledby="h-histo">
+      <div class="bloc-tete"><h2 id="h-histo">Le modèle face à la réalité</h2><div class="pastilles" id="seasons" role="group" aria-label="Saison"></div></div>
+      <p class="note">Pour chaque qualification, le modèle est rejoué avec les seules courses d'avant. Chaque barre montre la chance qu'il donnait au pilote qui a fait la pole ; la ligne pointillée correspond à un pilote tiré au hasard. Les manches 4 à 11 de 2026 ont servi à choisir le modèle : il y part avec un avantage.</p>
+      <div class="graphe" id="chart"></div>
+      <div class="defile"><table class="tableau" id="history-table"></table></div>
+    </section>
+
+    <section class="bloc" id="etude" aria-labelledby="h-etude">
+      <div class="bloc-tete"><h2 id="h-etude">Novembre 2026 : grille officielle et rythme de course</h2></div>
+      <p>Jusqu'au Grand Prix de Las Vegas 2026, la grille utilisée était l'ordre de la qualification : les pénalités moteur et les départs des stands étaient ignorés. Le modèle de victoire utilise désormais la grille officielle (f1db pour les courses passées, OpenF1 pour la course à venir), avec la place en qualif pour garder la vitesse d'un pilote pénalisé. Il est jugé sur le classement officiel, pénalités d'après course comprises.</p>
+      <div class="defile"><table class="tableau" id="etude-grille"></table></div>
+      <p>Nous avons ensuite testé le rythme des longs relais aux essais, l'usure des pneus et le rythme en course sprint. Tours écartés : sorties et entrées des stands, drapeaux, voiture de sécurité, tours supprimés, tours au-delà de 107 % du tour médian du relais. Règle fixée avant de voir les résultats : une variable n'entre que si elle améliore la log-loss et le score de Brier sur 2024-2025, puis se confirme sur 2026. Aucune n'a passé ce test : les écarts restent dans le bruit d'une vingtaine de courses par saison.</p>
+      <div class="defile"><table class="tableau" id="etude-variables"></table></div>
+      <p class="note">Log-loss : moins la chance donnée au vrai vainqueur est grande, plus le score monte. Brier : écart moyen entre les chances annoncées et ce qui s'est passé, pour tous les pilotes. Plus bas = mieux pour les deux.</p>
+    </section>
+
+    <section class="bloc" aria-labelledby="h-comment">
+      <div class="bloc-tete"><h2 id="h-comment">Comment c'est calculé</h2></div>
+      <ul>
+        <li><b>Pole.</b> Les temps au tour depuis 2018, la forme récente de chaque pilote et de sa voiture, le type de circuit, la météo et les essais du week-end alimentent plusieurs modèles ; le meilleur, sur des courses jamais utilisées pour le régler, est retenu.</li>
+        <li><b>Victoire.</b> Avant la qualif, on tire au sort des milliers de grilles possibles selon les chances de pole. Après la qualif, on part de la grille de départ : officielle quand elle est publiée, sinon l'ordre de la qualif, annoncé comme provisoire.</li>
+        <li><b>Journal.</b> Chaque pronostic est enregistré avant la séance et jamais réécrit. Seule exception, signalée : le pronostic de Las Vegas 2026, publié sur une grille sans pénalités, a été recalculé après la course avec les seules données d'avant le départ.</li>
+      </ul>
+    </section>
+
+    <section class="bloc" aria-labelledby="h-journal-complet">
+      <div class="bloc-tete"><h2 id="h-journal-complet">Journal des pronostics publiés</h2></div>
+      <div id="journal"></div>
+      <p class="note">Sources : TracingInsights (temps au tour), f1db (grilles et classements officiels, CC BY 4.0), OpenF1 (grille de la course à venir), Jolpica (calendrier), Open-Meteo (météo, CC BY 4.0). <span id="updated"></span></p>
+    </section>
+  </div>
+</main>
+<footer class="pied">
+  <div class="pied-in">
+    <p>Projet étudiant de Maxime Basset. Pronostics automatiques, sans lien avec la Formule 1, la FIA, l'UEFA, les ligues ni les clubs.</p>
+    <p>Ce n'est pas un outil de paris. Les jeux d'argent et de hasard peuvent être dangereux : pertes d'argent, conflits familiaux, addiction. Retrouvez nos conseils sur joueurs-info-service.fr (09 74 75 13 13, appel non surtaxé).</p>
+    <p><a href="https://github.com/maximebasset1/extinction-des-feux">Code source</a></p>
+  </div>
+</footer>
+</body>
+</html>

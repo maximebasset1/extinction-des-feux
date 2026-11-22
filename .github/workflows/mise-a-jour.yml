@@ -60,6 +60,7 @@ jobs:
             site/data/performance.json
             site/data/journal.json
             site/data/drivers.json
+            site/data/etude_f1.json
           key: f1-sortie-aucune
           restore-keys: f1-sortie-
 
@@ -79,6 +80,7 @@ jobs:
             site/data/performance.json
             site/data/journal.json
             site/data/drivers.json
+            site/data/etude_f1.json
           key: f1-sortie-${{ github.run_id }}-${{ github.run_attempt }}
 
       # branche de travail : vérifie que la grille officielle d'une course passée est bien lue (aucune publication)

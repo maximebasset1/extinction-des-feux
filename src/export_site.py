@@ -178,6 +178,11 @@ def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results
                             "gps": [{"gp": g, "gp_fr": gp_fr(season_d, g), "date": dt} for g, dt in order.values],
                             "pilotes": drivers})
 
+    # ---------- étude de novembre 2026 (grille officielle, rythme de course) : affichée sur « Méthode et bilan F1 »
+    etude = Path(__file__).resolve().parents[1] / "data" / "processed" / "etude_f1.json"
+    if etude.exists():
+        _write("etude_f1.json", json.loads(etude.read_text(encoding="utf-8")))
+
     # ---------- journal des prédictions publiées
     ev = journal_eval.to_dict("records") if len(journal_eval) else []
     for e in ev:

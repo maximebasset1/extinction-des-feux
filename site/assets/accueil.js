@@ -69,7 +69,10 @@ function rendreFoot(i) {
   $("#surprises").innerHTML = i.surprises.length
     ? i.surprises.map((m) => ligneMatch(m, i.clubs, { lien: lien(m, m.competition), comp: i.noms[m.competition], jourDansHeure: true })).join("")
     : `<li class="vide">Aucune surprise ces deux dernières semaines : les favoris ont tenu.</li>`;
-  suivreDirect([{ matchs: i.a_la_une, clubs: i.clubs }]);
+  // une seule liste suivie : un match à la une et en direct garde les deux lignes à jour (même identifiant)
+  const vus = new Set(), suivis = [...(i.du_jour || []), ...i.a_la_une].filter((m) => !vus.has(m.id) && vus.add(m.id));
+  const rendreDirect = sectionDirect(i, lien);
+  suivreDirect([{ matchs: suivis, clubs: i.clubs }], { apresTour: rendreDirect });
   listeCompetitions($("#competitions"), i.competitions);
   const t = i.fiabilite, coupes = t.filter((r) => !r.avec_cotes), ligues = t.filter((r) => r.avec_cotes);
   const gain = (r) => r.habitudes.rps - r.modele.rps;

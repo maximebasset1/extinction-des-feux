@@ -524,6 +524,17 @@ def zones_for(comp: str, n: int) -> list:
     return LEAGUE_ZONES.get(n, [("titre", "Titre", 1, 1), ("top4", "Top 4", 1, 4)])
 
 
+def matchs_du_jour(files: dict, today: str) -> list[dict]:
+    """Matchs du jour (date de Paris) des six compétitions, pour la section « En direct » de l'accueil.
+
+    Gardent les chances d'avant-match et les buts attendus calés dessus (`lam`), dont le navigateur part pendant le match."""
+    du_jour = [{"c": comp, "id": m["id"], "jour": m["jour"], "kickoff": m["kickoff"], "home": m["home"], "away": m["away"],
+                "etat": m["etat"], **({"p": m["p"]} if m.get("p") else {}), **({"lam": m["lam"]} if m.get("lam") else {})}
+               for comp, info in COMPS.items() for m in files.get(info["slug"], {}).get("matchs", [])
+               if m.get("jour") == today and m.get("kickoff")]
+    return sorted(du_jour, key=lambda m: m["kickoff"])
+
+
 def main(offline: bool = False) -> None:
     global JOURNAL, CUP_RESULTS
     now = datetime.now(timezone.utc)
@@ -713,6 +724,10 @@ def main(offline: bool = False) -> None:
         lam = LV.calibrate(np.array([m["p"] for m in need], float), live_params)
         for m, (lh, la) in zip(need, lam):
             m["lam"] = [round(float(lh), 3), round(float(la), 3)]
+    files["index"]["du_jour"] = matchs_du_jour(files, today)
+    for t in {t for m in files["index"]["du_jour"] for t in (m["home"], m["away"])}:
+        if t in all_clubs:
+            files["index"]["clubs"][t] = all_clubs[t]
     files["direct"] = {"maj_utc": iso(now), "minutes_mi_temps": list(LV.HALF_MINUTES), "pas_par_mi_temps": LV.STEPS_PER_HALF,
                        **{k: live_params.get(k) for k in ("part_1re_mi_temps", "rythme_selon_ecart", "periode_choix",
                                                           "periode_test", "matchs_test", "jugement_mi_temps", "fiabilite_mi_temps")}}

@@ -108,3 +108,20 @@ def test_a_postponed_match_is_recorded_once_and_judged_on_its_real_result(tmp_pa
     # la saison suivante, la même affiche n'est pas jugée avec le vieux pronostic
     later = {JR.match_id("F1", "FRA:A", "FRA:B", "2027-10-02"): ("2027-10-02", (3, 0))}
     assert JR.link(path, later) == {}
+
+
+def test_matchs_du_jour():
+    from football import pipeline as P
+    slug = next(iter(P.COMPS.values()))["slug"]
+    code = next(iter(P.COMPS))
+    files = {slug: {"matchs": [
+        {"id": "a", "jour": "2026-11-22", "kickoff": "2026-11-22T19:45:00Z", "home": "X", "away": "Y", "etat": "a_venir", "p": [0.5, 0.3, 0.2], "lam": [1.5, 1.0]},
+        {"id": "b", "jour": "2026-11-22", "kickoff": "2026-11-22T14:00:00Z", "home": "Z", "away": "W", "etat": "joue", "score": [1, 0]},
+        {"id": "c", "jour": "2026-11-23", "kickoff": "2026-11-23T14:00:00Z", "home": "X", "away": "W", "etat": "a_venir"},
+        {"id": "d", "jour": "2026-11-22", "kickoff": None, "home": "Z", "away": "Y", "etat": "reporte"},
+    ]}}
+    du = P.matchs_du_jour(files, "2026-11-22")
+    assert [m["id"] for m in du] == ["b", "a"]
+    assert du[1] == {"c": code, "id": "a", "jour": "2026-11-22", "kickoff": "2026-11-22T19:45:00Z", "home": "X", "away": "Y",
+                     "etat": "a_venir", "p": [0.5, 0.3, 0.2], "lam": [1.5, 1.0]}
+    assert "score" not in du[0] and "lam" not in du[0]

@@ -104,8 +104,9 @@ async function lireRelais() {
   return r.json();
 }
 
-/* suit les matchs donnés ; `listes` : [{ matchs, clubs, comp }] (comp : compétition commune quand les matchs n'ont pas de champ c) */
-async function suivreDirect(listes) {
+/* suit les matchs donnés ; `listes` : [{ matchs, clubs, comp }] (comp : compétition commune quand les matchs n'ont pas de champ c) ;
+   `apresTour` est appelé après chaque lecture du relais, avant la mise à jour des lignes */
+async function suivreDirect(listes, { apresTour = null } = {}) {
   const tous = listes.flatMap(({ matchs, clubs, comp }) => matchs.map((m) => ({ m: comp && !m.c ? { ...m, c: comp } : m, orig: m, clubs })));
   const tour = async () => {
     const t = Date.now(), enCours = tous.filter(({ m }) => aSuivre(m, t));
@@ -124,12 +125,35 @@ async function suivreDirect(listes) {
       const lien = rattacher(lot.map((x) => x.m), D.relais.matchs || [], clubs);
       for (const [m, f] of lien) if (f.st !== "NS") D.suivis.push({ m: { ...m, id: lot.find((x) => x.m === m).orig.id }, f, clubs });
     }
+    if (apresTour) apresTour();
     appliquer();
   };
   await tour();
   clearInterval(D.minuteur); clearInterval(D.horloge);
   D.minuteur = setInterval(tour, TOUR_RELAIS_MS);
   D.horloge = setInterval(appliquer, TOUR_HORLOGE_MS);
+}
+
+/* section « En direct » de l'accueil : les matchs du jour entre 15 min avant le coup d'envoi et la fin du suivi ;
+   la liste n'est refaite que quand un match y entre ou en sort, pour ne pas fermer ce que l'on regarde */
+function sectionDirect(index, lien) {
+  const section = $("#direct"), liste = $("#direct-liste"), note = $("#direct-note");
+  if (!section) return () => {};
+  let montres = "";
+  const rendre = () => {
+    const t = Date.now(), matchs = (index.du_jour || []).filter((m) => aSuivre(m, t));
+    const cle = matchs.map((m) => m.id).join("|");
+    if (cle !== montres) {
+      montres = cle;
+      liste.innerHTML = matchs.map((m) => ligneMatch(m, index.clubs, { lien: lien(m, m.c), comp: index.noms[m.c] })).join("");
+      section.hidden = !matchs.length;
+    }
+    const n = D.relais?.intervalle_min;
+    note.textContent = `Les matchs en cours des six compétitions, avec les chances recalculées à chaque but.${n ? ` Scores relevés toutes les ${n === 1 ? "minutes" : `${n} minutes`} ; la minute avance entre deux relevés.` : ""}`;
+  };
+  rendre();
+  setInterval(rendre, TOUR_RELAIS_MS);
+  return rendre;
 }
 
 if (typeof module !== "undefined") module.exports = { rattacher, ressemblance, minuteMaintenant };

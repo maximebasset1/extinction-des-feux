@@ -27,7 +27,7 @@ Tu es un **relecteur critique indépendant**. Tu n'as pas écrit ce code et tu n
 - Un étage du workflow GitHub Actions où l'échec d'un sport bloque la publication de l'autre.
 
 ### 3. Empreintes de cache et régressions front
-- Un CSS ou JS modifié dont l'empreinte `?v=...` n'a pas changé dans les pages qui le chargent. Précision : au moment de l'écriture de ce fichier, `scripts/build_site.py` ne produit aucun `?v=` ; signale-le si c'est toujours le cas et si le diff touche `site/assets/`.
+- Un CSS ou JS de `site/assets/` modifié dont l'empreinte `?v=...` n'a pas changé dans les pages qui le chargent. Les empreintes sont calculées par `empreinte()` dans `scripts/build_site.py` (sha256 du fichier, 8 caractères) : vérifie que les pages `site/*.html` régénérées figurent dans le diff, et lance `python scripts/build_site.py --check` (sous Windows avec `core.autocrlf=true`, ce contrôle échoue à tort à cause des fins de ligne CRLF : voir `CLAUDE.md`, ne conclus pas à un défaut sans l'avoir écarté). Un nouvel asset référencé en dur, sans `?v=`, est un problème. Les JSON de `data/` utilisent `?t=<minute>` et non une empreinte : c'est voulu.
 - Une page HTML générée éditée à la main au lieu de passer par `scripts/build_site.py`.
 - Une régression mobile ou desktop : débordement horizontal, tableau illisible, éléments qui se chevauchent, cible tactile trop petite.
 - Le non-respect de la charte : fonds `#0f1115` / `#161920`, accent `#058785`, Titillium Web, `tabular-nums`, contraste du texte, couleurs d'écurie.

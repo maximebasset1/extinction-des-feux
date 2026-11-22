@@ -52,10 +52,11 @@ Carte du dépôt :
 
 - Toujours travailler sur une branche dédiée (`feat/...` ou `fix/...`). Jamais de commit direct sur `main` sans validation explicite de Maxime.
 - Avant de proposer une fusion :
-  1. lancer `python -m pytest` (état de référence : 52 passés, 3 ignorés car Node est absent en local ; avec Node installé, les tests `relais` et `live` s'exécutent) ;
-  2. vérifier les empreintes de cache des fichiers statiques (`?v=...`) : tout CSS/JS modifié doit voir son empreinte changer dans les pages qui le chargent ;
+  1. lancer `python -m pytest` (état de référence sur GitHub : tout passe ; en local, 3 tests sont ignorés car Node est absent, et avec Node installé les tests `relais` et `live` s'exécutent) ;
+  2. vérifier les empreintes de cache des fichiers statiques (`?v=...`) : `build_site.py` les calcule (sha256 du fichier, 8 premiers caractères) et les écrit dans les pages. Après tout changement d'un CSS/JS de `site/assets/`, relancer `python scripts/build_site.py` et commiter les pages régénérées. `python scripts/build_site.py --check` (appelé par `pytest`) échoue si une page est périmée. Les JSON de `data/` ne portent pas d'empreinte : ils sont demandés avec `?t=<minute>` ;
   3. lancer `/review` (relecture indépendante du `git diff main`).
 - Le site se régénère avec `scripts/build_site.py`. Ne jamais éditer à la main les pages HTML générées.
+- **Piège Windows (fins de ligne)** : `empreinte()` hache les octets du fichier. Avec `core.autocrlf=true`, les assets sont en CRLF sur le disque, donc le hash local diffère de celui calculé sur GitHub (Linux, LF). Conséquence connue : `test_site_pages_are_up_to_date` échoue en local alors que `main` est correct. Ne pas régénérer les pages sur ce PC pour « corriger » : on commiterait de fausses empreintes. Pour régénérer ou valider proprement, passer par GitHub Actions ou normaliser les fins de ligne en LF (`.gitattributes` avec `* text=auto eol=lf`, ou hacher en normalisant `\r\n` dans `empreinte()`).
 
 ## Environnement local
 

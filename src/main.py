@@ -85,15 +85,20 @@ def main() -> None:
     # championnat : chances de titre (Grands Prix restants simulés avec les chances de victoire du modèle)
     import championnat
     from config import CALENDAR_FILE
-    forced = bool(os.environ.get("F1_TARGET"))     # course passée rejouée : classement d'avant cette manche
-    classement = f1db.championship(TARGET_SEASON, before_round=cfg.TARGET_INFO.get("round") if forced else None)
-    entrants = entry_list(best)
-    win_avant = win if not len(quali) else race_model.predict_race(
-        best, results, entrants, None, pred.set_index("driver")["proba_pole_avant"], race["feats"], race["weights"])
-    cal = json.loads(CALENDAR_FILE.read_text(encoding="utf-8")).get(str(TARGET_SEASON), []) if CALENDAR_FILE.exists() else []
-    champ = championnat.calculer(TARGET_SEASON, classement, cal, championnat.equipes_engagees(entrants, classement),
-                                 dict(zip(win["driver"], win["proba_victoire"])),
-                                 dict(zip(win_avant["driver"], win_avant["proba_victoire"])), TARGET_GP)
+    # un échec ici (fichier f1db inattendu...) ne doit jamais empêcher la publication des pronostics
+    try:
+        forced = bool(os.environ.get("F1_TARGET"))     # course passée rejouée : classement d'avant cette manche
+        classement = f1db.championship(TARGET_SEASON, before_round=cfg.TARGET_INFO.get("round") if forced else None)
+        entrants = entry_list(best)
+        win_avant = win if not len(quali) else race_model.predict_race(
+            best, results, entrants, None, pred.set_index("driver")["proba_pole_avant"], race["feats"], race["weights"])
+        cal = json.loads(CALENDAR_FILE.read_text(encoding="utf-8")).get(str(TARGET_SEASON), []) if CALENDAR_FILE.exists() else []
+        champ = championnat.calculer(TARGET_SEASON, classement, cal, championnat.equipes_engagees(entrants, classement),
+                                     dict(zip(win["driver"], win["proba_victoire"])),
+                                     dict(zip(win_avant["driver"], win_avant["proba_victoire"])), TARGET_GP)
+    except Exception as e:  # noqa: BLE001
+        print(f"Championnat : calcul impossible ({type(e).__name__}: {e}), bloc masqué")
+        champ = None
     if champ:
         for k in ("pilotes", "constructeurs"):
             top = champ[k]["classement"][0]

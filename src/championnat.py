@@ -56,10 +56,11 @@ TAUX_ABANDON = 0.11       # par défaut, si la saison ne permet pas de le mesure
 def _ordres(rng: np.random.Generator, poids: np.ndarray, n: int, abandon: float = 0.0) -> np.ndarray:
     """n ordres d'arrivée (Plackett-Luce) : place (0 = vainqueur) de chaque pilote, tableau (n, pilotes).
     Un pilote qui abandonne (probabilité `abandon`) passe derrière tous ceux qui ont fini."""
-    w = np.clip(np.asarray(poids, dtype=float), 0, None) + 1e-9
-    cles = rng.exponential(size=(n, len(w))) / w      # plus petite clé = devant
+    w = np.clip(np.asarray(poids, dtype=float), 0, None)
+    cles = rng.exponential(size=(n, len(w))) / (w + 1e-9)      # plus petite clé = devant
     if abandon > 0:
         cles = np.where(rng.random(cles.shape) < abandon, cles + 1e12, cles)
+    cles = np.where(w > 0, cles, cles + 2e12)       # non partant : derrière tout le monde, abandons compris
     return cles.argsort(axis=1).argsort(axis=1)
 
 
@@ -158,6 +159,9 @@ def calculer(saison: int, classement: dict | None, calendrier: list[dict], equip
     def bloc(points: pd.Series, chances: dict, moyens: dict, par_equipe: int, equipe: dict) -> dict:
         maxi = points_max_restants(courses, saison, par_equipe)
         st = statut_titre(points, maxi)
+        if maxi == 0 and not st["joue"]:     # plus rien à courir, égalité de points : le départage a tranché
+            champion = max(chances, key=chances.get)
+            st = {"joue": True, "champion": champion, "elimines": set(points.index) - {champion}}
         lignes = [{"id": k, "team": equipe.get(k), "points": float(v), "points_moyens": float(moyens.get(k, v)),
                    "titre": (1.0 if k == st["champion"] else 0.0) if st["joue"] else
                    (0.0 if k in st["elimines"] else float(chances.get(k, 0.0))),

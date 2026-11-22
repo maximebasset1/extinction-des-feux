@@ -152,3 +152,17 @@ def test_les_abandons_rendent_le_titre_moins_certain():
     sans = C.simuler(d, _equipes(d), courses, 2026, n=6000, seed=4)["pilotes"]["D1"]
     avec = C.simuler(d, _equipes(d), courses, 2026, n=6000, seed=4, abandon=0.1)["pilotes"]["D1"]
     assert avec > sans
+
+
+def test_fin_de_saison_a_egalite_le_departage_attribue_le_titre():
+    pil = pd.DataFrame({"driver": ["A", "B"], "points": [100.0, 100.0], "team": ["x", "y"], "p1": [3, 4],
+                        **{f"p{j}": 0 for j in range(2, 7)}})
+    eq = pd.DataFrame({"team": ["x", "y"], "points": [100.0, 100.0], "p1": [3, 4], **{f"p{j}": 0 for j in range(2, 7)}})
+    r = C.calculer(2026, {"manche": 24, "pilotes": pil, "constructeurs": eq}, [], {}, {}, {}, "", n=10)
+    assert r["pilotes"]["joue"] and r["pilotes"]["champion"] == "B"
+
+
+def test_un_non_partant_finit_derriere_les_abandons():
+    rng = np.random.default_rng(0)
+    places = C._ordres(rng, np.array([0.5, 0.5, 0.0]), 2000, abandon=0.5)
+    assert (places[:, 2] == 2).all()

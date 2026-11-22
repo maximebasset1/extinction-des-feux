@@ -99,10 +99,19 @@ function appliquer() {
 
 const aSuivre = (m, t) => m.kickoff && t >= Date.parse(m.kickoff) - SUIVI_AVANT_MS && t <= Date.parse(m.kickoff) + SUIVI_APRES_MS;
 
-async function lireRelais() {
-  const r = await fetch(`${RELAIS}?t=${Math.floor(Date.now() / 6e4)}`, { cache: "no-cache" });
-  if (!r.ok) throw new Error(`relais du direct : réponse ${r.status}`);
-  return r.json();
+/* une page peut demander le relais depuis plusieurs endroits (suivi des matchs, compteur de l'onglet « En direct ») :
+   une même lecture sert pendant 15 secondes (le relais lui-même garde sa réponse 20 secondes) */
+let relaisLu = { t: 0, p: null };
+function lireRelais() {
+  if (relaisLu.p && Date.now() - relaisLu.t < 15e3) return relaisLu.p;
+  const p = (async () => {
+    const r = await fetch(`${RELAIS}?t=${Math.floor(Date.now() / 6e4)}`, { cache: "no-cache" });
+    if (!r.ok) throw new Error(`relais du direct : réponse ${r.status}`);
+    return r.json();
+  })();
+  relaisLu = { t: Date.now(), p };
+  p.catch(() => { if (relaisLu.p === p) relaisLu = { t: 0, p: null }; });   // un échec n'est pas gardé : le tour suivant réessaie
+  return p;
 }
 
 /* suit les matchs donnés ; `listes` : [{ matchs, clubs, comp }] (comp : compétition commune quand les matchs n'ont pas de champ c) ;

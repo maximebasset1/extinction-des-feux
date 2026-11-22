@@ -71,7 +71,10 @@ function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDan
   const c = (k) => clubs[k] || { nom: String(k).split(":").pop(), sigle: String(k).split(":").pop().slice(0, 3).toUpperCase() };
   const dom = c(m.home), ext = c(m.away);
   let centre, sous = "";
-  if (m.etat === "joue" || m.score) {
+  if (m.etat === "joue" && !m.score) {
+    // match du jour passé à « joué » sans que son score soit publié (matchs_du_jour) : le relais du direct donne le score final
+    centre = `<span class="m-etat">terminé</span>`;
+  } else if (m.etat === "joue" || m.score) {
     const s = m.score;
     if (m.p) {
       const y = issue(s), verbe = m.source === "publie" ? "annoncé" : "estimé";

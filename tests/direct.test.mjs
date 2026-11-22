@@ -119,3 +119,9 @@ test("la courbe d'un match en cours s'arrête à la minute actuelle, et à la pa
   const direct = chancesEnDirect(1.4, 1.1, 1, 0, 2, 1, PARAMS).p;
   assert.deepEqual(plat(pause.p.map((x) => +x.toFixed(9))), plat(direct.map((x) => +x.toFixed(9))));
 });
+
+test("un match du jour déjà « joué » mais sans score publié ne fait pas échouer la liste (relais : score final)", () => {
+  const ligne = vm.runInContext(`ligneMatch({ id: "F1|a|b", etat: "joue", kickoff: "2026-11-22T14:00:00Z", home: "FRA:Lille", away: "FRA:Lyon", p: [0.5, 0.3, 0.2] }, {})`, ctx);
+  assert.match(ligne, /terminé/);
+  assert.match(ligne, /data-match=/);
+});

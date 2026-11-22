@@ -45,9 +45,13 @@ def page(path: str, title: str, description: str, body: str, scripts: list[str],
   <nav class="bande" aria-label="Compétitions">
     <div class="bande-in">
       <a href="{r}foot.html"{' aria-current="page"' if sub == "hub" else ""}>Tous les matchs</a>
+      <a href="{r}foot/en-direct.html" data-direct{' aria-current="page"' if sub == "en-direct" else ""}>En direct<span class="bande-live" hidden><i class="pastille" aria-hidden="true"></i><b></b><span class="cache"> matchs en cours</span></span></a>
       {items}
     </div>
   </nav>'''
+    # le compteur de l'onglet « En direct » (onglet-direct.js) est sur toutes les pages Football
+    if section == "foot":
+        scripts = [*scripts, "onglet-direct.js"]
     js = "\n".join(f'<script src="{r}assets/{s}?v={empreinte(s)}" defer></script>' for s in (["commun.js"] if common else []) + scripts)
     css = "".join(f'\n<link rel="stylesheet" href="{r}assets/{c}?v={empreinte(c)}">' for c in styles)
     return f"""<!DOCTYPE html>
@@ -238,6 +242,27 @@ FOOT = """  <section class="titre-page">
     </section>
   </div>"""
 
+LIVE = """  <section class="titre-page">
+    <div class="titre-in">
+      <h1>En direct</h1>
+      <p class="chapeau">Les matchs du jour des six compétitions, de quinze minutes avant le coup d'envoi jusqu'au coup de sifflet final : le score, la minute et les chances de chaque camp, recalculées à chaque but.</p>
+    </div>
+  </section>
+
+  <div class="page">
+    <section class="bloc" aria-labelledby="h-live">
+      <div class="bloc-tete"><h2 id="h-live">Matchs à suivre</h2></div>
+      <p class="note" id="live-note" aria-live="polite">Chargement…</p>
+      <div id="live-liste" class="live-groupes"></div>
+    </section>
+
+    <section class="bloc" id="prochains" aria-labelledby="h-prochains" hidden>
+      <div class="bloc-tete"><h2 id="h-prochains">Prochains coups d'envoi</h2><a href="../foot.html">Tous les matchs</a></div>
+      <p class="note">Heures à l'heure de ton appareil. Un match apparaît dans la liste du dessus quinze minutes avant son coup d'envoi.</p>
+      <ul class="matchs avec-comp" id="prochains-liste"></ul>
+    </section>
+  </div>"""
+
 COMP = """  <section class="titre-page">
     <div class="titre-in">
       <h1 id="c-titre">{nom}</h1>
@@ -424,7 +449,10 @@ def pages() -> dict[str, str]:
                                 F1_METHODE, ["f1.js"], "f1", styles=("f1.css",), common=False, name="f1-methode"),
         "foot.html": page("foot.html", "Football : probabilités des prochains matchs - Extinction des feux",
                           "Chercher un club et voir les chances de ses prochains matchs : Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions, Ligue Europa.",
-                          FOOT, ["favoris.js", "foot.js"], "foot", "hub"),
+                          FOOT, ["favoris.js", "direct.js", "foot.js"], "foot", "hub"),
+        "foot/en-direct.html": page("foot/en-direct.html", "Football en direct : scores et chances des matchs en cours - Extinction des feux",
+                                    "Les matchs du jour de la Premier League, de la Bundesliga, de la Liga, de la Ligue 1, de la Ligue des champions et de la Ligue Europa : score, minute et chances recalculées à chaque but.",
+                                    LIVE, ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "en-direct.js"], "foot", "en-direct"),
         "methode.html": page("methode.html", "Méthode - Extinction des feux",
                              "Comment les probabilités de Formule 1 et de football sont calculées, et ce qu'elles valent.",
                              METHODE, ["methode.js"], "methode"),

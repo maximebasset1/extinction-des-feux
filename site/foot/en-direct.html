@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self' https://extinction-direct.maximebasset1.workers.dev; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0f1115">
+<meta name="description" content="Les matchs du jour de la Premier League, de la Bundesliga, de la Liga, de la Ligue 1, de la Ligue des champions et de la Ligue Europa : score, minute et chances recalculées à chaque but.">
+<title>Football en direct : scores et chances des matchs en cours - Extinction des feux</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="../assets/fonts/titillium-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../assets/fonts/titillium-900.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/style.css?v=5bfff81a">
+<script src="../assets/commun.js?v=413e531f" defer></script>
+<script src="../assets/favoris.js?v=7a1dc4c6" defer></script>
+<script src="../assets/modele-direct.js?v=cd098144" defer></script>
+<script src="../assets/direct.js?v=54420fbe" defer></script>
+<script src="../assets/fiche.js?v=4b62d2b6" defer></script>
+<script src="../assets/en-direct.js?v=a0cc30e8" defer></script>
+<script src="../assets/onglet-direct.js?v=0b0da193" defer></script>
+</head>
+<body data-root="../">
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header class="tete">
+  <div class="tete-in">
+    <a class="marque" href="../index.html"><span class="feux" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Extinction des feux</span></a>
+    <nav class="menu" aria-label="Sections">
+    <a href="../f1.html">Formule 1</a>
+    <a href="../foot.html" aria-current="page">Football</a>
+    <a href="../methode.html">Méthode</a>
+    </nav>
+  </div>
+  <nav class="bande" aria-label="Compétitions">
+    <div class="bande-in">
+      <a href="../foot.html">Tous les matchs</a>
+      <a href="../foot/en-direct.html" data-direct aria-current="page">En direct<span class="bande-live" hidden><i class="pastille" aria-hidden="true"></i><b></b><span class="cache"> matchs en cours</span></span></a>
+      <a href="../foot/premier-league.html">Premier League</a>
+      <a href="../foot/bundesliga.html">Bundesliga</a>
+      <a href="../foot/liga.html">Liga</a>
+      <a href="../foot/ligue-1.html">Ligue 1</a>
+      <a href="../foot/ligue-des-champions.html">Ligue des champions</a>
+      <a href="../foot/ligue-europa.html">Ligue Europa</a>
+    </div>
+  </nav>
+</header>
+<main id="contenu">
+  <section class="titre-page">
+    <div class="titre-in">
+      <h1>En direct</h1>
+      <p class="chapeau">Les matchs du jour des six compétitions, de quinze minutes avant le coup d'envoi jusqu'au coup de sifflet final : le score, la minute et les chances de chaque camp, recalculées à chaque but.</p>
+    </div>
+  </section>
+
+  <div class="page">
+    <section class="bloc" aria-labelledby="h-live">
+      <div class="bloc-tete"><h2 id="h-live">Matchs à suivre</h2></div>
+      <p class="note" id="live-note" aria-live="polite">Chargement…</p>
+      <div id="live-liste" class="live-groupes"></div>
+    </section>
+
+    <section class="bloc" id="prochains" aria-labelledby="h-prochains" hidden>
+      <div class="bloc-tete"><h2 id="h-prochains">Prochains coups d'envoi</h2><a href="../foot.html">Tous les matchs</a></div>
+      <p class="note">Heures à l'heure de ton appareil. Un match apparaît dans la liste du dessus quinze minutes avant son coup d'envoi.</p>
+      <ul class="matchs avec-comp" id="prochains-liste"></ul>
+    </section>
+  </div>
+</main>
+<footer class="pied">
+  <div class="pied-in">
+    <p>Projet étudiant de Maxime Basset. Pronostics automatiques, sans lien avec la Formule 1, la FIA, l'UEFA, les ligues ni les clubs.</p>
+    <p>Ce n'est pas un outil de paris. Les jeux d'argent et de hasard peuvent être dangereux : pertes d'argent, conflits familiaux, addiction. Retrouvez nos conseils sur joueurs-info-service.fr (09 74 75 13 13, appel non surtaxé).</p>
+    <p><a href="https://github.com/maximebasset1/extinction-des-feux">Code source</a></p>
+  </div>
+</footer>
+</body>
+</html>

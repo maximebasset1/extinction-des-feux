@@ -114,6 +114,7 @@ const ENTETES = {
 /* vrai si le tour programmé a pris du retard : programme du jour absent, ou direct plus vieux que prévu pendant un match */
 function enRetard(etat, maintenant) {
   if (etat.erreur_ms && maintenant - etat.erreur_ms < PAUSE_ERREUR_MIN * minute) return false;
+  if (etat.secours_ms && maintenant - etat.secours_ms < RETARD_TOLERE_MIN * minute) return false;
   if (etat.jour !== jourUtc(maintenant)) return true;
   if (!aCouvrir(etat.matchs || [], maintenant).actif) return false;
   return !etat.direct_ms || maintenant - etat.direct_ms > ((etat.intervalle_min || 1) + RETARD_TOLERE_MIN) * minute;
@@ -122,7 +123,12 @@ function enRetard(etat, maintenant) {
 /* réponse publique : les matchs du jour de nos compétitions ; relance un tour si le programmé est en retard */
 async function servir(env, ctx) {
   const etat = (await env.DIRECT.get(CLE_ETAT, { type: "json", cacheTtl: 30 })) || {};
-  if (enRetard(etat, Date.now())) ctx.waitUntil(tour(env).catch((error) => console.error("Tour de secours en échec", error)));
+  const maintenant = Date.now();
+  if (enRetard(etat, maintenant)) {
+    // une seule relance à la fois : la marque posée avant l'appel écarte les visites suivantes pendant 2 min
+    await env.DIRECT.put(CLE_ETAT, JSON.stringify({ ...etat, secours_ms: maintenant }));
+    ctx.waitUntil(tour(env).catch((error) => console.error("Tour de secours en échec", error)));
+  }
   const corps = {
     jour: etat.jour || null, maj_utc: etat.direct_utc || etat.programme_utc || null,
     intervalle_min: etat.intervalle_min || null, source: "API-Football", erreur: etat.erreur || null, matchs: etat.matchs || [],

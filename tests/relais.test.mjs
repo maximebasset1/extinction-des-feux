@@ -88,4 +88,5 @@ test("une visite relance le tour quand la minuterie est en retard", async () => 
   assert.equal(enRetard(etat, T0 + 13 * min), false);
   assert.equal(enRetard(etat, T0 + 17 * min), true);
   assert.equal(enRetard({ ...etat, matchs: [{ id: 1, ko, st: "FT" }] }, T0 + 30 * min), false);
+  assert.equal(enRetard({ ...etat, secours_ms: T0 + 16 * min }, T0 + 17 * min), false);
 });

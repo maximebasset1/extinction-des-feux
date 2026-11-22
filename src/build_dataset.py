@@ -22,6 +22,9 @@ def _num(values) -> np.ndarray:
 
 
 SEGMENTS = ["Q1", "Q2", "Q3"]
+# qualification sprint : SQ1 à SQ3 (« Sprint Shootout » en 2023, rangée sous le nom « Sprint Qualifying »)
+SPRINT_QUALI = ("Sprint Qualifying", "Sprint Shootout")
+SESSION_NAMES = {"Sprint Shootout": "Sprint Qualifying"}
 
 
 def best_valid(t: np.ndarray, valid: np.ndarray) -> float:
@@ -42,7 +45,7 @@ def read_session(folder: Path) -> list[dict]:
                 break
     if not t0:
         return []
-    date = str(t0)[:10]
+    date, start = str(t0)[:10], str(t0)[:19]   # start : heure de début, pour savoir quelle séance précède l'autre
     rows, wet_laps, all_laps = [], 0, 0
     rain, track_t, air_t = [], [], []  # météo relevée à chaque tour (pluie oui/non, températures)
     for f in sorted(folder.glob("*/laptimes.json")):
@@ -61,12 +64,14 @@ def read_session(folder: Path) -> list[dict]:
         teams = [x for x in d.get("team", []) if x not in (None, "None")]
         segment, lap, set_at = None, best_valid(t, valid), np.nan
         qs = np.array(d.get("qs", []))
-        if folder.name == "Qualifying" and len(qs) == len(t):
+        if (folder.name == "Qualifying" or folder.name in SPRINT_QUALI) and len(qs) == len(t):
             # en qualif, on garde le meilleur tour de la DERNIÈRE partie (Q1, Q2 ou Q3) où le
             # pilote a signé un temps : la pole se joue en Q3, pas sur un tour plus rapide en Q2
+            # (même règle en qualif sprint, SQ1 à SQ3 rangées sous Q1 à Q3)
             ses_t = _num(d.get("sesT", [np.nan] * len(t)))
+            prefix = "" if folder.name == "Qualifying" else "S"
             for seg in reversed(SEGMENTS):
-                in_seg = valid & (qs == seg)
+                in_seg = valid & (qs == prefix + seg)
                 if in_seg.any():
                     segment, lap = seg, best_valid(t, in_seg)
                     set_at = float(np.nanmin(np.where(in_seg & (t == lap), ses_t, np.nan)))
@@ -98,7 +103,7 @@ def read_session(folder: Path) -> list[dict]:
                "track_temp": float(np.nanmedian(track_t)) if np.isfinite(track_t).any() else np.nan,
                "air_temp": float(np.nanmedian(air_t)) if np.isfinite(air_t).any() else np.nan}
     for r in rows:
-        r.update(date=date, wet=wet, **weather)
+        r.update(date=date, start=start, wet=wet, **weather)
     return rows
 
 
@@ -117,7 +122,7 @@ def build() -> pd.DataFrame:
             for ses_dir in sorted(p for p in gp_dir.iterdir() if p.is_dir()):
                 for r in read_session(ses_dir):
                     r.update(season=int(season_dir.name), grand_prix=gp_dir.name.replace(" Grand Prix", ""),
-                             session=ses_dir.name)
+                             session=SESSION_NAMES.get(ses_dir.name, ses_dir.name))
                     rows.append(r)
     df = pd.DataFrame(rows)
     DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
@@ -146,7 +151,8 @@ def build() -> pd.DataFrame:
     df["downforce"] = [k[0] for k in kind]
     df["street"] = [k[1] for k in kind]
     cols = ["season", "date", "grand_prix", "session", "driver", "team", "segment", "best_lap",
-            "deficit_pct", "pole", "quali_pos", "set_at", "n_laps", "wet", "rain_share", "track_temp", "air_temp", "downforce", "street", "best_soft", "ideal_lap"]
+            "deficit_pct", "pole", "quali_pos", "set_at", "n_laps", "wet", "rain_share", "track_temp", "air_temp", "downforce", "street", "best_soft", "ideal_lap",
+            "start"]
     return df[cols].sort_values(["date", "session", "deficit_pct"]).reset_index(drop=True)
 
 

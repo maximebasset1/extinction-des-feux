@@ -147,6 +147,43 @@
     $("#field-note").textContent = apres ? "Dans l'ordre de la grille de départ." : "Dans l'ordre des chances de pole.";
   }
 
+  /* ---------- championnat : chances de titre, tant qu'un titre reste à jouer */
+  const points = (x) => Number(x).toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+  function carteTitre(el, titre, b, pilotes) {
+    if (b.joue) {
+      const c = b.champion || {};
+      el.innerHTML = `<h3>${esc(titre)}</h3><p class="f1-fait">${ecurie(c.couleur)} ${esc(pilotes ? c.nom : c.equipe)}</p>
+        <p class="note">Titre mathématiquement acquis : plus personne ne peut le rattraper.</p>`;
+      return;
+    }
+    const enJeu = b.classement.filter((d) => !d.elimine), sortis = b.classement.length - enJeu.length;
+    const max = Math.max(...enJeu.map((d) => d.titre), 0.01);
+    const qui = pilotes ? (sortis > 1 ? `Les ${sortis} autres pilotes ne peuvent` : "Le dernier pilote ne peut")
+      : (sortis > 1 ? `Les ${sortis} autres écuries ne peuvent` : "La dernière écurie ne peut");
+    el.innerHTML = `<h3>${esc(titre)}</h3><div class="defile"><table class="tableau f1-titre">
+      <thead><tr><th>${pilotes ? "Pilote" : "Écurie"}</th><th class="num">Points</th><th>Chance de titre</th></tr></thead>
+      <tbody>${enJeu.map((d) => `<tr>
+        <td><span class="club">${ecurie(d.couleur)}<span><b>${esc(pilotes ? d.famille : d.equipe)}</b>${pilotes && d.equipe ? ` <span class="f1-equipe">${esc(d.equipe)}</span>` : ""}</span></span></td>
+        <td class="num">${points(d.points)}</td>
+        <td><span class="barcell">${jauge(d.titre, max, d.couleur)}<span class="num">${pct(d.titre)}</span></span></td></tr>`).join("")}</tbody></table></div>
+      <p class="note">${b.points_max_restants} points encore en jeu par ${pilotes ? "pilote" : "écurie"}.${sortis ? ` ${qui} plus être titré${pilotes ? "" : "e"}${sortis > 1 ? "s" : ""}.` : ""}</p>`;
+  }
+  function rendreChampionnat() {
+    const c = E.next.championnat;
+    // affiché seulement tant qu'un des deux titres n'est pas mathématiquement joué
+    if (!c || (c.pilotes.joue && c.constructeurs.joue)) { $("#championnat").hidden = true; return; }
+    $("#championnat").hidden = false;
+    const restants = c.gp_restants || [], sprints = restants.filter((g) => g.sprint).length;
+    $("#h-champ").textContent = `Championnat du monde ${c.saison}`;
+    $("#champ-note").textContent = `Après la manche ${c.apres_manche}. ${restants.length} Grand${restants.length > 1 ? "s" : ""} Prix restant${restants.length > 1 ? "s" : ""}`
+      + ` (${restants.map((g) => g.gp_fr || nomGP(g.gp)).join(", ")})${sprints ? `, dont ${sprints} avec sprint` : ""}.`
+      + ` ${Number(c.tirages).toLocaleString("fr-FR")} fins de saison tirées au sort selon les chances de victoire du modèle`
+      + `${c.taux_abandon != null ? `, avec ${pct(c.taux_abandon)} de risque d'abandon par pilote et par course` : ""}`
+      + `${c.meilleur_tour ? ", point du meilleur tour compris" : ""}.`;
+    carteTitre($("#champ-pilotes"), "Pilotes", c.pilotes, true);
+    carteTitre($("#champ-equipes"), "Constructeurs", c.constructeurs, false);
+  }
+
   /* ---------- prévu contre réel : dernier Grand Prix terminé */
   function chancePole(gp) { const d = gp.pilotes.find((p) => p.code === gp.poleman); return d ? (d.apres ?? d.avant ?? 0) : null; }
   function favoriPole(gp) { return [...gp.pilotes].sort((a, b) => (b.apres ?? b.avant ?? 0) - (a.apres ?? a.avant ?? 0))[0]; }
@@ -229,6 +266,26 @@
       <td>${v.retenue ? "retenue" : "écartée"}</td></tr>`).join("")}</tbody>`;
   }
 
+  /* ---------- Méthode & Bilan : étude des week-ends sprint */
+  function rendreEtudeSprint() {
+    const s = E.etude && E.etude.sprint;
+    if (!s) return;
+    $("#etude-sprint").hidden = false;
+    const fl = (a) => `${virgule(a[0])} → ${virgule(a[1])}`;
+    const table = (el, note, b) => {
+      note.textContent = `${b.week_ends_choix} week-ends sprint pour choisir (${b.periode_choix}), ${b.week_ends_test} pour tester (${b.periode_test}).`;
+      el.innerHTML = `<thead><tr><th>Variable ajoutée</th><th class="num">Log-loss ${esc(b.periode_choix)}</th><th class="num">Brier ${esc(b.periode_choix)}</th><th class="num">Log-loss ${esc(b.periode_test)}</th><th class="num">Brier ${esc(b.periode_test)}</th><th class="num">Log-loss, tous les GP</th><th>Décision</th></tr></thead>
+        <tbody>${b.variables.map((v) => `<tr><td>${esc(v.variable)}</td><td class="num">${fl(v.log_loss_choix)}</td><td class="num">${fl(v.brier_choix)}</td>
+        <td class="num">${fl(v.log_loss_test)}</td><td class="num">${fl(v.brier_test)}</td><td class="num">${fl(v.log_loss_tous_gp)}</td><td>${v.retenue ? "retenue" : "écartée"}</td></tr>`).join("")}</tbody>`;
+    };
+    table($("#sprint-pole"), $("#sprint-pole-note"), s.pole);
+    table($("#sprint-victoire"), $("#sprint-victoire-note"), s.victoire);
+    const gardees = [...s.pole.variables, ...s.victoire.variables].filter((v) => v.retenue).map((v) => v.variable);
+    $("#sprint-conclusion").textContent = gardees.length
+      ? `Variable${gardees.length > 1 ? "s" : ""} retenue${gardees.length > 1 ? "s" : ""} : ${gardees.join(", ")}. Elle${gardees.length > 1 ? "s sont utilisées" : " est utilisée"} dès que la séance sprint correspondante est terminée.`
+      : "Aucune variable n'a passé le test : sur une vingtaine de week-ends sprint, les écarts restent dans le bruit. Le modèle reste inchangé.";
+  }
+
   /* ---------- démarrage */
   async function main() {
     try {
@@ -244,14 +301,14 @@
     if (E.next.gp_fr) NOMS_GP[E.next.gp] = E.next.gp_fr;
     E.season = Object.keys(E.history.saisons).sort().reverse()[0];
     if (PAGE === "f1-methode") {
-      rendreBilan(); rendreSaisons(); rendreGraphe(); rendreHistorique(); rendreEtude(); rendreJournal($("#journal"), 0);
+      rendreBilan(); rendreSaisons(); rendreGraphe(); rendreHistorique(); rendreEtude(); rendreEtudeSprint(); rendreJournal($("#journal"), 0);
       document.addEventListener("click", (e) => {
         const b = e.target.closest("[data-season]");
         if (!b) return;
         E.season = b.dataset.season; rendreSaisons(); rendreGraphe(); rendreHistorique();
       });
     } else {
-      rendreGP(); rendreSeances(); rendreGrille(); rendreFavoris(); rendrePilotes(); rendreReel(); rendreJournal($("#journal"), 5);
+      rendreGP(); rendreSeances(); rendreGrille(); rendreFavoris(); rendreChampionnat(); rendrePilotes(); rendreReel(); rendreJournal($("#journal"), 5);
       tic(); setInterval(tic, 1000); setInterval(rendreSeances, 60000);
     }
     $("#updated").textContent = `Dernière mise à jour : ${quand(E.next.maj_utc)}.`;

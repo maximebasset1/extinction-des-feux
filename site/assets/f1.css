@@ -44,10 +44,17 @@
 .f1-texte p, .f1-texte li { max-width: 72ch; }
 .f1-texte li { margin-bottom: .4rem; }
 
+.f1-champ { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.f1-champ > .carte { margin: 0; }
+.f1-champ .f1-fait { display: flex; align-items: center; gap: .5rem; }
+.f1-titre td, .f1-titre th { font-variant-numeric: tabular-nums; }
+.f1-titre .barcell { min-width: 8rem; }
+
 @media (max-width: 860px) {
-  .f1-haut { grid-template-columns: 1fr; }
+  .f1-haut, .f1-champ { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
   .f1-reel-ligne { grid-template-columns: 1fr; gap: .1rem; }
 }
 .f1-texte .defile + p { margin-top: 1.2rem; }
+.f1-texte .tableau td.num { white-space: nowrap; }

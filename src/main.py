@@ -8,6 +8,7 @@ Le site (app.py) lit les fichiers produits ; son bouton « Recharger » relance 
 """
 import argparse
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -81,6 +82,32 @@ def main() -> None:
                                   rain=float(((forecast or {}).get("R") or {}).get("pluie") or 0.0),
                                   grid=grid if grid_source == "officielle" else None)
 
+    # championnat : chances de titre (Grands Prix restants simulés avec les chances de victoire du modèle)
+    import championnat
+    from config import CALENDAR_FILE
+    # un échec ici (fichier f1db inattendu...) ne doit jamais empêcher la publication des pronostics
+    try:
+        forced = bool(os.environ.get("F1_TARGET"))     # course passée rejouée : classement d'avant cette manche
+        classement = f1db.championship(TARGET_SEASON, before_round=cfg.TARGET_INFO.get("round") if forced else None)
+        entrants = entry_list(best)
+        win_avant = win if not len(quali) else race_model.predict_race(
+            best, results, entrants, None, pred.set_index("driver")["proba_pole_avant"], race["feats"], race["weights"])
+        cal = json.loads(CALENDAR_FILE.read_text(encoding="utf-8")).get(str(TARGET_SEASON), []) if CALENDAR_FILE.exists() else []
+        champ = championnat.calculer(TARGET_SEASON, classement, cal, championnat.equipes_engagees(entrants, classement),
+                                     dict(zip(win["driver"], win["proba_victoire"])),
+                                     dict(zip(win_avant["driver"], win_avant["proba_victoire"])), TARGET_GP)
+    except Exception as e:  # noqa: BLE001
+        print(f"Championnat : calcul impossible ({type(e).__name__}: {e}), bloc masqué")
+        champ = None
+    if champ:
+        for k in ("pilotes", "constructeurs"):
+            top = champ[k]["classement"][0]
+            print(f"Championnat {k} après la manche {champ['apres_manche']} : "
+                  + (f"joué ({top['id']})" if champ[k]["joue"] else
+                     ", ".join(f"{d['id']} {d['titre']:.0%}" for d in champ[k]["classement"] if d["titre"] >= 0.005)))
+    else:
+        print("Championnat : classement f1db indisponible")
+
     step("5/5 Enregistrement, journal des prédictions et export du site")
     import config as cfg
     import export_site
@@ -94,7 +121,7 @@ def main() -> None:
     print(f"Journal : {added} nouvelles lignes publiées")
     journal_eval = journal.evaluate(best, results)
     export_site.export(out, race, win, best, results, journal_eval, DATA_RAW, cfg, forecast,
-                       grid=grid, grid_source=grid_source)
+                       grid=grid, grid_source=grid_source, championnat=champ)
     RESULTS.mkdir(parents=True, exist_ok=True)
     files = {
         "probabilites_pole.csv": pred, "backtest.csv": out["res"], "gains_vs_references.csv": out["gains"],

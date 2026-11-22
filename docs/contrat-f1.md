@@ -25,6 +25,11 @@ et l'adresse des fichiers ne change pas.
 | `meteo` | objet | par séance : `temperature`, `pluie` (risque) |
 | `arrivee[]` | liste | six premiers une fois la course finie |
 | `modeles`, `statut`, `debut_saison`, `saison_terminee`, `horaires_estimes` | | contexte |
+| `championnat` | objet ou `null` | chances de titre (simulation de Monte-Carlo, `src/championnat.py`) ; `null` si le classement f1db est indisponible — **ajouté en novembre 2026** |
+| `championnat.saison`, `apres_manche`, `tirages`, `meilleur_tour`, `taux_abandon` | | saison, dernière manche classée, nombre de saisons simulées (10 000), point du meilleur tour au barème, probabilité d'abandon d'un pilote par course utilisée dans le tirage |
+| `championnat.gp_restants[]` | liste | Grands Prix restants : `gp`, `gp_fr`, `sprint` (booléen) |
+| `championnat.pilotes`, `championnat.constructeurs` | objet | `joue` (titre mathématiquement acquis), `champion` (pilote : `code`, `nom`, `famille`, `couleur` ; écurie : `equipe`, `couleur` ; `null` tant que ce n'est pas joué), `points_max_restants`, `classement[]` |
+| `championnat.*.classement[]` | liste | dans l'ordre des points : pilote (`code`, `nom`, `famille`, `couleur`, `equipe`) ou écurie (`equipe`, `couleur`), puis `points`, `points_moyens` (fin de saison, moyenne des tirages), `titre` (chance de titre), `elimine` (ne peut plus être titré) |
 
 ## `history.json` : passé rejoué
 
@@ -41,3 +46,8 @@ vrai pour le recalcul de Las Vegas 2026 sur la grille officielle).
 
 Bilan du backtest, saison des pilotes, et étude de novembre 2026 (grille officielle et variables de rythme
 testées), affichée sur la page « Méthode et bilan F1 ».
+
+`etude_f1.json.sprint` (**ajouté en novembre 2026**, `src/etude_sprint.py`) : étude des week-ends sprint. `pole` et
+`victoire` : `modele`, `periode_choix`, `periode_test`, `week_ends_choix`, `week_ends_test`, `sans` (scores du modèle
+sans variable sprint) et `variables[]` (`variable`, `log_loss_choix`, `brier_choix`, `log_loss_test`, `brier_test`,
+`log_loss_tous_gp`, `brier_tous_gp` : paires « sans, avec » ; `gain_choix_ic95`, `retenue`).

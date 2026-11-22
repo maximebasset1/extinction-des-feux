@@ -171,6 +171,15 @@ F1 = """  <section class="depart depart-f1" aria-labelledby="gp-name">
       <p class="note" id="sessions-note"></p>
     </section>
 
+    <section class="bloc" id="championnat" aria-labelledby="h-champ" hidden>
+      <div class="bloc-tete"><h2 id="h-champ">Championnat du monde</h2></div>
+      <p class="note" id="champ-note"></p>
+      <div class="f1-champ">
+        <section class="carte" id="champ-pilotes" aria-label="Titre pilotes"></section>
+        <section class="carte" id="champ-equipes" aria-label="Titre constructeurs"></section>
+      </div>
+    </section>
+
     <section class="bloc carte" id="reel" aria-labelledby="reel-titre">
       <h2 id="reel-titre">Prévu et réel</h2>
       <div id="reel-corps"></div>
@@ -340,11 +349,26 @@ F1_METHODE = """  <section class="titre-page">
       <p class="note">Log-loss : moins la chance donnée au vrai vainqueur est grande, plus le score monte. Brier : écart moyen entre les chances annoncées et ce qui s'est passé, pour tous les pilotes. Plus bas = mieux pour les deux.</p>
     </section>
 
+    <section class="bloc" id="etude-sprint" aria-labelledby="h-sprint" hidden>
+      <div class="bloc-tete"><h2 id="h-sprint">Novembre 2026 : week-ends sprint</h2></div>
+      <p>Un week-end sprint n'a qu'une séance d'essais libres, mais deux séances disputées pour de vrai avant la qualification et la course du dimanche : la qualification sprint et la course sprint. Depuis 2024, elles ont lieu avant la qualification. En 2023, la qualification se courait le vendredi, avant la qualif sprint : on ne s'en sert pas pour prédire la pole de 2023, pour ne pas utiliser une information postérieure au pronostic (l'heure réelle de chaque séance est vérifiée).</p>
+      <p>Même règle que pour le rythme de course, fixée avant de voir les résultats : une variable n'entre que si elle améliore la log-loss et le score de Brier sur les week-ends sprint de la période de choix, puis se confirme sur ceux de 2026. Chaque Grand Prix est prédit avec les seules courses d'avant. La dernière colonne donne la log-loss sur tous les Grands Prix des mêmes saisons : une variable sprint ne doit rien abîmer ailleurs. Limites : l'échantillon est petit (onze week-ends pour choisir, cinq pour tester), et trois des week-ends de test (Miami, Canada, Grande-Bretagne) font partie des manches 4 à 11 de 2026 qui servent à choisir le modèle de pole lui-même ; la comparaison avec et sans la variable porte sur ce même modèle.</p>
+      <p id="sprint-conclusion"></p>
+      <h3>Pole</h3>
+      <p class="note" id="sprint-pole-note"></p>
+      <div class="defile"><table class="tableau" id="sprint-pole"></table></div>
+      <h3>Victoire</h3>
+      <p class="note" id="sprint-victoire-note"></p>
+      <div class="defile"><table class="tableau" id="sprint-victoire"></table></div>
+      <p class="note">Log-loss et Brier : plus bas = mieux. Les deux valeurs sont « sans → avec » la variable.</p>
+    </section>
+
     <section class="bloc" aria-labelledby="h-comment">
       <div class="bloc-tete"><h2 id="h-comment">Comment c'est calculé</h2></div>
       <ul>
-        <li><b>Pole.</b> Les temps au tour depuis 2018, la forme récente de chaque pilote et de sa voiture, le type de circuit, la météo et les essais du week-end alimentent plusieurs modèles ; le meilleur, sur des courses jamais utilisées pour le régler, est retenu.</li>
+        <li><b>Pole.</b> Les temps au tour depuis 2018, la forme récente de chaque pilote et de sa voiture, le type de circuit, la météo et les essais du week-end alimentent plusieurs modèles ; le meilleur, sur des courses jamais utilisées pour le régler, est retenu. Un week-end sprint, l'écart en qualification sprint s'ajoute aux essais dès que la séance est terminée.</li>
         <li><b>Victoire.</b> Avant la qualif, on tire au sort des milliers de grilles possibles selon les chances de pole. Après la qualif, on part de la grille de départ : officielle quand elle est publiée, sinon l'ordre de la qualif, annoncé comme provisoire.</li>
+        <li><b>Championnat.</b> Tant qu'un titre n'est pas mathématiquement joué, 10 000 fins de saison sont tirées au sort à partir du classement officiel (f1db). Pour chaque Grand Prix restant, l'ordre d'arrivée complet est tiré selon les chances de victoire du modèle (premier tiré selon ces chances, deuxième parmi les autres, etc.), sprint compris le cas échéant, avec le barème de la saison et le départage officiel (nombre de victoires, puis de deuxièmes places...). Chaque pilote peut abandonner, avec le taux de non-classés de la saison en cours (18 % en 2026, 10 à 12 % de 2023 à 2025), et finit alors derrière ceux qui ont vu l'arrivée. Le prochain Grand Prix utilise ses chances du moment ; les suivants reprennent les chances d'avant la qualif du prochain, faute de mieux si loin à l'avance. Ce tirage ne connaît ni les pénalités moteur ni les consignes d'équipe : c'est un ordre de grandeur.</li>
         <li><b>Journal.</b> Chaque pronostic est enregistré avant la séance et jamais réécrit. Seule exception, signalée : le pronostic de Las Vegas 2026, publié sur une grille sans pénalités, a été recalculé après la course avec les seules données d'avant le départ.</li>
       </ul>
     </section>

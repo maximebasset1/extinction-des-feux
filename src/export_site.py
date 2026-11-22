@@ -68,9 +68,44 @@ def driver_directory(raw_dir: Path) -> dict:
     return out
 
 
+def championnat_json(c: dict | None, people: dict, season: int) -> dict | None:
+    """Simulation du championnat (championnat.calculer) avec noms, couleurs et écuries pour le site."""
+    if not c:
+        return None
+    # nom et couleur d'une écurie f1db : ceux de son pilote le mieux classé (fichiers TracingInsights)
+    vitrine = {}
+    for d in c["pilotes"]["classement"]:
+        if d["team"] and d["team"] not in vitrine and d["id"] in people:
+            vitrine[d["team"]] = (people[d["id"]].get("equipe"), people[d["id"]].get("couleur", "#888888"))
+
+    def equipe(t):
+        nom, coul = vitrine.get(t, (None, "#888888"))
+        return {"equipe": nom or str(t).replace("-", " ").title(), "couleur": coul}
+
+    def pilote(code):
+        p = people.get(code, {})
+        return {"code": code, "nom": p.get("nom", code), "famille": p.get("famille", code),
+                "couleur": p.get("couleur", "#888888")}
+
+    blocs = {}
+    for kind in ("pilotes", "constructeurs"):
+        b, champ = c[kind], c[kind]["champion"]
+        ident = (lambda d: pilote(d["id"]) | {"equipe": equipe(d["team"])["equipe"] if d["team"] else None}) \
+            if kind == "pilotes" else (lambda d: equipe(d["id"]))
+        blocs[kind] = {"joue": b["joue"], "points_max_restants": b["points_max_restants"],
+                       "champion": (pilote(champ) if kind == "pilotes" else equipe(champ)) if champ else None,
+                       "classement": [ident(d) | {k: d[k] for k in ("points", "points_moyens", "titre", "elimine")}
+                                      for d in b["classement"]]}
+    restants = [(g["gp"].replace(" Grand Prix", ""), g["sprint"]) for g in c["gp_restants"]]
+    return {"saison": c["saison"], "apres_manche": c["apres_manche"], "tirages": c["tirages"],
+            "taux_abandon": c.get("taux_abandon"),
+            "meilleur_tour": c["meilleur_tour"],
+            "gp_restants": [{"gp": g, "gp_fr": gp_fr(season, g), "sprint": s} for g, s in restants], **blocs}
+
+
 def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results: pd.DataFrame,
            journal_eval: pd.DataFrame, raw_dir: Path, cfg, forecast: dict | None = None,
-           grid: pd.DataFrame | None = None, grid_source: str = "inconnue") -> None:
+           grid: pd.DataFrame | None = None, grid_source: str = "inconnue", championnat: dict | None = None) -> None:
     people = driver_directory(raw_dir)
     gp = cfg.TARGET_GP.replace(" Grand Prix", "")
     pred = out["pred"]
@@ -116,6 +151,8 @@ def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results
         "meteo": forecast,
         "arrivee": [{**person(r.driver), "equipe": r.team, "place": int(r.finish)}
                     for r in finished.itertuples() if pd.notna(r.finish)][:6],
+        # ajouté en novembre 2026 : chances de titre pilotes et constructeurs (null si f1db indisponible)
+        "championnat": championnat_json(championnat, people, cfg.TARGET_SEASON),
     })
 
     # ---------- historique : prédit (avant la séance) vs réel
@@ -179,9 +216,14 @@ def export(out: dict, race: dict, win: pd.DataFrame, best: pd.DataFrame, results
                             "pilotes": drivers})
 
     # ---------- étude de novembre 2026 (grille officielle, rythme de course) : affichée sur « Méthode et bilan F1 »
-    etude = Path(__file__).resolve().parents[1] / "data" / "processed" / "etude_f1.json"
+    processed = Path(__file__).resolve().parents[1] / "data" / "processed"
+    etude, etude_sprint = processed / "etude_f1.json", processed / "etude_sprint.json"
     if etude.exists():
-        _write("etude_f1.json", json.loads(etude.read_text(encoding="utf-8")))
+        data = json.loads(etude.read_text(encoding="utf-8"))
+        # champ « sprint » ajouté en novembre 2026 : étude des week-ends sprint (etude_sprint.py)
+        if etude_sprint.exists():
+            data["sprint"] = json.loads(etude_sprint.read_text(encoding="utf-8"))
+        _write("etude_f1.json", data)
 
     # ---------- journal des prédictions publiées
     ev = journal_eval.to_dict("records") if len(journal_eval) else []

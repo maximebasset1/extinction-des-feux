@@ -195,6 +195,19 @@ def test_site_pages_are_up_to_date():
     assert r.returncode == 0, r.stdout
 
 
+def test_asset_fingerprint_ignores_line_endings(tmp_path, monkeypatch):
+    """Sous Windows (autocrlf) les assets sont en CRLF : l'empreinte doit rester celle de GitHub (LF)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    import build_site
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "lf.js").write_bytes(b"a();\nb();\n")
+    (tmp_path / "assets" / "crlf.js").write_bytes(b"a();\r\nb();\r\n")
+    (tmp_path / "assets" / "autre.js").write_bytes(b"a();\nc();\n")
+    monkeypatch.setattr(build_site, "SITE", tmp_path)
+    assert build_site.empreinte("lf.js") == build_site.empreinte("crlf.js")
+    assert build_site.empreinte("lf.js") != build_site.empreinte("autre.js")
+
+
 def test_default_matchday_ignores_a_single_late_match():
     from football import pipeline as P
     now = datetime(2026, 11, 20, 12, tzinfo=timezone.utc)

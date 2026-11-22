@@ -7,6 +7,9 @@ const nom = (k) => club(k).nom;
 const COMPS = { E0: "Premier League", D1: "Bundesliga", SP1: "Liga", F1: "Ligue 1", I1: "Serie A", LDC: "Ligue des champions", LEC: "Ligue Europa" };
 const compNom = (c) => COMPS[c] || "Championnat";
 
+/* étoile des clubs favoris (favoris.js) ; rien si le script n'a pas pu se charger */
+const etoile = (k, n, texte = false) => (typeof Favoris === "undefined" ? "" : Favoris.bouton(k, n, { texte }));
+
 function face(a, b) {
   return C.h2h.filter((g) => (g[1] === a && g[2] === b) || (g[1] === b && g[2] === a));
 }
@@ -39,6 +42,8 @@ function detail(m) {
   } else if (m.p) {
     html += `<p>Pronostic publié avant le coup d'envoi :</p>${trois(m.p)}`;
   }
+  const suivre = etoile(m.home, h, true) + etoile(m.away, a, true);
+  if (suivre) html += `<div class="fiche-clubs">${suivre}</div>`;
   const g = face(m.home, m.away).slice(0, 8);
   html += `<h3>Derniers face-à-face</h3>`;
   html += g.length ? `<div class="defile"><table class="tableau"><thead><tr><th>Date</th><th>Compétition</th><th>Domicile</th><th class="num">Score</th><th>Extérieur</th></tr></thead><tbody>${g.map(([d, x, y, gx, gy, c]) => `<tr>
@@ -92,7 +97,7 @@ function rendreClassement() {
   const zc = zones.map((z) => `<th class="num">${esc(z.nom)}</th>`).join("");
   $("#t-table").innerHTML = `<thead><tr><th>#</th><th>Club</th><th class="num">Pts</th><th class="num">J</th><th class="num">Diff.</th>${proj.size ? `<th class="num">Pts attendus</th>${zc}` : ""}</tr></thead><tbody>${t.map((r, i) => {
     const p = proj.get(r.club);
-    return `<tr class="${zoneDe(i + 1)}"><td class="rang">${i + 1}</td><td><span class="club">${ecusson(club(r.club))}${esc(nom(r.club))}</span></td>
+    return `<tr class="${zoneDe(i + 1)}"><td class="rang">${i + 1}</td><td><span class="club">${ecusson(club(r.club))}${esc(nom(r.club))}${etoile(r.club, nom(r.club))}</span></td>
       <td class="num"><b>${nombre(r.pts)}</b></td><td class="num">${nombre(r.j)}</td><td class="num">${r.diff > 0 ? "+" : ""}${nombre(r.diff)}</td>
       ${p ? `<td class="num">${virgule(p.points_attendus)}</td>${zones.map((z) => `<td class="num">${pct(p[z.cle])}</td>`).join("")}` : ""}</tr>`;
   }).join("")}</tbody>`;
@@ -106,7 +111,7 @@ function rendreClub() {
   if (r && r.j) morceaux.push(`${rang + 1}<sup>${rang === 0 ? "er" : "e"}</sup> avec ${accord(r.pts, "point")} en ${accord(r.j, "match", "matchs")} (${accord(r.g, "victoire")}, ${accord(r.n, "nul")}, ${accord(r.p, "défaite")})`);
   if (p && C.d.zones.length) morceaux.push(`${virgule(p.points_attendus)} points attendus en fin de saison, ${C.d.zones.map((z) => `${esc(z.nom.toLowerCase())} ${pct(p[z.cle])}`).join(", ")}`);
   const legende = legendeJoues(liste);
-  $("#club-resume").innerHTML = (morceaux.length ? `<p>${morceaux.join(". ")}.</p>` : "") + (legende ? `<p class="note">${legende}</p>` : "");
+  $("#club-resume").innerHTML = `<p>${etoile(k, nom(k), true)}</p>` + (morceaux.length ? `<p>${morceaux.join(". ")}.</p>` : "") + (legende ? `<p class="note">${legende}</p>` : "");
   $("#club-liste").innerHTML = liste.length ? `<ul class="matchs">${liste.map((m) => ligneMatch(m, C.d.clubs, { detail: detail(m), jourDansHeure: true, prefixe: "c" })).join("")}</ul>` : `<p class="vide">Aucun match.</p>`;
 }
 

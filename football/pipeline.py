@@ -524,6 +524,13 @@ def zones_for(comp: str, n: int) -> list:
     return LEAGUE_ZONES.get(n, [("titre", "Titre", 1, 1), ("top4", "Top 4", 1, 4)])
 
 
+def matchs_a_caler(files: dict, veille: str) -> list[dict]:
+    """Matchs qui reçoivent des buts attendus (`lam`) : ceux qui ont un pronostic et ne sont pas encore joués, plus les matchs joués
+    depuis la veille (date de Paris), dont la fiche en direct reste consultable un moment après le coup de sifflet final."""
+    return [m for f in files.values() for m in f.get("matchs", [])
+            if isinstance(m, dict) and m.get("p") and (m.get("etat") != "joue" or (m.get("jour") or "") >= veille)]
+
+
 def matchs_du_jour(files: dict, today: str) -> list[dict]:
     """Matchs du jour (date de Paris) des six compétitions, pour la section « En direct » de l'accueil.
 
@@ -719,7 +726,10 @@ def main(offline: bool = False) -> None:
                           "competitions": {c: {"nom": v["nom"], "slug": v["slug"]} for c, v in COMPS.items()}}
     # direct : buts attendus calés sur les chances publiées (rien de plus que ces chances arrondies)
     live_params = LV.load_params()
-    need = [m for f in files.values() for m in f.get("matchs", []) if isinstance(m, dict) and m.get("p") and m.get("etat") != "joue"]
+    # les matchs joués la veille ou aujourd'hui en font partie : la fiche d'un match qui vient de se terminer (courbe des chances
+    # depuis le coup d'envoi) repart elle aussi de ces buts attendus
+    veille = (now.astimezone(S.PARIS) - timedelta(days=1)).strftime("%Y-%m-%d")
+    need = matchs_a_caler(files, veille)
     if need:
         lam = LV.calibrate(np.array([m["p"] for m in need], float), live_params)
         for m, (lh, la) in zip(need, lam):

@@ -7,6 +7,7 @@ const DIRECT = {
   PAS_PAR_MI_TEMPS: 10,
   BUTS_MAX: 10,
 };
+const SCORES_MONTRES = 5;   // scores finaux les plus probables gardés (la fiche du match en montre cinq)
 
 /* rythme selon l'écart au score vu par l'équipe (mené de 2 ou plus ... mène de 2 ou plus) */
 function multiplicateur(params, ecart) {
@@ -68,7 +69,7 @@ function chancesEnDirect(lh, la, hg, ag, miTemps, reste, params) {
     }
   }
   scores.sort((x, y) => y.p - x.p);
-  return { p, scores: scores.slice(0, 3) };
+  return { p, scores: scores.slice(0, SCORES_MONTRES) };
 }
 
 /* minute affichée (« 67 », « 45+2 ») -> mi-temps et part de cette mi-temps encore à jouer */
@@ -81,4 +82,40 @@ function tempsRestant(minute, miTemps, params = {}) {
   return { miTemps: 2, reste: Math.max(0.5, m2 - (ecoule - 45)) / m2 };
 }
 
-if (typeof module !== "undefined") module.exports = { DIRECT, resteAJouer, chancesEnDirect, tempsRestant };
+/* score au bout de `t` minutes de jeu d'après la chronologie `ev` ([[minute, arrêts, buts dom., buts ext.], ...]) ;
+   les arrêts de jeu comptent dans la minute de leur mi-temps (45+2 -> 45), l'axe de la courbe va de 0 à 90 */
+function scoreA(ev, t) {
+  let s = [0, 0];
+  for (const [min, , h, a] of ev) if (min <= t) s = [h, a];
+  return s;
+}
+
+/* chronologie à défaut de `ev` (relais plus ancien) : score à la pause puis score du moment, ce que le relais publiait déjà */
+function chronologieDe(f, minuteActuelle) {
+  if (Array.isArray(f.ev)) return f.ev;
+  const ev = [], entier = Number.isInteger;
+  const [mh, ma] = f.mt || [];
+  if (entier(mh) && entier(ma) && (mh || ma)) ev.push([45, 0, mh, ma]);
+  const [h, a] = f.g || [];
+  const [dh, da] = ev.length ? ev[0].slice(2) : [0, 0];
+  if (entier(h) && entier(a) && (h !== dh || a !== da)) ev.push([Math.max(minuteActuelle || 0, ev.length ? 46 : 1), 0, h, a]);
+  return ev;
+}
+
+/* chances 1/N/2 à chaque minute de jeu, du coup d'envoi (0') à `jusqua`, recalculées avec le score connu à ce moment-là ;
+   `lh`, `la` : buts attendus du match, calés sur le pronostic publié, donc la courbe part de ce pronostic ;
+   un point de plus à la minute de chaque but relevé, pour que la marche tombe au bon endroit ;
+   `pause` : le dernier point est la mi-temps (seconde période entière à jouer) ; `termine` : le score à 90' est acquis */
+function courbeChances(lh, la, ev, jusqua, params, { pas = 3, pause = false, termine = false } = {}) {
+  const fin = Math.max(0, Math.min(90, jusqua)), minutes = new Set([fin]);
+  for (let t = 0; t < fin; t += pas) minutes.add(t);
+  for (const [min] of ev) if (min > 0 && min < fin) minutes.add(min);
+  return [...minutes].sort((x, y) => x - y).map((t) => {
+    const [hg, ag] = scoreA(ev, t);
+    const mi = t === 0 ? 0 : t === 45 && t === fin && pause ? 2 : t <= 45 ? 1 : t >= 90 && termine ? 3 : 2;
+    const reste = mi === 0 || mi === 3 ? 1 : tempsRestant(mi === 2 && t === 45 ? "45" : String(t), mi, params).reste;
+    return { t, score: [hg, ag], p: chancesEnDirect(lh, la, hg, ag, mi, reste, params).p };
+  });
+}
+
+if (typeof module !== "undefined") module.exports = { DIRECT, resteAJouer, chancesEnDirect, tempsRestant, scoreA, chronologieDe, courbeChances };

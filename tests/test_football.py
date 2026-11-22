@@ -125,3 +125,18 @@ def test_matchs_du_jour():
     assert du[1] == {"c": code, "id": "a", "jour": "2026-11-22", "kickoff": "2026-11-22T19:45:00Z", "home": "X", "away": "Y",
                      "etat": "a_venir", "p": [0.5, 0.3, 0.2], "lam": [1.5, 1.0]}
     assert "score" not in du[0] and "lam" not in du[0]
+
+
+def test_matchs_a_caler():
+    """Les buts attendus du direct couvrent les matchs à venir et ceux joués depuis la veille, pas les anciens."""
+    from football import pipeline as P
+    p = [0.5, 0.3, 0.2]
+    files = {"x": {"matchs": [
+        {"id": "futur", "jour": "2026-11-25", "etat": "a_venir", "p": p},
+        {"id": "sans_date", "jour": None, "etat": "a_venir", "p": p},
+        {"id": "sans_pronostic", "jour": "2026-11-25", "etat": "a_venir"},
+        {"id": "aujourdhui", "jour": "2026-11-22", "etat": "joue", "p": p},
+        {"id": "veille", "jour": "2026-11-21", "etat": "joue", "p": p},
+        {"id": "ancien", "jour": "2026-11-10", "etat": "joue", "p": p},
+    ]}, "index": {"clubs": {}}}
+    assert [m["id"] for m in P.matchs_a_caler(files, "2026-11-21")] == ["futur", "sans_date", "aujourdhui", "veille"]

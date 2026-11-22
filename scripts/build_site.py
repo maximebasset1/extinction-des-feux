@@ -206,11 +206,18 @@ FOOT = """  <section class="titre-page">
         <label for="q">Chercher un club ou un match</label>
         <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Lille, ou Lille Bayern" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
         <ul id="suggest" class="suggest" role="listbox" hidden></ul>
+        <p class="club-favori" id="club-favori" hidden></p>
       </div>
     </div>
   </section>
 
   <div class="page">
+    <section class="bloc" id="favoris" aria-labelledby="h-favoris" hidden>
+      <div class="bloc-tete"><h2 id="h-favoris">Mes clubs favoris</h2></div>
+      <p class="note">Leurs matchs sont mis en valeur partout sur le site, et passent en tête de la section « En direct » de l'accueil. Ta liste reste dans ce navigateur : pas de compte, rien n'est envoyé.</p>
+      <ul class="mes-favoris" id="favoris-liste"></ul>
+    </section>
+
     <section class="bloc" aria-labelledby="h-matchs">
       <div class="bloc-tete"><h2 id="h-matchs">Prochains matchs</h2></div>
       <div class="pastilles" id="chips" role="group" aria-label="Compétition"></div>
@@ -305,6 +312,13 @@ METHODE = """  <section class="titre-page">
       <p>Chaque semaine depuis 2022, le modèle est rejoué avec les seuls matchs joués avant, comme s'il avait tourné à l'époque. On le compare à deux références : les pourcentages habituels de victoire à domicile, de nul et de victoire à l'extérieur, et les cotes des bookmakers. Le score utilisé, le RPS, est d'autant plus bas que les probabilités annoncées étaient justes.</p>
       <div class="defile"><table class="tableau" id="m-table"></table></div>
       <p>Un pronostic de football se trompe souvent sur un match donné : même bien calibré, le favori ne gagne qu'un peu plus d'une fois sur deux. Ce qui compte, c'est qu'un événement annoncé à 30 % arrive à peu près trois fois sur dix.</p>
+      <h3 id="direct">Les chances en direct</h3>
+      <p id="m-direct-txt">Pendant un match, les chances sont recalculées dans ton navigateur à chaque but et à chaque minute qui passe.</p>
+      <div class="defile"><table class="tableau" id="m-jugement"></table></div>
+      <div class="calib">
+        <figure id="m-calib"></figure>
+        <div id="m-calib-txt"></div>
+      </div>
     </section>
 
     <section class="bloc">
@@ -401,7 +415,7 @@ def pages() -> dict[str, str]:
     out = {
         "index.html": page("index.html", "Extinction des feux : pronostics F1 et football",
                            "Probabilités de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, mises à jour plusieurs fois par jour.",
-                           HOME, ["modele-direct.js", "direct.js", "accueil.js"], "accueil"),
+                           HOME, ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "accueil.js"], "accueil"),
         "f1.html": page("f1.html", "Formule 1 : pole et victoire au prochain Grand Prix - Extinction des feux",
                         "Probabilités de pole et de victoire pour chaque pilote au prochain Grand Prix, comparées ensuite aux vrais résultats.",
                         F1, ["f1.js"], "f1", styles=("f1.css",), common=False, name="f1"),
@@ -410,7 +424,7 @@ def pages() -> dict[str, str]:
                                 F1_METHODE, ["f1.js"], "f1", styles=("f1.css",), common=False, name="f1-methode"),
         "foot.html": page("foot.html", "Football : probabilités des prochains matchs - Extinction des feux",
                           "Chercher un club et voir les chances de ses prochains matchs : Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions, Ligue Europa.",
-                          FOOT, ["foot.js"], "foot", "hub"),
+                          FOOT, ["favoris.js", "foot.js"], "foot", "hub"),
         "methode.html": page("methode.html", "Méthode - Extinction des feux",
                              "Comment les probabilités de Formule 1 et de football sont calculées, et ce qu'elles valent.",
                              METHODE, ["methode.js"], "methode"),
@@ -418,7 +432,7 @@ def pages() -> dict[str, str]:
     for _, slug, nom in COMPETITIONS:
         out[f"foot/{slug}.html"] = page(f"foot/{slug}.html", f"{nom} : pronostics, classement et fin de saison - Extinction des feux",
                                         f"{nom} : probabilités de chaque match, classement, fin de saison simulée, face-à-face et fiabilité du modèle.",
-                                        COMP.replace("{nom}", nom), ["modele-direct.js", "direct.js", "competition.js"], "foot", slug).replace(
+                                        COMP.replace("{nom}", nom), ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "competition.js"], "foot", slug).replace(
             '<body data-root="../">', f'<body data-root="../" data-competition="{slug}">')
     out["ligue1.html"] = REDIRECT.format(csp=CSP, target="foot/ligue-1.html", label="Ligue 1", version=empreinte("redirection.js"))
     out["recherche.html"] = REDIRECT.format(csp=CSP, target="foot.html", label="Football", version=empreinte("redirection.js"))

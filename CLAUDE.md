@@ -20,6 +20,7 @@ Carte du dépôt :
 | `site/` | pages et `assets/` (CSS, JS, polices Titillium Web) |
 | `data/journal/` | journaux de pronostics (`predictions.csv` F1, `foot.csv` Football) |
 | `docs/contrat-f1.md` | contrat de données F1 |
+| `docs/contrat-direct.md` | contrat de données du direct Football (relais, `ev`, `lam`) |
 | `relais/` | Cloudflare Worker + boucle du direct |
 | `integration/` | patch d'intégration dans PitLane Insider |
 | `tests/` | `pytest` (Python) et tests Node `*.test.mjs` (relais, direct) |

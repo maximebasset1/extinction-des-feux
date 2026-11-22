@@ -6,6 +6,99 @@ Le site se met à jour tout seul : toutes les 1 à 3 heures, GitHub télécharge
 
 Pages : accueil (prochains départs, matchs à la une, surprises récentes), Formule 1, Football (recherche d'un club ou d'un match), une page par compétition (Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions, Ligue Europa) et Méthode.
 
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph SRC["Sources ouvertes"]
+    S1["F1 : TracingInsights, FastF1, OpenF1, f1db, Open-Meteo"]
+    S2["Football : football-data.co.uk, cotes, calendriers"]
+    S3["Direct : API-Football"]
+  end
+  subgraph ACT["GitHub Actions (Python 3.13, versions figées)"]
+    F1P["src/ : moteur F1<br/>variables sans fuite du futur, backtest, journal"]
+    FTP["football/ : moteur football<br/>Poisson et Dixon-Coles, cotes, simulation de saison, journal"]
+    BUILD["scripts/build_site.py<br/>pages et empreintes de cache"]
+    LOOP["relais/boucle.mjs<br/>un tour par minute pendant les matchs"]
+  end
+  subgraph EDGE["Cloudflare"]
+    KV[("Stockage KV<br/>scores et chronologie des buts")]
+    W["Worker relais.js<br/>GET /direct, lecture seule"]
+  end
+  subgraph WEB["GitHub Pages : site 100 % statique"]
+    J1["data/next.json, history.json, journal.json<br/>contrat F1 versionné"]
+    J2["data/foot/*.json<br/>pronostics, lam, direct.json"]
+    JS["f1.js | foot.js, direct.js, fiche.js,<br/>modele-direct.js, favoris.js"]
+  end
+  S1 --> F1P --> J1
+  S2 --> FTP --> J2
+  F1P & FTP --> BUILD --> WEB
+  S3 --> LOOP --> KV --> W
+  W -- "scores, ev" --> JS
+  J1 --> JS
+  J2 --> JS
+```
+
+**Chaîne de calcul (ETL Python).** À chaque exécution, GitHub télécharge les données, reconstruit les variables, réentraîne les modèles,
+recalcule les pronostics, les écrit en JSON et régénère les pages. Rien ne tourne sur un serveur : si un téléchargement échoue, le calcul
+s'arrête sans publier et le site garde sa version précédente.
+
+**Backtest sans fuite du futur.** Les variables ne reposent que sur ce qui précède la date du pronostic (un test le vérifie pour la F1),
+le choix de la recette se fait sur une période, le jugement sur une autre jamais vue. Une variable n'est gardée que si elle améliore la
+log-loss et le score de Brier sur la période de test ; les variables rejetées sont documentées dans les pages Méthode. Le journal des
+pronostics (`data/journal/*.csv`) est enregistré avant la séance ou le coup d'envoi et n'est jamais réécrit.
+
+**Relais Edge pour le direct.** Une boucle GitHub Actions interroge API-Football (la clé n'existe que là) à un intervalle calculé pour tenir
+le quota gratuit, et range dans le stockage KV de Cloudflare le score de chaque match et la chronologie des buts. Le Worker se contente de les
+servir (`/direct`, lecture seule). Le navigateur recalcule les chances avec le modèle du direct : rien n'est envoyé au relais, et si le
+relais tombe, les lignes gardent le pronostic d'avant-match.
+
+**Découplage F1 / football.** Les deux moteurs, leurs fichiers de données, leurs scripts et leurs styles ne s'importent pas : une panne de
+l'un ne casse jamais l'autre. Le contrat de données F1 ([`docs/contrat-f1.md`](docs/contrat-f1.md)) ne fait qu'ajouter des champs, jamais
+renommer ni supprimer, car la F1 sera intégrée dans un autre site (PitLane Insider). Le direct a son contrat à part
+([`docs/contrat-direct.md`](docs/contrat-direct.md)).
+
+### Métriques de validation
+
+Mesures du 22 novembre 2026. RPS et log-loss : plus c'est bas, mieux c'est. « Habitudes » : donner à chaque match les pourcentages
+habituels domicile / nul / extérieur.
+
+**Football, avant le match.** Modèle rejoué chaque semaine depuis 2022 avec les seuls matchs joués avant.
+
+| Compétition | Matchs | RPS modèle | RPS avec cotes | RPS habitudes | Log-loss modèle | Le favori gagne |
+| --- | --- | --- | --- | --- | --- | --- |
+| Premier League | 1 629 | 0,2038 | 0,1979 | 0,2314 | 0,989 | 52 % |
+| Bundesliga | 1 314 | 0,2014 | 0,1966 | 0,2312 | 0,988 | 52 % |
+| Liga | 1 646 | 0,1974 | 0,1917 | 0,2264 | 0,977 | 53 % |
+| Ligue 1 | 1 396 | 0,2059 | 0,2016 | 0,2328 | 0,993 | 52 % |
+| Ligue des champions | 700 | 0,1917 | – | 0,2365 | 0,899 | 59 % |
+| Ligue Europa | 471 | 0,1957 | – | 0,2300 | 0,955 | 59 % |
+
+Le modèle bat les habitudes dans les six compétitions ; avec les cotes d'avant-match, il se rapproche du niveau des bookmakers (pas d'historique
+de cotes gratuit en coupe d'Europe, où seules les statistiques sont jugées).
+
+**Football, à la mi-temps (modèle du direct).** Réglé sur 2010-2021, jugé sur 2022-2026 (17 402 matchs de douze championnats).
+
+| À la pause, le modèle utilise | Log-loss | RPS |
+| --- | --- | --- |
+| le pronostic d'avant-match seul | 0,967 | 0,1949 |
+| temps restant, buts répartis à parts égales | 0,810 | 0,1508 |
+| temps restant, part réelle de chaque mi-temps | 0,805 | 0,1497 |
+| **modèle complet (temps restant et écart au score)** | **0,800** | **0,1487** |
+
+Calibration à la mi-temps : écart moyen de **0,9 point** entre chance annoncée et fréquence observée (diagramme sur la page Méthode, section
+« Les chances en direct » ; c'est un backtest 2022-2026, pas un suivi des matchs diffusés sur le site).
+
+**Formule 1.** Voir les tableaux plus bas (pole, victoire) : sur 2024-2025, le modèle de pole bat nettement le hasard (+1,28 de log-loss avant le
+week-end) ; sur les 9 qualifs de la fin 2026, rien n'est démontré, et la page le dit.
+
+### La fiche d'un match en direct
+
+Un clic sur un match suivi en direct (accueil, pages des compétitions) ouvre sa fiche : courbe des chances 1/N/2 depuis le coup d'envoi
+(recalculée à chaque minute avec le score connu à ce moment-là, d'après la chronologie des buts du relais), comparaison avant-match / maintenant,
+et les cinq scores finaux les plus probables. Les clubs favoris (étoile, gardés dans le `localStorage` du navigateur, sans compte) voient
+leurs matchs mis en valeur et placés en tête de la section « En direct ».
+
 ## Le site en ligne (GitHub Pages)
 
 | Élément | Rôle |

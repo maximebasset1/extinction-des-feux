@@ -242,3 +242,85 @@ img.ecusson { background: transparent; object-fit: contain; }
   .classement-f1 .jauge { grid-column: 2 / 4; grid-row: 2; }
   .m-trois b { font-size: 2rem; }
 }
+
+/* ---------- clubs favoris (favoris.js) : étoile, ligne de match mise en valeur */
+.etoile { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-width: 2.25rem; min-height: 2.25rem; padding: .25rem; background: transparent;
+  border: 1px solid transparent; border-radius: 99px; color: var(--texte-doux); cursor: pointer; font-weight: 700; font-size: .95rem; }
+.etoile svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; flex-shrink: 0; }
+.etoile:hover { color: var(--texte); background: var(--surface-2); }
+.etoile[aria-pressed="true"] { color: var(--accent-clair); }
+.etoile[aria-pressed="true"] svg { fill: currentColor; }
+.etoile-texte { border-color: var(--ligne-forte); padding: .25rem .85rem .25rem .6rem; }
+.etoile-texte[aria-pressed="true"] { border-color: var(--accent); background: rgba(5, 135, 133, .16); color: var(--texte); }
+.etoile-texte[aria-pressed="true"] svg { color: var(--accent-clair); }
+.club .etoile { margin-left: .1rem; }
+.match.fav > .m-ligne, .match.fav > details > summary { box-shadow: inset 4px 0 0 var(--accent-clair); background: rgba(5, 135, 133, .08); }
+.m-club--fav b::after { content: ""; display: inline-block; width: .7em; height: .7em; margin-left: .35em; background: var(--accent-clair);
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.mes-favoris { list-style: none; margin: .4rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+.mes-favoris li { display: inline-flex; align-items: center; background: var(--surface); border: 1px solid var(--ligne-forte); border-radius: 99px; padding: .1rem .2rem .1rem .55rem; }
+.mes-favoris .puce { display: inline-flex; align-items: center; gap: .5rem; background: none; border: 0; font-weight: 700; cursor: pointer; padding: .2rem .3rem; border-radius: 99px; }
+.mes-favoris .ecusson { width: 1.6rem; height: 1.6rem; }
+.club-favori { margin: .8rem 0 0; }
+
+/* ---------- fiche d'un match en direct (fiche.js) */
+dialog.fiche { width: min(46rem, calc(100vw - 1rem)); max-width: none; max-height: calc(100dvh - 1rem); margin: auto; padding: 0; overflow: auto; color: var(--texte);
+  background: var(--surface); border: 1px solid var(--ligne-forte); border-radius: var(--rayon); box-shadow: 0 24px 60px rgba(0, 0, 0, .6); overscroll-behavior: contain; }
+dialog.fiche::backdrop { background: rgba(8, 9, 12, .72); }
+body:has(dialog.fiche[open]) { overflow: hidden; }
+.fiche-fermer { position: sticky; top: .5rem; float: right; z-index: 2; margin: .5rem .5rem 0 0; width: 2.5rem; height: 2.5rem; border-radius: 50%; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--ligne-forte); font-size: 1.5rem; line-height: 1; }
+.fiche-fermer:hover { border-color: var(--accent-clair); }
+.fiche-corps { padding: 1.2rem 1.4rem 1.4rem; }
+.fiche-tete { padding-right: 2.6rem; }
+.fiche-tete h2 { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .9rem; font-size: clamp(1.3rem, 1.1rem + 1vw, 1.8rem); line-height: 1.15; }
+.fiche-tete .club { font-size: inherit; }
+.fiche-score { font-weight: 900; font-size: 1.15em; padding: .1rem .55rem; background: var(--surface-3); border-radius: .5rem; }
+.fiche-etat { margin: .5rem 0 0; font-weight: 700; color: var(--texte-doux); }
+.fiche-etat .pastille { vertical-align: .05rem; }
+.fiche-corps h3 { font-size: 1.05rem; margin: 1.5rem 0 .5rem; }
+.fiche-legende { list-style: none; margin: 0 0 .4rem; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; font-weight: 600; color: var(--texte-doux); }
+.fiche-legende i { display: inline-block; width: 1.4rem; height: 0; border-top: 3px solid var(--k); margin-right: .45rem; vertical-align: .25rem; }
+.fiche-legende .c-k1 i { border-top-style: dashed; }
+.fiche-legende b { color: var(--texte); font-weight: 900; margin-left: .15rem; }
+.c-k0 { --k: var(--accent-clair); } .c-k1 { --k: var(--texte-doux); } .c-k2 { --k: var(--pluie); }
+.courbe { display: block; width: 100%; height: auto; }
+.courbe text { fill: var(--texte-doux); font-family: inherit; font-variant-numeric: tabular-nums; }
+.courbe .c-axe { font-size: 13px; }
+.courbe .c-score { font-size: 13px; font-weight: 700; fill: var(--texte); }
+.courbe .c-grille { stroke: var(--ligne); stroke-width: 1; }
+.courbe .c-mt { stroke: var(--ligne-forte); stroke-width: 1; stroke-dasharray: 2 3; }
+.courbe .c-but { stroke: var(--texte-faible); stroke-width: 1; }
+.courbe path { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+.courbe .c-l0 { stroke: var(--accent-clair); } .courbe .c-l1 { stroke: var(--texte-doux); stroke-dasharray: 5 4; } .courbe .c-l2 { stroke: var(--pluie); }
+.courbe .c-bout.c-l0 { fill: var(--accent-clair); } .courbe .c-bout.c-l1 { fill: var(--texte-doux); } .courbe .c-bout.c-l2 { fill: var(--pluie); }
+.fiche-compar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.6rem; }
+.fiche-compar + .note { margin-top: .9rem; }
+.fiche-etiq { margin: 0 0 .4rem; font-weight: 700; font-size: .92rem; color: var(--texte-doux); }
+.fiche-scores { list-style: none; margin: 0; padding: 0; }
+.fiche-scores li { display: grid; grid-template-columns: 4.4rem minmax(0, 1fr) 3.6rem; align-items: center; gap: .8rem; padding: .35rem 0; border-top: 1px solid var(--ligne); }
+.fiche-scores li:last-child { border-bottom: 1px solid var(--ligne); }
+.fiche-scores b { font-weight: 900; font-size: 1.3rem; line-height: 1; white-space: nowrap; }
+.fiche-scores .jauge i { background: var(--accent-clair); }
+.fiche-scores .pct { text-align: right; font-weight: 700; font-size: 1.15rem; }
+.fiche-pied { margin-top: 1.6rem; padding-top: 1rem; border-top: 1px solid var(--ligne); }
+.fiche-clubs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .9rem; }
+.lien-bouton { background: none; border: 0; padding: 0; font-weight: 700; color: var(--accent-clair); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
+@media (max-width: 720px) {
+  dialog.fiche { width: 100vw; max-height: 100dvh; border-radius: 0; border-left: 0; border-right: 0; }
+  .fiche-corps { padding: 1rem 1rem 1.4rem; }
+  .fiche-compar { grid-template-columns: 1fr; }
+  .fiche-scores li { grid-template-columns: 3.8rem minmax(0, 1fr) 3.2rem; gap: .6rem; }
+}
+
+/* ---------- calibration à la mi-temps (page Méthode) */
+.calib { display: grid; grid-template-columns: minmax(0, 28rem) minmax(0, 1fr); gap: 1rem 2rem; align-items: start; margin: .8rem 0 1rem; }
+.calib figure { margin: 0; }
+.calib figcaption { color: var(--texte-doux); font-size: .88rem; margin-top: .4rem; }
+.courbe .k-diag { stroke: var(--ligne-forte); stroke-width: 1; stroke-dasharray: 4 4; }
+.courbe .k-pt { stroke: var(--fond); stroke-width: 1.2; }
+.courbe .k-p0 { fill: var(--accent-clair); } .courbe .k-p1 { fill: var(--texte); } .courbe .k-p2 { fill: var(--pluie); }
+.calib .fiche-legende .c-k1 { --k: var(--texte); }
+.calib .fiche-legende .c-k1 i { border-top-style: solid; }
+.tableau tr.total td { font-weight: 700; color: var(--texte); }
+@media (max-width: 720px) { .calib { grid-template-columns: 1fr; } }

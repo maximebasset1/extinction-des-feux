@@ -8,7 +8,7 @@ const ctx = vm.createContext({ document: { body: { dataset: {} }, querySelectorA
 for (const f of ["commun.js", "modele-direct.js", "direct.js"]) {
   vm.runInContext(readFileSync(new URL(`../site/assets/${f}`, import.meta.url), "utf8").replace(/^"use strict";/m, ""), ctx, { filename: f });
 }
-const { rattacher, minuteMaintenant, chancesEnDirect, tempsRestant } = vm.runInContext("({ rattacher, minuteMaintenant, chancesEnDirect, tempsRestant })", ctx);
+const { rattacher, minuteMaintenant, chancesEnDirect, tempsRestant, courbeChances, chronologieDe, scoreA } = vm.runInContext("({ rattacher, minuteMaintenant, chancesEnDirect, tempsRestant, courbeChances, chronologieDe, scoreA })", ctx);
 
 const clubs = {
   "FRA:Lorient": { nom: "Lorient" }, "FRA:Rennes": { nom: "Stade Rennais" }, "FRA:Paris FC": { nom: "Paris FC" },
@@ -69,4 +69,53 @@ test("mener 2-0 à la 80e donne de très fortes chances de victoire", () => {
   const { reste } = tempsRestant("80", 2, params);
   const { p } = chancesEnDirect(1.4, 1.1, 2, 0, 2, reste, params);
   assert.ok(p[0] > 0.93 && Math.abs(p[0] + p[1] + p[2] - 1) < 1e-9, JSON.stringify(p));
+});
+
+// les tableaux venus du contexte vm n'ont pas le prototype de ce fichier : on les compare après copie
+const plat = (x) => JSON.parse(JSON.stringify(x));
+const PARAMS = { part_1re_mi_temps: 0.4338, rythme_selon_ecart: [1.0968, 1.0968, 1, 0.9769, 0.9769], minutes_mi_temps: [48, 52], pas_par_mi_temps: 10 };
+
+test("la fiche montre les cinq scores finaux les plus probables, du plus au moins probable", () => {
+  const { scores } = chancesEnDirect(1.4, 1.1, 1, 0, 2, 0.5, PARAMS);
+  assert.equal(scores.length, 5);
+  for (let i = 1; i < scores.length; i++) assert.ok(scores[i - 1].p >= scores[i].p);
+  assert.ok(scores.every((x) => { const [h, a] = x.score.split("-").map(Number); return h >= 1 && a >= 0; }), "le score final ne peut pas être sous le score actuel");
+});
+
+test("le score à une minute donnée suit la chronologie des buts, arrêts de jeu comptés dans leur mi-temps", () => {
+  const ev = [[23, 0, 1, 0], [45, 2, 1, 1], [70, 0, 2, 1]];
+  assert.deepEqual(plat(scoreA(ev, 0)), [0, 0]);
+  assert.deepEqual(plat(scoreA(ev, 22)), [0, 0]);
+  assert.deepEqual(plat(scoreA(ev, 23)), [1, 0]);
+  assert.deepEqual(plat(scoreA(ev, 45)), [1, 1]);
+  assert.deepEqual(plat(scoreA(ev, 90)), [2, 1]);
+});
+
+test("à défaut de chronologie, le score à la pause et le score du moment suffisent", () => {
+  assert.deepEqual(plat(chronologieDe({ g: [2, 1], mt: [1, 0] }, 70)), [[45, 0, 1, 0], [70, 0, 2, 1]]);
+  assert.deepEqual(plat(chronologieDe({ g: [0, 0], mt: [0, 0] }, 30)), []);
+  assert.deepEqual(plat(chronologieDe({ g: [1, 0], mt: [null, null] }, 12)), [[12, 0, 1, 0]]);
+  assert.deepEqual(plat(chronologieDe({ g: [1, 0], ev: [[5, 0, 1, 0]] }, 80)), [[5, 0, 1, 0]]);
+});
+
+test("la courbe part du pronostic, saute à chaque but et finit sur le résultat acquis", () => {
+  const depart = chancesEnDirect(1.4, 1.1, 0, 0, 0, 1, PARAMS).p;
+  const ev = [[23, 0, 1, 0]];
+  const c = courbeChances(1.4, 1.1, ev, 90, PARAMS, { termine: true });
+  assert.equal(c[0].t, 0);
+  assert.deepEqual(plat(c[0].p.map((x) => +x.toFixed(9))), plat(depart.map((x) => +x.toFixed(9))));
+  const avant = c.filter((q) => q.t < 23).at(-1).p[0], apres = c.find((q) => q.t === 23).p[0];
+  assert.ok(apres > avant + 0.1, `un but à domicile doit faire monter la victoire domicile (${avant} -> ${apres})`);
+  assert.ok(c.every((q) => Math.abs(q.p[0] + q.p[1] + q.p[2] - 1) < 1e-9));
+  assert.deepEqual(plat(c.at(-1).p.map(Math.round)), [1, 0, 0]);
+  assert.equal(c.at(-1).t, 90);
+});
+
+test("la courbe d'un match en cours s'arrête à la minute actuelle, et à la pause la seconde période est entière", () => {
+  const c = courbeChances(1.4, 1.1, [], 67, PARAMS);
+  assert.equal(c.at(-1).t, 67);
+  assert.ok(c.at(-1).p[1] > 0.1 && c.at(-1).p[1] < 0.6);
+  const pause = courbeChances(1.4, 1.1, [[20, 0, 1, 0]], 45, PARAMS, { pause: true }).at(-1);
+  const direct = chancesEnDirect(1.4, 1.1, 1, 0, 2, 1, PARAMS).p;
+  assert.deepEqual(plat(pause.p.map((x) => +x.toFixed(9))), plat(direct.map((x) => +x.toFixed(9))));
 });

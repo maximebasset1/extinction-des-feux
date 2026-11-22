@@ -3,7 +3,7 @@
 import { tour, aCouvrir } from "./relais.js";
 
 const PAS_MS = 60000;
-const DUREE_MAX_MS = Number(process.env.DUREE_MAX_MIN || 340) * 60000;   // sous la limite de 6 h d'un job GitHub
+const DUREE_MAX_MS = Number(process.env.DUREE_MAX_MIN || 330) * 60000;   // arrêt propre à 5 h 30, loin des 6 h d'un job GitHub
 const { CLOUDFLARE_API_TOKEN: JETON, CLOUDFLARE_ACCOUNT_ID: COMPTE, KV_ID, API_FOOTBALL_KEY } = process.env;
 
 for (const [nom, v] of Object.entries({ CLOUDFLARE_API_TOKEN: JETON, CLOUDFLARE_ACCOUNT_ID: COMPTE, KV_ID, API_FOOTBALL_KEY })) {
@@ -32,7 +32,8 @@ const debut = Date.now();
 const dormir = (ms) => new Promise((ok) => setTimeout(ok, ms));
 let echecs = 0;
 
-while (Date.now() - debut < DUREE_MAX_MS) {
+// on ne commence pas un tour qui finirait après la limite (appel lent, écriture KV) : marge d'une minute
+while (Date.now() - debut < DUREE_MAX_MS - PAS_MS) {
   let etat;
   try {
     etat = await tour(env);

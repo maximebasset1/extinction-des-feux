@@ -1,0 +1,30 @@
+# GitHub suspend les lancements programmés d'un dépôt public sans activité depuis 60 jours (trêve d'hiver de la F1,
+# coupures du football). Réactiver un workflow par l'API remet ce compteur à zéro : pas de commit artificiel.
+name: Maintien des lancements programmés
+on:
+  schedule:
+    - cron: "41 5 * * 1"   # chaque lundi (heure UTC) : large marge sur les 60 jours, même si un lancement saute
+  workflow_dispatch:
+  push:
+    branches: ["fix/**"]
+    paths: [".github/workflows/maintien.yml"]
+permissions: {}
+concurrency:
+  group: maintien
+  cancel-in-progress: false
+jobs:
+  reactiver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write   # seul droit nécessaire : réactiver les workflows du dépôt
+    steps:
+      - name: Réactiver les workflows programmés
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for wf in mise-a-jour.yml direct.yml maintien.yml; do
+            gh workflow enable "$wf"
+            echo "$wf : $(gh api "repos/$GH_REPO/actions/workflows/$wf" --jq .state)"
+          done

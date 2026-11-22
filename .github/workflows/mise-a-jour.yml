@@ -10,8 +10,8 @@ on:
     - cron: "17,47 * * * 5,6,0"
   workflow_dispatch:          # bouton « Run workflow » dans l'onglet Actions
   push:
-    # les branches « feat/... » lancent le calcul pour le vérifier, sans rien publier ni enregistrer
-    branches: [main, "feat/**"]
+    # les branches « feat/... » et « fix/... » lancent le calcul pour le vérifier, sans rien publier ni enregistrer
+    branches: [main, "feat/**", "fix/**"]
     paths: ["site/**", "src/**", "scripts/**", "football/**", "tests/**", "data/calendar.json", "requirements-ci.txt", ".github/workflows/**"]
 
 permissions: {}   # aucun droit par défaut : chaque tâche reçoit seulement ce dont elle a besoin
@@ -24,6 +24,8 @@ jobs:
   calcul:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    outputs:
+      artefact: ${{ steps.artefact.outcome }}
     permissions:
       contents: write   # enregistrer les nouvelles données et le journal des pronostics
     steps:
@@ -47,7 +49,10 @@ jobs:
           key: donnees-aucune
           restore-keys: donnees-
 
+      # calendrier F1 : si la source ne répond pas, on garde celui du dépôt (le football n'en dépend pas)
       - name: Mettre à jour le calendrier
+        continue-on-error: true
+        timeout-minutes: 5
         run: python scripts/update_calendar.py
 
       # pronostics F1 du lancement précédent : gardés si le calcul F1 échoue (le football est publié quand même)
@@ -69,6 +74,21 @@ jobs:
         continue-on-error: true
         timeout-minutes: 45
         run: python src/main.py
+
+      # un calcul F1 arrêté en cours de route peut laisser des fichiers à moitié réécrits : on revient aux précédents
+      - name: Revenir aux pronostics F1 précédents
+        if: steps.f1.outcome == 'failure'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            site/data/next.json
+            site/data/history.json
+            site/data/performance.json
+            site/data/journal.json
+            site/data/drivers.json
+            site/data/etude_f1.json
+          key: f1-sortie-aucune
+          restore-keys: f1-sortie-
 
       - name: Garder les pronostics F1
         if: steps.f1.outcome == 'success'
@@ -109,6 +129,7 @@ jobs:
       # clés gratuites rangées dans les secrets du dépôt ; sans elles, les coupes d'Europe sont simplement absentes
       # limite de temps : une source qui ne répond plus ne doit pas retarder la publication de la F1
       - name: "Football : six compétitions"
+        id: foot
         if: github.ref == 'refs/heads/main'   # les branches n'utilisent pas les crédits des API de football
         continue-on-error: true
         timeout-minutes: 30
@@ -116,6 +137,17 @@ jobs:
           FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python football/pipeline.py
+
+      # même principe que pour la F1 : après un échec, les pages reprennent les derniers pronostics complets
+      - name: Revenir aux pronostics football précédents
+        if: steps.foot.outcome == 'failure'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/football/eu
+            site/data/foot
+          key: foot-aucune
+          restore-keys: foot-
 
       - name: Repérer les données téléchargées
         if: always()
@@ -142,14 +174,14 @@ jobs:
           key: recherche-cotes-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Garder les données football
-        if: always()
+        if: always() && steps.foot.outcome != 'failure'
         run: |
           mkdir -p data/football/eu site/data/foot data/football/cotes
           # une sauvegarde par jour au plus : les fichiers changent à chaque calcul
           echo "FOOT_CLE=foot-$(date -u +%F)" >> "$GITHUB_ENV"
 
       - name: Enregistrer le cache football
-        if: always()
+        if: always() && steps.foot.outcome != 'failure'
         uses: actions/cache/save@v4
         with:
           path: |
@@ -160,8 +192,12 @@ jobs:
       - name: Vérifier
         run: python -m pytest tests -q
 
+      # un envoi refusé (dépôt modifié entre-temps) est retenté ; s'il échoue encore, le site est publié quand même
+      # et le lancement finit en échec pour que le journal non enregistré se voie
       - name: Enregistrer les nouvelles données et le journal
+        id: enregistrement
         if: github.ref == 'refs/heads/main'
+        continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
@@ -169,19 +205,33 @@ jobs:
           if [ -f data/football/resultats_coupes.csv ]; then git add data/football/resultats_coupes.csv; fi
           if git diff --cached --quiet; then
             echo "Rien de nouveau."
-          else
-            git commit -m "Mise à jour automatique des pronostics"
-            git pull --rebase --quiet && git push
+            exit 0
           fi
+          git commit -m "Mise à jour automatique des pronostics"
+          for essai in 1 2 3; do
+            if git pull --rebase --quiet && git push; then exit 0; fi
+            echo "Envoi refusé (essai $essai), nouvel essai dans 20 s"
+            git rebase --abort 2>/dev/null || true
+            sleep 20
+          done
+          exit 1
 
       - uses: actions/upload-pages-artifact@v3
+        id: artefact
         if: github.ref == 'refs/heads/main'
         with:
           path: site
 
+      - name: Signaler le journal non enregistré
+        if: steps.enregistrement.outcome == 'failure'
+        run: |
+          echo "::error::Le journal des pronostics n'a pas pu être envoyé sur le dépôt ; le site a été publié quand même."
+          exit 1
+
   publication:
     needs: calcul
-    if: github.ref == 'refs/heads/main'   # seule la branche principale publie le site
+    # seule la branche principale publie ; le site part dès que son paquet est prêt, même si le lancement finit en échec
+    if: always() && github.ref == 'refs/heads/main' && needs.calcul.outputs.artefact == 'success'
     runs-on: ubuntu-latest
     permissions:
       pages: write      # publier le site

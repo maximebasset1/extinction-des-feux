@@ -1,0 +1,49 @@
+name: Relais du direct
+on:
+  push:
+    branches: [main, "feat/direct-relais"]
+    paths: ["relais/**", ".github/workflows/relais.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: relais
+  cancel-in-progress: false
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: relais
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tester le relais
+        working-directory: .
+        run: node --test tests/relais.test.mjs
+      - name: Stockage KV (créé au premier déploiement)
+        run: |
+          base="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces"
+          auth="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          id=$(curl -sf -H "$auth" "$base?per_page=100" | jq -r '.result[] | select(.title=="extinction-direct") | .id')
+          if [ -z "$id" ]; then
+            id=$(curl -sf -X POST -H "$auth" -H "Content-Type: application/json" --data '{"title":"extinction-direct"}' "$base" | jq -r '.result.id')
+          fi
+          test -n "$id" && test "$id" != null
+          sed -i "s/KV_ID/$id/" wrangler.toml
+      - name: Déployer
+        run: npx --yes wrangler@4 deploy
+      - name: Donner la clé API-Football au relais
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+        run: printf '%s' "$API_FOOTBALL_KEY" | npx --yes wrangler@4 secret put API_FOOTBALL_KEY
+      - name: Vérifier la réponse publique
+        run: |
+          sleep 90
+          curl -sf https://extinction-direct.maximebasset1.workers.dev/direct | jq -c '{jour, maj_utc, intervalle_min, erreur, matchs: (.matchs | length), en_jeu: [.matchs[] | select(.st|IN("1H","HT","2H")) | "\(.h) \(.g[0])-\(.g[1]) \(.a) \(.min)"]}'

@@ -1,0 +1,12 @@
+# relais du direct : déployé par .github/workflows/relais.yml (l'identifiant KV y est écrit au déploiement)
+name = "extinction-direct"
+main = "relais.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[triggers]
+crons = ["* * * * *"]
+
+[[kv_namespaces]]
+binding = "DIRECT"
+id = "KV_ID"

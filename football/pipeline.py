@@ -482,6 +482,7 @@ def predict(fit: dict, r, bt: dict, ctx: dict | None = None) -> dict:
             lh, la, r["home"], r["away"], ctx["nom"](r["home"]), ctx["nom"](r["away"]),
             inj_h, inj_a, ctx["coaches"].get(r["home"]), ctx["coaches"].get(r["away"]),
             ctx["scorers"], ctx["team_goals"], rh, ra, rch, rca,
+            presse_h=ctx.get("presse", {}).get(r["home"]), presse_a=ctx.get("presse", {}).get(r["away"]),
         )
         lh, la = adj["lh"], adj["la"]
     p_model = M.outcome(M.score_matrix(lh, la, RHO))
@@ -508,10 +509,8 @@ def predict(fit: dict, r, bt: dict, ctx: dict | None = None) -> dict:
             out["facteurs"] = adj["facteurs"]
         if adj["buteurs"]:
             # Recalcule les buteurs probables avec le lambda final (après recalage éventuel sur les cotes)
-            conf_h = [x["nom"] for x in ctx["injuries"].get((r.get("jour"), r["home"]), []) if x.get("statut") != "incertain"]
-            conf_a = [x["nom"] for x in ctx["injuries"].get((r.get("jour"), r["away"]), []) if x.get("statut") != "incertain"]
-            bh = CTX.probable_scorers(r["home"], lh, ctx["scorers"], ctx["team_goals"], conf_h)
-            ba = CTX.probable_scorers(r["away"], la, ctx["scorers"], ctx["team_goals"], conf_a)
+            bh = CTX.probable_scorers(r["home"], lh, ctx["scorers"], ctx["team_goals"], adj["exclus"]["dom"])
+            ba = CTX.probable_scorers(r["away"], la, ctx["scorers"], ctx["team_goals"], adj["exclus"]["ext"])
             if bh or ba:
                 out["buteurs"] = {"dom": bh, "ext": ba}
     return out
@@ -646,7 +645,7 @@ def journal_references(allm: pd.DataFrame, evals: list[dict]) -> tuple[dict[str,
 
 def build_match_context(allm: pd.DataFrame, cal: dict[str, pd.DataFrame], names: dict[str, str],
                         now: datetime, offline: bool) -> dict:
-    """Collecte légère (buteurs, blessures, entraîneurs, jours de repos) pour les matchs des 3 prochains jours."""
+    """Collecte légère (buteurs, blessures, presse, entraîneurs, jours de repos) pour les matchs des 3 prochains jours."""
     idx = SRC.TeamIndex(list(pd.unique(allm[["home", "away"]].values.ravel())))
     token = None if offline else os.environ.get("FOOTBALL_DATA_ORG_TOKEN")
     api_key = None if offline else os.environ.get("API_FOOTBALL_KEY")
@@ -685,6 +684,38 @@ def build_match_context(allm: pd.DataFrame, cal: dict[str, pd.DataFrame], names:
         print(f"   Entraîneurs API-Football indisponibles : {type(e).__name__} {e}")
         coaches = {}
 
+    # Clubs de football-data.org (identifiant et effectif), le championnat primant sur la Ligue des champions
+    teams: dict[str, dict] = {}
+    for code in SRC.FDORG_CODES.values():
+        for e in SRC.read_json(RAW / f"fdorg_{code}_{C.CURRENT_SEASON}.json", {}).get("teams") or []:
+            if e.get("name"):
+                area = (e.get("area") or {}).get("code", "")
+                teams.setdefault(idx.resolve(e["name"], SRC.ISO.get(area, area) or None), e)
+
+    # Titulaires réguliers : compositions si l'offre les donne, sinon matchs joués
+    try:
+        ids = {t: teams[t]["id"] for t in clubs_near if teams.get(t, {}).get("id")
+               and any(p["buts"] >= 2 for p in scorers_map.get(t) or [])}
+        lineups = CTX.fetch_lineups(ids, token, ODDS_STATE, now)
+    except Exception as e:  # noqa: BLE001
+        print(f"   Compositions indisponibles : {type(e).__name__} {e}")
+        lineups = {}
+    scorers_map = CTX.mark_regular_starters(scorers_map, CTX.team_match_counts(cal), lineups)
+
+    # Absents signalés par la presse (RSS publics des 72 dernières heures) : jamais bloquant
+    try:
+        articles = [a for a in CTX.fetch_press(ODDS_STATE, now, offline) if CTX.has_absence_word(a)]
+        aliases = {t: CTX.club_aliases(names.get(t, t.split(":", 1)[-1]), teams.get(t, {}).get("name") or "",
+                                       teams.get(t, {}).get("shortName") or "") for t in sorted(clubs_near)}
+        cites = set().union(*CTX.clubs_in_news(articles, aliases))
+        effectifs = CTX.squad_names(sorted(cites), teams, scorers_map, token, ODDS_STATE, now)
+        presse = CTX.detect_press_absences(articles, effectifs, {t: aliases[t] for t in effectifs})
+        for t, liste in sorted(presse.items()):
+            print(f"   Presse : {t} : " + ", ".join(f"{x['nom']} ({x['statut']})" for x in liste))
+    except Exception as e:  # noqa: BLE001
+        print(f"   Presse indisponible : {type(e).__name__} {e}")
+        presse = {}
+
     # 4. Total de buts marqués cette saison par club (pour la part de chaque buteur)
     cur = allm[allm["season"] == C.CURRENT_SEASON]
     team_goals: dict[str, int] = {}
@@ -710,6 +741,7 @@ def build_match_context(allm: pd.DataFrame, cal: dict[str, pd.DataFrame], names:
         "horizon_dates": horizon_dates,
         "scorers": scorers_map,
         "injuries": injuries,
+        "presse": presse,
         "coaches": coaches,
         "team_goals": team_goals,
         "rest_for": rest_for,

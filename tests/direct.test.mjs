@@ -155,3 +155,24 @@ test("les clubs de Serie A d'API-Football se rattachent bien aux nôtres", () =>
   const lien = rattacher(nos, leurs, clubs);
   assert.equal(lien.get(nos[0])?.id, 50);
 });
+
+test("badge de confiance, stats de grille (BTTS, +2,5) et facteurs clés s'affichent proprement", () => {
+  const html = vm.runInContext(`
+    ligneMatch({ id: "I1|ITA:Inter|ITA:Napoli", etat: "a_venir", kickoff: "2026-11-24T19:45:00Z",
+      home: "ITA:Inter", away: "ITA:Napoli", p: [0.58, 0.24, 0.18], confiance: "elevee" }, { "ITA:Inter": { nom: "Inter", sigle: "INT" }, "ITA:Napoli": { nom: "Napoli", sigle: "NAP" } })
+  `, ctx);
+  assert.match(html, /Confiance élevée/);
+  const stats = vm.runInContext(`blocStatsGrille({ btts: 0.54, plus25: 0.59 })`, ctx);
+  assert.match(stats, /Les deux équipes marquent/);
+  assert.match(stats, /54/);
+  assert.match(stats, /Plus de 2,5 buts/);
+  assert.match(stats, /59/);
+  const bloc = vm.runInContext(`blocFacteurs({ home: "ITA:Inter", away: "ITA:Napoli",
+    facteurs: ["Repos court (Inter) : 3 j après Ligue des champions"],
+    buteurs: { dom: [{ nom: "Lautaro Martínez", p: 0.42 }], ext: [{ nom: "Romelu Lukaku", p: 0.28 }] }
+  }, { "ITA:Inter": { nom: "Inter" }, "ITA:Napoli": { nom: "Napoli" } })`, ctx);
+  assert.match(bloc, /Facteurs clés du match/);
+  assert.match(bloc, /Repos court \(Inter\)/);
+  assert.match(bloc, /Lautaro Martínez/);
+  assert.match(bloc, /42/);
+});

@@ -36,9 +36,10 @@ function contenuFiche({ m, f, clubs }) {
     : ["1H", "2H"].includes(f.st) ? minuteTexte(t) : f.st === "P" ? "tirs au but" : f.st === "ET" ? "prolongation" : "interrompu";
   // minute de jeu d'arrivée de la courbe : la pause à 45, la fin à 90 (les prolongations ne sont pas modélisées)
   const jusqua = fini || ["ET", "BT", "P"].includes(f.st) ? 90 : f.st === "HT" ? 45 : Math.min(90, t.base ?? 0);
+  const badge = typeof badgeConfiance === "function" ? badgeConfiance(m) : "";
   let html = `<header class="fiche-tete"><h2 id="fiche-titre"><span class="club">${ecusson(dom)}${esc(dom.nom)}</span>
       <span class="fiche-score">${nombre(g[0])} - ${nombre(g[1])}</span><span class="club">${ecusson(ext)}${esc(ext.nom)}</span></h2>
-    <p class="fiche-etat">${fini ? "" : `<i class="pastille" aria-hidden="true"></i>`}${esc(etat)}</p></header>`;
+    <p class="fiche-etat">${fini ? "" : `<i class="pastille" aria-hidden="true"></i>`}${esc(etat)}${badge ? ` ${badge}` : ""}</p></header>`;
 
   const ev = chronologieDe(f, t.base);
   if (m.lam && D.params) {
@@ -74,6 +75,10 @@ function contenuFiche({ m, f, clubs }) {
   } else {
     html += `<p class="note">${D.params ? "Les buts attendus de ce match ne sont pas publiés : la courbe est indisponible." : "Le modèle du direct n'a pas pu être chargé : la courbe est indisponible."}</p>`;
   }
+
+  const stats = typeof blocStatsGrille === "function" ? blocStatsGrille(m) : "";
+  if (stats) html += `<section aria-labelledby="fiche-h-grille"><h3 id="fiche-h-grille">Indicateurs avant-match (grille des scores)</h3>${stats}</section>`;
+  if (typeof blocFacteurs === "function") html += blocFacteurs(m, clubs);
 
   const suivre = `<div class="fiche-clubs">${Favoris_bouton(m.home, dom.nom)}${Favoris_bouton(m.away, ext.nom)}</div>`;
   const aller = FICHE.lien ? `<a class="lien-match" href="${esc(FICHE.lien)}">Pronostic d'avant-match et face-à-face</a>`

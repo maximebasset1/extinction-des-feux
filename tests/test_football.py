@@ -178,3 +178,110 @@ def test_journal_summary_aggregates_rps_market_habits_and_favourites():
     assert s["par_competition"][1]["rps_marche"] is not None
     empty = JR.summary([], habits, {}, pending_count=4)
     assert empty == {"matchs": 0, "en_attente": 4, "par_competition": []}
+
+
+def test_double_horizon_captures_recent_form_without_future_leak():
+    from football import joint as J
+    rng = np.random.default_rng(7)
+    d0 = pd.Timestamp("2025-08-01")
+    teams = ["FRA:A", "FRA:B", "FRA:C", "FRA:D"]
+    rows = []
+    for w in range(30):
+        dt = d0 + pd.Timedelta(weeks=w)
+        # Sur les 4 dernières semaines, FRA:A marque beaucoup (série de forme)
+        hg_a = 4 if w >= 26 else int(rng.poisson(1.2))
+        rows.append((dt, "FRA:A", "FRA:B", hg_a, 1, "F1", False, False))
+        rows.append((dt, "FRA:C", "FRA:D", 1, 1, "F1", False, False))
+    m = pd.DataFrame(rows, columns=["date", "home", "away", "hg", "ag", "league", "is_cup", "neutral"])
+    m["hst"] = m["ast"] = np.nan
+    cutoff = d0 + pd.Timedelta(weeks=29)
+    fit1 = J.fit(m, cutoff, 0.002, 0.0, 0.3)
+    m2 = m.copy()
+    m2.loc[m2["date"] >= cutoff, ["hg", "ag"]] = 9
+    fit2 = J.fit(m2, cutoff, 0.002, 0.0, 0.3)
+    assert np.allclose(fit1["att"], fit2["att"]) and np.allclose(fit1["def"], fit2["def"])
+    assert fit1["form_att"][fit1["teams"]["FRA:A"]] > 0.01
+
+
+def test_rest_days_and_last_match_info_are_causal():
+    from football import joint as J
+    m = pd.DataFrame([
+        {"date": pd.Timestamp("2026-11-18"), "home": "FRA:A", "away": "GER:B", "hg": 2, "ag": 1, "league": "LDC"},
+        {"date": pd.Timestamp("2026-11-21"), "home": "FRA:A", "away": "FRA:C", "hg": 1, "ag": 0, "league": "F1"},
+    ])
+    r = J.rest_days(m)
+    assert r.loc[0, "repos_dom"] == 14.0
+    assert r.loc[1, "repos_dom"] == 3.0 and r.loc[1, "repos_ext"] == 14.0
+    info = J.last_match_info(m, pd.Timestamp("2026-11-21"))
+    assert info["FRA:A"] == (pd.Timestamp("2026-11-18"), "LDC")
+    assert "FRA:C" not in info
+
+
+def test_confidence_label_uses_volatility_probability_and_new_coach():
+    from football import joint_backtest as JB
+    assert JB.confidence_label([0.65, 0.20, 0.15], 1.05, 1.10, vol_thresh=1.237) == "elevee"
+    assert JB.confidence_label([0.42, 0.30, 0.28], 1.05, 1.10, vol_thresh=1.237) == "indecis"
+    assert JB.confidence_label([0.65, 0.20, 0.15], 1.30, 1.25, vol_thresh=1.237) == "imprevisible"
+    assert JB.confidence_label([0.58, 0.24, 0.18], 1.05, 1.10, vol_thresh=1.237, new_coach=True) == "imprevisible"
+
+
+def test_context_scorers_adjustments_and_api_budget(tmp_path, monkeypatch):
+    from football import context as CTX
+    from football import sources as SRC
+
+    assert CTX.same_player("Kylian Mbappé", "K. Mbappé")
+    assert not CTX.same_player("Kylian Mbappé", "Ousmane Dembélé")
+
+    scorers_map = {"FRA:Paris SG": [
+        {"nom": "Ousmane Dembélé", "buts": 10, "matchs": 12, "penalties": 1},
+        {"nom": "Bradley Barcola", "buts": 7, "matchs": 12, "penalties": 0},
+        {"nom": "Vitinha", "buts": 4, "matchs": 12, "penalties": 1},
+    ]}
+    # Dembélé absent -> Barcola et Vitinha ressortent (2 buteurs max, probas Poisson valides)
+    buts = CTX.probable_scorers("FRA:Paris SG", 2.0, scorers_map, {"FRA:Paris SG": 30}, absent_names=["O. Dembélé"])
+    assert [b["nom"] for b in buts] == ["Bradley Barcola", "Vitinha"]
+    assert all(0.05 <= b["p"] < 1.0 for b in buts)
+
+    # Ajustements bornés et facteurs clés
+    adj = CTX.apply_context_adjustments(
+        2.0, 1.0, "FRA:Paris SG", "FRA:Lyon", "Paris Saint-Germain", "Lyon",
+        [{"nom": "O. Dembélé", "statut": "absent"}, {"nom": "Marquinhos", "statut": "absent"},
+         {"nom": "Hakimi", "statut": "absent"}, {"nom": "Mendes", "statut": "absent"}],
+        [], {"nom": "Coach A", "recent": False}, {"nom": "Coach B", "recent": True},
+        scorers_map, {"FRA:Paris SG": 30, "FRA:Lyon": 18},
+        rest_h=3.0, rest_a=7.0, rest_comp_h="Ligue des champions", rest_comp_a="Ligue 1",
+    )
+    assert 2.0 * (1 + CTX.MAX_LAM_MALUS) - 1e-9 <= adj["lh"] < 2.0
+    assert 1.0 <= adj["la"] <= 1.0 * (1 + CTX.MAX_LAM_BONUS) + 1e-9
+    assert adj["variance_temp"] == CTX.COACH_VARIANCE_TEMP and adj["new_coach"]
+    assert any("Repos court" in f and "Ligue des champions" in f for f in adj["facteurs"])
+    assert any("Nouvel entraîneur" in f for f in adj["facteurs"])
+    assert any("Absents notables" in f for f in adj["facteurs"])
+
+    # Respect strict de la réserve direct (<= 25 -> arrêt immédiat) et du plafond 15 req/j
+    calls = []
+    def fake_get(url, headers=None, tries=2):
+        calls.append(url)
+        return {"errors": [], "response": []}, {"x-ratelimit-requests-remaining": str(CTX.APIFOOT_RESERVE_DIRECT)}
+    monkeypatch.setattr(SRC, "_get_json", fake_get)
+    now = datetime(2026, 11, 24, 12, tzinfo=timezone.utc)
+    idx = SRC.TeamIndex(["FRA:Paris SG"])
+    CTX.fetch_injuries(["2026-11-24", "2026-11-25", "2026-11-26"], "k", tmp_path, now, idx)
+    # 1er appel ramène restant == APIFOOT_RESERVE_DIRECT -> les 2 dates suivantes sont sautées
+    assert len(calls) == 1
+    # Plafond dur 15 req/jour
+    SRC.write_json(tmp_path / "apifoot_quota.json", {"jour": "2026-11-24", "appels": CTX.APIFOOT_MAX_JOUR, "restant": 80})
+    CTX.fetch_coaches(["FRA:Paris SG"], {"FRA:Paris SG": 85}, "k", tmp_path, now)
+    assert len(calls) == 1
+
+
+def test_predict_includes_btts_and_confidence():
+    from football import pipeline as P
+    fit = {"teams": {"FRA:A": 0, "FRA:B": 1}, "att": np.array([0.3, -0.1]), "def": np.array([0.1, -0.2]),
+           "league": {"FRA:A": "F1", "FRA:B": "F1"}, "league_level": {"F1": (0.0, 0.0)},
+           "mu": 0.2, "home": 0.25, "home_cup": 0.2, "converged": True}
+    bt = {"a": 0.3, "b": 0.8, "volatility": {"FRA:A": 1.0, "FRA:B": 1.05}, "vol_thresh": 1.237}
+    r = {"competition": "F1", "home": "FRA:A", "away": "FRA:B", "neutral": False, "oh": np.nan, "od": np.nan, "oa": np.nan, "jour": "2026-11-25"}
+    pr = P.predict(fit, r, bt)
+    assert 0.0 < pr["btts"] < 1.0 and 0.0 < pr["plus25"] < 1.0
+    assert pr["confiance"] in ("elevee", "indecis", "imprevisible")

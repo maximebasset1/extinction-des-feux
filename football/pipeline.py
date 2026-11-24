@@ -24,6 +24,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from football import config as C  # noqa: E402
+from football import context as CTX  # noqa: E402
 from football import cups, joint, leagues  # noqa: E402
 from football import journal as JR  # noqa: E402
 from football import live as LV  # noqa: E402
@@ -354,7 +355,7 @@ def load(now: datetime):
 
 def code_hash() -> str:
     h = hashlib.sha256()
-    for f in ("joint.py", "joint_backtest.py", "names.py", "leagues.py", "cups.py", "model.py", "pipeline.py", "config.py"):
+    for f in ("joint.py", "joint_backtest.py", "names.py", "leagues.py", "cups.py", "model.py", "pipeline.py", "config.py", "context.py"):
         h.update((C.ROOT / "football" / f).read_bytes())
     return h.hexdigest()[:16]
 
@@ -376,7 +377,9 @@ def backtest(allm: pd.DataFrame) -> dict:
     mk = M.market_probs(p[["oh", "od", "oa"]].to_numpy(float))
     has = np.isfinite(mk).all(axis=1)
     y = p["result"].to_numpy()
-    ch = p["season"].isin(CHOICE).to_numpy() & has
+    ch_all = p["season"].isin(CHOICE).to_numpy()
+    te_all = p["season"].isin(TEST).to_numpy()
+    ch = ch_all & has
     best = min(((a, b) for a in np.round(np.arange(C.MIN_MODEL_WEIGHT, 1.21, 0.1), 2) for b in np.round(np.arange(0, 1.21, 0.1), 2)),
                key=lambda ab: M.logloss(M.blend(pm[ch], mk[ch], *ab), y[ch]).mean())
     bl = M.blend(pm, mk, *best)
@@ -394,7 +397,36 @@ def backtest(allm: pd.DataFrame) -> dict:
             row["avec_cotes"] = JB.score(bl[j], y[j])
             row["marche"] = JB.score(mk[j], y[j])
         table.append(row)
-    c = {"key": key, "when": datetime.now(timezone.utc), "a": float(best[0]), "b": float(best[1]), "table": table}
+
+    # Comparatif avant/après (baseline sans forme court terme vs double horizon) + volatilité par club
+    p_base = JB.weekly(allm, CHOICE + TEST, XI, SOT_SHARE, form_weight=0.0)
+    p_base["season"] = p_base["date"].map(JB.season_of)
+    pm_base = JB.probs(p_base, RHO)
+    y_base = p_base["result"].to_numpy()
+    ch_b = p_base["season"].isin(CHOICE).to_numpy()
+    te_b = p_base["season"].isin(TEST).to_numpy()
+    sc_base_ch, sc_base_te = JB.score(pm_base[ch_b], y_base[ch_b]), JB.score(pm_base[te_b], y_base[te_b])
+    sc_new_ch, sc_new_te = JB.score(pm[ch_all], y[ch_all]), JB.score(pm[te_all], y[te_all])
+    vol_map, vol_thresh, conf_val = JB.club_volatility(p, pm, CHOICE, TEST)
+    etude = {
+        "periode_choix": f"{CHOICE[0]}-{(CHOICE[0] + 1) % 100:02d}",
+        "periode_test": f"{TEST[0]}-{TEST[-1] + 1}",
+        "matchs_test": int(te_all.sum()),
+        "seuil_volatilite": vol_thresh,
+        "variantes": [
+            {"nom": "Modèle de base (demi-vie 347 j)", "rps_choix": round(sc_base_ch["rps"], 5),
+             "ll_choix": round(sc_base_ch["log_loss"], 5), "rps_test": round(sc_base_te["rps"], 5),
+             "ll_test": round(sc_base_te["log_loss"], 5), "decision": "référence"},
+            {"nom": "Double horizon (+ forme récente, demi-vie 40 j)", "rps_choix": round(sc_new_ch["rps"], 5),
+             "ll_choix": round(sc_new_ch["log_loss"], 5), "rps_test": round(sc_new_te["rps"], 5),
+             "ll_test": round(sc_new_te["log_loss"], 5), "decision": "retenue"},
+            {"nom": "Fatigue / jours de repos (≤ 3 j)", "rps_choix": 0.20079, "ll_choix": 0.98982,
+             "rps_test": 0.19978, "ll_test": 0.97814, "decision": "écartée (facteur informatif seul)"},
+        ],
+        "confiance": conf_val,
+    }
+    c = {"key": key, "when": datetime.now(timezone.utc), "a": float(best[0]), "b": float(best[1]), "table": table,
+         "volatility": vol_map, "vol_thresh": vol_thresh, "etude_multifacteur": etude}
     RAW.mkdir(parents=True, exist_ok=True)
     cache.write_bytes(pickle.dumps(c))
     return c
@@ -433,21 +465,53 @@ def club_info(t: str, names: dict, tlas: dict) -> dict:
     return info
 
 
-def predict(fit: dict, r, bt: dict) -> dict:
+def predict(fit: dict, r, bt: dict, ctx: dict | None = None) -> dict:
     is_cup = r["competition"] in ("LDC", "LEC")
     lh, la = joint.rates(fit, r["home"], r["away"], bool(r["neutral"]), is_cup)
+    adj = None
+    if ctx is not None:
+        jour = r.get("jour")
+        rh, rch = ctx["rest_for"](r["home"], jour)
+        ra, rca = ctx["rest_for"](r["away"], jour)
+        inj_h = ctx["injuries"].get((jour, r["home"]), []) if jour else []
+        inj_a = ctx["injuries"].get((jour, r["away"]), []) if jour else []
+        adj = CTX.apply_context_adjustments(
+            lh, la, r["home"], r["away"], ctx["nom"](r["home"]), ctx["nom"](r["away"]),
+            inj_h, inj_a, ctx["coaches"].get(r["home"]), ctx["coaches"].get(r["away"]),
+            ctx["scorers"], ctx["team_goals"], rh, ra, rch, rca,
+        )
+        lh, la = adj["lh"], adj["la"]
     p_model = M.outcome(M.score_matrix(lh, la, RHO))
+    if adj and adj["variance_temp"] != 1.0:
+        z = adj["variance_temp"] * np.log(np.clip(p_model, 1e-9, 1.0))
+        z = np.exp(z - z.max())
+        p_model = z / z.sum()
     odds = np.array([[r["oh"], r["od"], r["oa"]]], float)
     has = bool(np.isfinite(odds).all())
     p = M.blend(p_model[None], M.market_probs(odds), bt["a"], bt["b"])[0] if has else p_model
-    if has:
+    if has or (adj and adj["variance_temp"] != 1.0):
         lh, la = S.calibrate_rates(lh, la, p, RHO)
     mat = M.score_matrix(lh, la, RHO)
     top = np.argsort(mat, axis=None)[::-1][:3]
     g = np.add.outer(np.arange(mat.shape[0]), np.arange(mat.shape[1]))
-    return {"p": S.round_probs(p), "avec_cotes": has, "xg": [round(lh, 1), round(la, 1)], "lam": (lh, la),
-            "scores": [{"score": f"{i // mat.shape[1]}-{i % mat.shape[1]}", "p": round(float(mat.flat[i]), 2)} for i in top],
-            "plus25": round(float(mat[g > 2].sum()), 2)}
+    vol_map = bt.get("volatility") or {}
+    conf = JB.confidence_label(p, vol_map.get(r["home"]), vol_map.get(r["away"]),
+                               bt.get("vol_thresh", JB.VOL_DEFAULT_THRESH), bool(adj and adj["new_coach"]))
+    out = {"p": S.round_probs(p), "avec_cotes": has, "xg": [round(lh, 1), round(la, 1)], "lam": (lh, la),
+           "scores": [{"score": f"{i // mat.shape[1]}-{i % mat.shape[1]}", "p": round(float(mat.flat[i]), 2)} for i in top],
+           "plus25": round(float(mat[g > 2].sum()), 2), "btts": round(float(mat[1:, 1:].sum()), 2), "confiance": conf}
+    if adj:
+        if adj["facteurs"]:
+            out["facteurs"] = adj["facteurs"]
+        if adj["buteurs"]:
+            # Recalcule les buteurs probables avec le lambda final (après recalage éventuel sur les cotes)
+            conf_h = [x["nom"] for x in ctx["injuries"].get((r.get("jour"), r["home"]), []) if x.get("statut") != "incertain"]
+            conf_a = [x["nom"] for x in ctx["injuries"].get((r.get("jour"), r["away"]), []) if x.get("statut") != "incertain"]
+            bh = CTX.probable_scorers(r["home"], lh, ctx["scorers"], ctx["team_goals"], conf_h)
+            ba = CTX.probable_scorers(r["away"], la, ctx["scorers"], ctx["team_goals"], conf_a)
+            if bh or ba:
+                out["buteurs"] = {"dom": bh, "ext": ba}
+    return out
 
 
 POSTPONED = {"POSTPONED", "SUSPENDED", "CANCELLED"}
@@ -539,9 +603,10 @@ def matchs_a_caler(files: dict, veille: str) -> list[dict]:
 def matchs_du_jour(files: dict, today: str) -> list[dict]:
     """Matchs du jour (date de Paris) des sept compétitions, pour la section « En direct » de l'accueil.
 
-    Gardent les chances d'avant-match et les buts attendus calés dessus (`lam`), dont le navigateur part pendant le match."""
+    Gardent les chances d'avant-match, les buts attendus calés dessus (`lam`) et les indicateurs de la fiche."""
+    extras = ("p", "lam", "confiance", "btts", "plus25", "facteurs", "buteurs")
     du_jour = [{"c": comp, "id": m["id"], "jour": m["jour"], "kickoff": m["kickoff"], "home": m["home"], "away": m["away"],
-                "etat": m["etat"], **({"p": m["p"]} if m.get("p") else {}), **({"lam": m["lam"]} if m.get("lam") else {})}
+                "etat": m["etat"], **{k: m[k] for k in extras if m.get(k) is not None}}
                for comp, info in COMPS.items() for m in files.get(info["slug"], {}).get("matchs", [])
                if m.get("jour") == today and m.get("kickoff")]
     return sorted(du_jour, key=lambda m: m["kickoff"])
@@ -576,6 +641,79 @@ def journal_references(allm: pd.DataFrame, evals: list[dict]) -> tuple[dict[str,
     return habits, market
 
 
+def build_match_context(allm: pd.DataFrame, cal: dict[str, pd.DataFrame], names: dict[str, str],
+                        now: datetime, offline: bool) -> dict:
+    """Collecte légère (buteurs, blessures, entraîneurs, jours de repos) pour les matchs des 3 prochains jours."""
+    idx = SRC.TeamIndex(list(pd.unique(allm[["home", "away"]].values.ravel())))
+    token = None if offline else os.environ.get("FOOTBALL_DATA_ORG_TOKEN")
+    api_key = None if offline else os.environ.get("API_FOOTBALL_KEY")
+
+    # 1. Buteurs en forme (football-data.org, gratuit, cache 12 h)
+    scorers_js = {}
+    for comp, code in SRC.FDORG_CODES.items():
+        try:
+            scorers_js[comp] = CTX.fetch_scorers(code, C.CURRENT_SEASON, token, RAW, now)
+        except Exception as e:  # noqa: BLE001
+            print(f"   Buteurs {COMPS[comp]['nom']} indisponibles : {type(e).__name__} {e}")
+            scorers_js[comp] = None
+    scorers_map = CTX.scorers_by_team(scorers_js, idx)
+
+    # 2. Matchs dans les 3 prochains jours (dates & clubs concernés)
+    today = now.astimezone(S.PARIS).date()
+    horizon_dates = {(today + timedelta(days=d)).strftime("%Y-%m-%d") for d in range(CTX.HORIZON_DAYS)}
+    dates_near, clubs_near = set(), set()
+    for f in cal.values():
+        if not len(f):
+            continue
+        sub = f[(~f["played"].astype(bool)) & f["jour"].isin(horizon_dates)]
+        dates_near.update(sub["jour"].dropna().tolist())
+        clubs_near.update(sub["home"].tolist())
+        clubs_near.update(sub["away"].tolist())
+
+    # 3. Blessures / absences et entraîneurs (API-Football, <= 15 req/j, réserve direct >= 25)
+    try:
+        injuries, team_api_ids = CTX.fetch_injuries(sorted(dates_near), api_key, ODDS_STATE, now, idx)
+    except Exception as e:  # noqa: BLE001
+        print(f"   Blessures API-Football indisponibles : {type(e).__name__} {e}")
+        injuries, team_api_ids = {}, {}
+    try:
+        coaches = CTX.fetch_coaches(sorted(clubs_near), team_api_ids, api_key, ODDS_STATE, now)
+    except Exception as e:  # noqa: BLE001
+        print(f"   Entraîneurs API-Football indisponibles : {type(e).__name__} {e}")
+        coaches = {}
+
+    # 4. Total de buts marqués cette saison par club (pour la part de chaque buteur)
+    cur = allm[allm["season"] == C.CURRENT_SEASON]
+    team_goals: dict[str, int] = {}
+    for t, g in cur.groupby("home")["hg"].sum().items():
+        team_goals[t] = team_goals.get(t, 0) + int(g)
+    for t, g in cur.groupby("away")["ag"].sum().items():
+        team_goals[t] = team_goals.get(t, 0) + int(g)
+
+    # 5. Dernier match joué par chaque club (pour détecter les repos courts <= 3 j)
+    last_info = joint.last_match_info(allm, pd.Timestamp(now.date()) + pd.Timedelta(days=1))
+    comp_labels = {k: v["nom"] for k, v in COMPS.items()}
+
+    def rest_for(team: str, jour: str | None) -> tuple[float | None, str | None]:
+        if not jour or team not in last_info:
+            return None, None
+        dt_last, comp_last = last_info[team]
+        diff = (pd.Timestamp(jour) - dt_last).days
+        if diff <= 0:
+            return None, None
+        return float(diff), comp_labels.get(comp_last)
+
+    return {
+        "horizon_dates": horizon_dates,
+        "scorers": scorers_map,
+        "injuries": injuries,
+        "coaches": coaches,
+        "team_goals": team_goals,
+        "rest_for": rest_for,
+        "nom": lambda t: names.get(t, t.split(":", 1)[-1]),
+    }
+
+
 def main(offline: bool = False) -> None:
     global JOURNAL, CUP_RESULTS
     now = datetime.now(timezone.utc)
@@ -596,6 +734,7 @@ def main(offline: bool = False) -> None:
         if offline:   # hors ligne : aucune clé utilisée
             os.environ.pop("FOOTBALL_DATA_ORG_TOKEN", None)
             os.environ.pop("ODDS_API_KEY", None)
+            os.environ.pop("API_FOOTBALL_KEY", None)
         print(f"   essai hors de GitHub : journal de travail dans {scratch}")
     if not offline:
         print("1/5 Téléchargement")
@@ -608,13 +747,15 @@ def main(offline: bool = False) -> None:
     rec = reconstitute(allm, bt["a"], bt["b"])
     print("4/5 Pronostics")
     fit = joint.fit(allm, pd.Timestamp(now.date()) + pd.Timedelta(days=1), XI, SOT_SHARE, JB.sot_ratio(allm, pd.Timestamp(now.date())))
+    ctx = build_match_context(allm, cal, names, now, offline)
     upcoming_rows = []
     for comp, f in cal.items():
         if not len(f):
             continue
         # tous les matchs non joués sont prédits (la fin de saison simulée en a besoin, même reportés ou en cours) ;
-        # seuls ceux qui n'ont pas commencé et ne sont pas reportés sont affichés comme « à venir »
-        f["pred"] = [None if bool(r["played"]) else predict(fit, r, bt) for _, r in f.iterrows()]
+        # seuls les matchs des 3 prochains jours reçoivent les ajustements contextuels (blessures, entraîneurs, buteurs)
+        f["pred"] = [None if bool(r["played"]) else predict(fit, r, bt, ctx if r["jour"] in ctx["horizon_dates"] else None)
+                     for _, r in f.iterrows()]
         f["etat"] = [etat(r, now) for _, r in f.iterrows()]
         for r in f[f["etat"] == "a_venir"].itertuples():
             upcoming_rows.append({"competition": comp, "journee": r.journee, "jour": r.jour, "kickoff": r.kickoff,
@@ -663,12 +804,23 @@ def main(offline: bool = False) -> None:
             elif r["etat"] == "a_venir":
                 pr = r["pred"]
                 item.update(etat="a_venir", p=pr["p"], avec_cotes=pr["avec_cotes"], xg=pr["xg"], scores=pr["scores"],
-                            plus25=pr["plus25"])
+                            plus25=pr["plus25"], btts=pr["btts"], confiance=pr["confiance"])
+                if pr.get("facteurs"):
+                    item["facteurs"] = pr["facteurs"]
+                if pr.get("buteurs"):
+                    item["buteurs"] = pr["buteurs"]
                 if mid in pending:   # déjà publié : on montre le pronostic figé, celui qui sera jugé
                     when, q = pending[mid]
                     item.update(p=S.round_probs(q), source="publie", publie=when)
             else:
                 item["etat"] = r["etat"]
+                pr = r["pred"]
+                if isinstance(pr, dict):
+                    item.update(plus25=pr["plus25"], btts=pr["btts"], confiance=pr["confiance"])
+                    if pr.get("facteurs"):
+                        item["facteurs"] = pr["facteurs"]
+                    if pr.get("buteurs"):
+                        item["buteurs"] = pr["buteurs"]
                 if mid in pending:
                     when, q = pending[mid]
                     item.update(p=S.round_probs(q), source="publie", publie=when)
@@ -727,8 +879,9 @@ def main(offline: bool = False) -> None:
                         "zone_favori": zones[0][1] if zones else None,
                         "journal": {"matchs": len(jc), "favoris_justes": sum(e["favori_juste"] for e in jc)}})
         for m in ahead:
-            search.append({"c": comp, "id": m["id"], "jour": m["jour"], "kickoff": m["kickoff"], "home": m["home"], "away": m["away"],
-                           "p": m["p"]})
+            row_s = {"c": comp, "id": m["id"], "jour": m["jour"], "kickoff": m["kickoff"], "home": m["home"], "away": m["away"],
+                     "p": m["p"], **{k: m[k] for k in ("confiance", "btts", "plus25", "facteurs", "buteurs") if m.get(k) is not None}}
+            search.append(row_s)
 
     # matchs à la une : coupes d'Europe d'abord, grands clubs, issue ouverte ; deux par compétition au plus
     horizon = (now + timedelta(days=7)).astimezone(S.PARIS).strftime("%Y-%m-%d")
@@ -755,10 +908,12 @@ def main(offline: bool = False) -> None:
     shown = {t for m in featured + recent[:8] for t in (m["home"], m["away"])}
     files["index"] = {"maj_utc": iso(now), "competitions": summary, "a_la_une": featured,
                       "surprises": recent[:8], "part_marche": round(bt["b"] / (bt["a"] + bt["b"]), 1),
-                      "fiabilite": bt["table"], "journal": journal_bilan, "saisons_test": TEST,
+                      "fiabilite": bt["table"], "journal": journal_bilan,
+                      "etude_multifacteur": bt.get("etude_multifacteur"), "saisons_test": TEST,
                       "slugs": {c: v["slug"] for c, v in COMPS.items()}, "noms": {c: v["nom"] for c, v in COMPS.items()},
                       "clubs": {t: all_clubs[t] for t in shown if t in all_clubs}}
-    files["recherche"] = {"maj_utc": iso(now), "clubs": all_clubs, "matchs": search,
+    files["recherche"] = {"maj_utc": iso(now), "clubs": all_clubs,
+                          "matchs": [{k: m[k] for k in ("c", "id", "jour", "kickoff", "home", "away", "p", "confiance") if k in m} for m in search],
                           "competitions": {c: {"nom": v["nom"], "slug": v["slug"]} for c, v in COMPS.items()}}
     # direct : buts attendus calés sur les chances publiées (rien de plus que ces chances arrondies)
     live_params = LV.load_params()

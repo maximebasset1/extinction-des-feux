@@ -10,6 +10,7 @@ et gérer les ligues de pronostics entre amis (`/ligues`).
 | `points.js` | barème ; module ES sans dépendance, utilisable aussi par le site |
 | `programme.js`, `publier-programme.mjs` | programme des matchs rangé dans KV (clé `programme`) |
 | `schema.sql` | tables D1 `ligues`, `membres`, `pronos` |
+| `migrations.sql` | colonnes ajoutées après la création de la base |
 
 ## Programme des matchs
 
@@ -42,12 +43,13 @@ Le code de la ligue suffit pour consulter et s'inscrire : il se partage entre am
 | `POST /ligues/:code/rejoindre` | `{ pseudo }` | 201 `{ membre_id, jeton }` |
 | `POST /ligues/:code/pronos` | `{ match_id, buts_dom, buts_ext }` + `Authorization: Bearer <jeton>` | 200 `{ match_id, buts_dom, buts_ext, coup_envoi, maj_le }` (refuse `400` si la compétition du match n'appartient pas à la ligue) |
 | `GET /ligues/:code` | `Authorization` facultatif (sans lui, tous les pronostics à venir sont masqués) | 200, voir plus bas |
+| `DELETE /ligues/:code` | `Authorization: Bearer <jeton du créateur>` | 200 `{ code, supprimee: true }` : la ligue, ses membres et ses pronostics sont effacés définitivement |
 
 `nom` : 3 à 40 caractères ; `pseudo` : 2 à 20, unique dans la ligue sans tenir compte de la casse ; scores : entiers de 0 à 20 ;
 30 joueurs au plus par ligue.
 
 Codes d'erreur : `corps_invalide`, `nom_invalide`, `pseudo_invalide`, `competitions_invalides`, `competition_non_autorisee`, `match_invalide`, `score_invalide` (400) ;
-`jeton_manquant`, `jeton_invalide` (401) ; `ligue_inconnue`, `match_inconnu`, `route_inconnue` (404) ;
+`jeton_manquant`, `jeton_invalide` (401) ; `pas_createur` (403) ; `ligue_inconnue`, `match_inconnu`, `route_inconnue` (404) ;
 `methode_non_permise` (405) ; `pseudo_pris`, `ligue_complete`, `match_verrouille` (409) ; `corps_trop_long` (413) ;
 `erreur_interne` (500) ; `ligues_indisponibles`, `programme_indisponible` (503, ce dernier aussi pour un pronostic quand le
 programme a plus de 48 h).
@@ -59,6 +61,7 @@ programme a plus de 48 h).
 | `code`, `nom`, `cree_le` | la ligue |
 | `competitions[]` | codes canoniques des compétitions jouées par la ligue (`E0`, `D1`, `SP1`, `I1`, `F1`, `LDC`, `LEC` ; toutes par défaut) |
 | `moi` | identifiant du joueur du jeton, ou `null` |
+| `createur_id` | identifiant du créateur de la ligue (ajouté le 2026-11-25) |
 | `programme_maj_utc` | date du programme utilisé |
 | `membres[]` | `id`, `pseudo`, `est_bot`, `pronos[]` |
 | `pronos[]` | visible : `match_id`, `buts_dom`, `buts_ext` ; match jugé : en plus `points`, `bonne_issue`, `bon_ecart`, `score_exact`, `coup_de_poker`. Caché (autre joueur, match pas commencé) : `match_id`, `masque: true`. `hors_delai: true` : saisi après le coup d'envoi finalement retenu, ne compte pas |
@@ -70,6 +73,6 @@ Ses pronostics ne sont pas masqués (ce score est déjà public sur le site).
 
 ## Déploiement
 
-`relais.yml` crée la base D1 `extinction-ligues` au premier déploiement et rejoue `schema.sql` à chaque fois.
+`relais.yml` crée la base D1 `extinction-ligues` au premier déploiement, puis rejoue `schema.sql` et `migrations.sql` à chaque fois.
 Le jeton `CLOUDFLARE_API_TOKEN` doit avoir les droits « Workers Scripts : modification », « Workers KV Storage : modification »
 et **« D1 : modification »**.

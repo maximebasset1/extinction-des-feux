@@ -518,12 +518,14 @@ test("routes : pré-requête CORS, méthodes et chemins non prévus", async (t) 
     const r = await w.appel("OPTIONS", chemin);
     assert.ok(r.statut === 200 || r.statut === 204);
     assert.equal(r.entetes.get("access-control-allow-origin"), "*");
-    assert.equal(r.entetes.get("access-control-allow-methods"), "GET, POST, OPTIONS");
+    assert.equal(r.entetes.get("access-control-allow-methods"), "GET, POST, DELETE, OPTIONS");
     assert.equal(r.entetes.get("access-control-allow-headers"), "authorization, content-type");
   }
   assert.equal((await w.appel("OPTIONS", "/direct")).entetes.get("access-control-allow-methods"), "GET");
   assert.equal((await w.appel("GET", "/ligues")).statut, 405);
-  assert.equal((await w.appel("DELETE", "/ligues/EDF-742")).statut, 405);
+  assert.equal((await w.appel("PUT", "/ligues/EDF-742")).statut, 405);
+  assert.equal((await w.appel("DELETE", "/ligues")).statut, 405);
+  assert.equal((await w.appel("DELETE", "/ligues/EDF-742/pronos")).statut, 405);
   assert.equal((await w.appel("GET", "/ligues/EDF-742/pronos")).statut, 405);
   assert.equal((await w.appel("GET", "/ligues/EDF-742/autre")).statut, 404);
   assert.equal((await w.appel("POST", "/direct")).statut, 405);
@@ -550,7 +552,7 @@ test("isolation : base D1 absente ou en panne, /direct répond toujours et rien 
 import {
   normaliserCode, estCodeValide, lireScoreSaisi, estVerrouille,
   codeDepuisUrl, lienInvitation, competitionsActives, chargerStockage, enregistrerLigue,
-  selectionnerLigue, retirerLigue, calculerClassementLive, filtrerMatchsPronosticables,
+  selectionnerLigue, retirerLigue, calculerClassementLive, filtrerMatchsPronosticables, estCreateur,
 } from "../site/assets/ligues.js";
 import { calculerPoints as calculerPointsSite } from "../site/assets/points.js";
 
@@ -741,4 +743,79 @@ test("frontend ligues : competitionsActives et filtrage selon les compétitions 
   const live = calculerClassementLive(ligue, new Map([["E0|ENG:Arsenal|ENG:Chelsea|2026-11-26", { st: "2H", g: [2, 0] }]]));
   assert.equal(live.nbMatchsLive, 0);
   assert.equal(live.lignes[0].points_total, 0);
+});
+
+// ---------------------------------------------------------------- suppression de ligue et créateur
+
+const lignesDe = (w, table, code) => w.DB.base.prepare(
+  `SELECT COUNT(*) AS n FROM ${table} WHERE ${table === "ligues" ? "code" : "ligue_code"} = ?`).get(code).n;
+
+test("créateur : enregistré à la création et indiqué par la consultation", async (t) => {
+  const w = await ligueADeux(t);
+  assert.equal(w.DB.base.prepare("SELECT createur_id FROM ligues WHERE code = ?").get(w.code).createur_id, w.ana.membre_id);
+  const vue = (await w.appel("GET", `/ligues/${w.code}`, { jeton: w.ben.jeton })).json;
+  assert.equal(vue.createur_id, w.ana.membre_id);
+  assert.equal(vue.moi, w.ben.membre_id);
+});
+
+test("supprimer : refusé sans le jeton du créateur, et rien n'est effacé", async (t) => {
+  const w = await ligueADeux(t);
+  await w.pronostiquer(w.code, w.ana.jeton, M1, 1, 0);
+  const autre = await w.creer("Zoé");
+
+  const sans = await w.appel("DELETE", `/ligues/${w.code}`);
+  assert.deepEqual([sans.statut, sans.json.erreur.code], [401, "jeton_manquant"]);
+  const faux = await w.appel("DELETE", `/ligues/${w.code}`, { jeton: "0".repeat(64) });
+  assert.deepEqual([faux.statut, faux.json.erreur.code], [401, "jeton_invalide"]);
+  // le créateur d'une autre ligue n'a aucun droit sur celle-ci
+  const voisin = await w.appel("DELETE", `/ligues/${w.code}`, { jeton: autre.jeton });
+  assert.deepEqual([voisin.statut, voisin.json.erreur.code], [401, "jeton_invalide"]);
+  const membre2 = await w.appel("DELETE", `/ligues/${w.code}`, { jeton: w.ben.jeton });
+  assert.deepEqual([membre2.statut, membre2.json.erreur.code], [403, "pas_createur"]);
+
+  assert.deepEqual(["ligues", "membres", "pronos"].map((x) => lignesDe(w, x, w.code)), [1, 3, 1]);
+});
+
+test("supprimer : le créateur efface la ligue, ses membres et ses pronostics, et eux seuls", async (t) => {
+  const w = await ligueADeux(t);
+  await w.pronostiquer(w.code, w.ana.jeton, M1, 1, 0);
+  await w.pronostiquer(w.code, w.ben.jeton, M2, 0, 3);
+  const autre = await w.creer("Zoé");
+  await w.pronostiquer(autre.code, autre.jeton, M1, 2, 2);
+
+  const r = await w.appel("DELETE", `/ligues/${w.code.toLowerCase()}`, { jeton: w.ana.jeton });
+  assert.equal(r.statut, 200);
+  assert.deepEqual(r.json, { code: w.code, supprimee: true });
+  assert.equal(r.entetes.get("access-control-allow-origin"), "*");
+  assert.deepEqual(["ligues", "membres", "pronos"].map((x) => lignesDe(w, x, w.code)), [0, 0, 0]);
+  assert.deepEqual(["ligues", "membres", "pronos"].map((x) => lignesDe(w, x, autre.code)), [1, 2, 1]);
+  assert.equal((await w.appel("GET", `/ligues/${w.code}`)).statut, 404);
+  assert.equal((await w.appel("DELETE", `/ligues/${w.code}`, { jeton: w.ana.jeton })).statut, 404);
+});
+
+test("migration : une base d'avant reçoit les colonnes, le créateur est retrouvé, et la rejouer ne casse rien", () => {
+  const base = new DatabaseSync(":memory:");
+  base.exec(`CREATE TABLE ligues (code TEXT PRIMARY KEY, nom TEXT NOT NULL, cree_le TEXT NOT NULL);
+    CREATE TABLE membres (id TEXT PRIMARY KEY, ligue_code TEXT NOT NULL, pseudo TEXT NOT NULL, pseudo_cle TEXT NOT NULL,
+      jeton_hash TEXT NOT NULL, est_bot INTEGER NOT NULL DEFAULT 0, cree_le TEXT NOT NULL);`);
+  base.exec(`INSERT INTO ligues VALUES ('ABC-123', 'Ancienne', '2026-11-20T10:00:00.000Z');
+    INSERT INTO membres VALUES ('bot', 'ABC-123', 'Bot IA', 'bot ia', '', 1, '2026-11-20T10:00:00.000Z');
+    INSERT INTO membres VALUES ('invite', 'ABC-123', 'Ben', 'ben', 'h2', 0, '2026-11-21T09:00:00.000Z');
+    INSERT INTO membres VALUES ('fondatrice', 'ABC-123', 'Ana', 'ana', 'h1', 0, '2026-11-20T10:00:00.000Z');`);
+  const migrations = readFileSync(new URL("../relais/migrations.sql", import.meta.url), "utf8")
+    .split(/\r?\n/).filter((l) => l.trim() && !l.startsWith("--"));
+  for (let passage = 0; passage < 2; passage++) {
+    for (const ordre of migrations) {
+      try { base.exec(ordre); } catch (error) { assert.match(error.message, /duplicate column name/); }
+    }
+  }
+  assert.deepEqual({ ...base.prepare("SELECT competitions, createur_id FROM ligues").get() },
+    { competitions: null, createur_id: "fondatrice" });
+});
+
+test("frontend ligues : le bouton de suppression est réservé au créateur", () => {
+  assert.equal(estCreateur({ moi: "a", createur_id: "a" }), true);
+  assert.equal(estCreateur({ moi: "b", createur_id: "a" }), false);
+  assert.equal(estCreateur({ moi: null, createur_id: null }), false);
+  assert.equal(estCreateur(null), false);
 });

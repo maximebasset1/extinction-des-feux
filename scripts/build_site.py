@@ -213,7 +213,7 @@ FOOT = """  <section class="titre-page">
       <p class="chapeau">Premier League, Bundesliga, Liga, Serie A, Ligue 1, Ligue des champions et Ligue Europa : les chances de chaque match à venir.</p>
       <div class="recherche">
         <label for="q">Chercher un club ou un match</label>
-        <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Lille, ou Lille Bayern" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
+        <input id="q" type="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
         <ul id="suggest" class="suggest" role="listbox" hidden></ul>
         <p class="club-favori" id="club-favori" hidden></p>
       </div>
@@ -271,7 +271,7 @@ LIVE = """  <section class="titre-page">
 LIGUES = """  <section class="titre-page">
     <div class="titre-in">
       <h1>Ligues de pronostics</h1>
-      <p class="chapeau">Crée une ligue entre amis, pronostique les scores avant le coup d'envoi et affronte le Bot IA sur les sept compétitions. Sans compte : ton accès reste dans ce navigateur.</p>
+      <p class="chapeau">Des pronostics de scores entre amis. Sans compte : l'accès est enregistré dans ce navigateur.</p>
       <div class="ligue-barre" id="ligue-barre" hidden>
         <label for="ligue-select">Ligue active</label>
         <select id="ligue-select"></select>
@@ -285,18 +285,17 @@ LIGUES = """  <section class="titre-page">
       <div class="ligue-entree-grille">
         <form class="carte ligue-form" id="form-creer" novalidate>
           <h2>Créer une ligue</h2>
-          <p class="note">Un code d'invitation est généré automatiquement et le Bot IA est inscrit d'office.</p>
           <div class="champ">
             <label for="c-nom">Nom de la ligue</label>
-            <input id="c-nom" name="nom" type="text" minlength="3" maxlength="40" required placeholder="Ex. Bureau du vendredi">
+            <input id="c-nom" name="nom" type="text" minlength="3" maxlength="40" required>
           </div>
           <div class="champ">
-            <label for="c-pseudo">Ton pseudo</label>
-            <input id="c-pseudo" name="pseudo" type="text" minlength="2" maxlength="20" required placeholder="Ex. Maxime">
+            <label for="c-pseudo">Pseudo</label>
+            <input id="c-pseudo" name="pseudo" type="text" minlength="2" maxlength="20" required>
           </div>
           <fieldset class="champ champ-comps">
             <div class="champ-comps-tete">
-              <legend>Compétitions de la ligue</legend>
+              <legend>Compétitions</legend>
               <div class="champ-comps-raccourcis">
                 <button type="button" class="btn-lien" id="btn-comp-toutes">Tout sélectionner</button>
                 <button type="button" class="btn-lien" id="btn-comp-aucune">Aucune</button>
@@ -317,15 +316,14 @@ LIGUES = """  <section class="titre-page">
         </form>
 
         <form class="carte ligue-form" id="form-rejoindre" novalidate>
-          <h2>Rejoindre avec un code</h2>
-          <p class="note">Saisis le code reçu d'un ami (format <code>ABC-123</code>) pour entrer dans sa ligue.</p>
+          <h2>Rejoindre une ligue</h2>
           <div class="champ">
             <label for="r-code">Code de la ligue</label>
-            <input id="r-code" name="code" type="text" maxlength="10" required placeholder="KLM-482" autocomplete="off" spellcheck="false">
+            <input id="r-code" name="code" type="text" maxlength="10" required autocomplete="off" autocapitalize="characters" spellcheck="false">
           </div>
           <div class="champ">
-            <label for="r-pseudo">Ton pseudo</label>
-            <input id="r-pseudo" name="pseudo" type="text" minlength="2" maxlength="20" required placeholder="Ex. Lucas">
+            <label for="r-pseudo">Pseudo</label>
+            <input id="r-pseudo" name="pseudo" type="text" minlength="2" maxlength="20" required>
           </div>
           <button type="submit" class="btn-primaire" id="btn-rejoindre">Rejoindre la ligue</button>
           <p class="form-msg" id="msg-rejoindre" aria-live="polite"></p>
@@ -346,7 +344,8 @@ LIGUES = """  <section class="titre-page">
           <div class="ligue-actions">
             <span class="ligue-code" id="l-code" aria-label="Code de la ligue"></span>
             <button type="button" class="btn-primaire" id="btn-inviter">Copier le lien d'invitation</button>
-            <button type="button" class="btn-discret" id="btn-oublier">Retirer de cet appareil</button>
+            <button type="button" class="btn-discret" id="btn-oublier">Quitter la ligue</button>
+            <button type="button" class="btn-discret btn-danger" id="btn-supprimer" hidden>Supprimer la ligue</button>
           </div>
         </div>
         <p class="note" id="l-statut" aria-live="polite"></p>
@@ -372,7 +371,7 @@ LIGUES = """  <section class="titre-page">
 
       <section class="bloc" id="sec-suivi" aria-labelledby="h-l-suivi" hidden>
         <div class="bloc-tete"><h2 id="h-l-suivi">Pronostics dévoilés et résultats</h2></div>
-        <p class="note">Les pronostics des autres membres apparaissent dès le coup d'envoi. Pendant un match en cours, les points provisoires suivent le score en direct.</p>
+        <p class="note">Les pronostics des autres joueurs apparaissent au coup d'envoi. Pendant le match, les points sont provisoires.</p>
         <div id="l-suivi"></div>
       </section>
 
@@ -453,6 +452,7 @@ METHODE = """  <section class="titre-page">
       <h2>Football</h2>
       <p>Tous les clubs de 22 championnats européens et des coupes d'Europe sont notés ensemble : chacun a une force d'attaque et une force de défense estimées à deux échelles de temps — un niveau intrinsèque (demi-vie d'environ un an) complété par une composante de forme récente (demi-vie d'environ 40 jours) qui capte plus vite une série ou une crise — à partir des buts et des tirs cadrés. Les championnats ne se rencontrent qu'en coupe d'Europe : ce sont ces matchs, et les clubs qui montent ou descendent, qui permettent de comparer un club de Ligue 1 à un club de Bundesliga.</p>
       <p>De ces forces, le modèle tire la probabilité de chaque score (loi de Poisson, avec la correction de Dixon et Coles pour les petits scores), puis les chances de victoire, de nul et de défaite sur 90 minutes, ainsi que les probabilités « Les deux équipes marquent » et « Plus de 2,5 buts ». Prolongations et tirs au but ne sont pas comptés. Pour les matchs des trois prochains jours, les absents notables et changements d'entraîneur récents ajustent de façon bornée les buts attendus avant le mélange avec les cotes.</p>
+      <p>Depuis le 25 novembre 2026, les absents signalés par la presse s'y ajoutent. Des flux RSS publics (RMC Sport, L'Équipe, BBC Sport, Sky Sports, Kicker, Marca, AS, Gazzetta dello Sport) sont relus sur les 72 dernières heures : un joueur n'est retenu que s'il figure dans l'effectif d'un club cité et qu'une phrase le désigne comme absent ou incertain. La détection est automatique et peut se tromper ou en oublier. Elle retire au plus 8 % des buts attendus d'une équipe (12 % au total avec les absents d'API-Football). <b>Cet ajustement n'a pas été validé par un backtest</b> : nous n'avons pas d'archive de ces articles, donc aucun comparatif avant/après de log-loss ou de score de Brier n'est possible. Les buteurs probables écartent aussi les joueurs qui n'ont pas joué au moins 60 % des matchs de leur équipe (ou, quand les compositions sont fournies, qui n'ont pas été titulaires dans cette proportion). Sans les compositions, un remplaçant qui entre à chaque match n'est pas repéré.</p>
       <p>Quand les cotes d'avant-match sont publiées, elles sont mélangées au modèle, car elles résument ce que les statistiques ne voient pas : blessures, compositions, actualité. <span id="m-part">Elles pèsent lourd dans le pronostic final</span>, mais nos statistiques gardent toujours une part, et les cotes ne sont jamais affichées.</p>
       <h3>Le modèle apprend-il ?</h3>
       <p>À chaque nouveau résultat, toutes les forces sont réestimées : une victoire, un nul ou une défaite déplace les chances des matchs suivants, d'autant plus que le résultat est récent. Une seule surprise ne bouge pourtant les choses que de peu, volontairement : un match tient beaucoup du hasard, et sur-réagir rendrait le modèle moins juste. Ses réglages, eux, ne changent pas d'un match à l'autre : ils ont été choisis une fois pour toutes sur la saison 2021-22, et le journal des pronostics sert à vérifier, saison après saison, qu'ils tiennent.</p>
@@ -484,7 +484,7 @@ METHODE = """  <section class="titre-page">
 
     <section class="bloc">
       <h2>Sources</h2>
-      <p>Football : <a href="https://www.football-data.co.uk/">football-data.co.uk</a> (résultats, tirs, cotes), <a href="https://www.football-data.org/">football-data.org</a> (calendriers, résultats récents, meilleurs buteurs), <a href="https://github.com/openfootball">openfootball</a> (coupes d'Europe passées, domaine public), <a href="https://the-odds-api.com/">The Odds API</a> (Ligue Europa, cotes des coupes), <a href="https://www.api-football.com/">API-Football</a> (scores en direct, blessures, entraîneurs). Formule 1 : <a href="https://github.com/TracingInsights">TracingInsights</a>, <a href="https://docs.fastf1.dev/">FastF1</a>, <a href="https://jolpi.ca">Jolpica</a>, <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0).</p>
+      <p>Football : <a href="https://www.football-data.co.uk/">football-data.co.uk</a> (résultats, tirs, cotes), <a href="https://www.football-data.org/">football-data.org</a> (calendriers, résultats récents, meilleurs buteurs), <a href="https://github.com/openfootball">openfootball</a> (coupes d'Europe passées, domaine public), <a href="https://the-odds-api.com/">The Odds API</a> (Ligue Europa, cotes des coupes), <a href="https://www.api-football.com/">API-Football</a> (scores en direct, blessures, entraîneurs), flux RSS de la presse sportive (absents signalés). Formule 1 : <a href="https://github.com/TracingInsights">TracingInsights</a>, <a href="https://docs.fastf1.dev/">FastF1</a>, <a href="https://jolpi.ca">Jolpica</a>, <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0).</p>
       <p>Logos : seuls ceux du domaine public sont utilisés (Wikimedia Commons) ; les autres clubs sont représentés par leur sigle. Les noms et logos des clubs appartiennent à leurs propriétaires.</p>
       <p class="note" id="m-maj"></p>
     </section>
@@ -585,7 +585,7 @@ def pages() -> dict[str, str]:
                                     "Les matchs du jour de la Premier League, de la Bundesliga, de la Liga, de la Serie A, de la Ligue 1, de la Ligue des champions et de la Ligue Europa : score, minute et chances recalculées à chaque but.",
                                     LIVE, ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "en-direct.js"], "foot", "en-direct"),
         "foot/ligues.html": page("foot/ligues.html", "Ligues de pronostics entre amis - Extinction des feux",
-                                 "Crée ou rejoins une ligue de pronostics de football entre amis, saisis tes scores avant le coup d'envoi et affronte le Bot IA.",
+                                 "Ligues de pronostics de football entre amis : scores à saisir avant le coup d'envoi, classement et points en direct.",
                                  LIGUES, ["favoris.js", "direct.js"], "foot", "ligues", modules=("ligues.js",)),
         "methode.html": page("methode.html", "Méthode - Extinction des feux",
                              "Comment les probabilités de Formule 1 et de football sont calculées, et ce qu'elles valent.",

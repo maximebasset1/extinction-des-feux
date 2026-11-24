@@ -96,7 +96,7 @@ function blocFacteurs(m, clubs) {
     const col = (nom, liste) => (!liste?.length ? "" : `<div><p class="buteurs-equipe">${esc(nom)}</p><ul class="liste-buteurs">${
       liste.map((b) => `<li><span>${esc(b.nom)}</span><b>${pct(b.p)}</b></li>`).join("")}</ul></div>`);
     html += `<div class="buteurs-grille">${col(c(m.home).nom, but.dom)}${col(c(m.away).nom, but.ext)}</div>`
-      + `<p class="note">Probabilité qu'un joueur marque au moins un but (loi de Poisson d'après les buts attendus de son équipe et sa part des buts de la saison, hors absents annoncés).</p>`;
+      + `<p class="note">Probabilité qu'un joueur marque au moins un but (loi de Poisson d'après les buts attendus de son équipe et sa part des buts de la saison). Sont écartés les absents signalés et les joueurs peu utilisés.</p>`;
   }
   return `${html}</section>`;
 }

@@ -1,12 +1,13 @@
 -- Ligues de pronostics (Cloudflare D1). Appliqué à chaque déploiement par .github/workflows/relais.yml :
 -- tout doit rester relançable sans effacer les données (IF NOT EXISTS). Ajouter une colonne à une table existante
--- demande une migration à part, ce fichier ne la ferait pas.
+-- demande en plus un ordre dans migrations.sql, ce fichier ne la ferait pas.
 
 CREATE TABLE IF NOT EXISTS ligues (
   code         TEXT PRIMARY KEY,               -- ex. EDF-742
   nom          TEXT NOT NULL,
   cree_le      TEXT NOT NULL,
-  competitions TEXT                            -- tableau JSON de codes (ex. '["F1","LDC"]'), NULL = toutes
+  competitions TEXT,                           -- tableau JSON de codes (ex. '["F1","LDC"]'), NULL = toutes
+  createur_id  TEXT                            -- membres.id du créateur, seul autorisé à supprimer la ligue
 );
 
 CREATE TABLE IF NOT EXISTS membres (

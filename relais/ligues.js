@@ -26,7 +26,7 @@ const ENTETES = {
 };
 const PREVOL = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
   "access-control-allow-headers": "authorization, content-type",
   "access-control-max-age": "86400",
 };
@@ -115,7 +115,7 @@ function competitionsLigue(colonne) {
 
 async function lireLigue(env, code) {
   const ligue = FORMAT_CODE.test(code)
-    ? await env.DB.prepare("SELECT code, nom, cree_le, competitions FROM ligues WHERE code = ?").bind(code).first()
+    ? await env.DB.prepare("SELECT code, nom, cree_le, competitions, createur_id FROM ligues WHERE code = ?").bind(code).first()
     : null;
   if (!ligue) throw new Refus(404, "ligue_inconnue", "Aucune ligue ne porte ce code.");
   return ligue;
@@ -153,7 +153,8 @@ async function creer(req, env) {
     const code = tirerCode();
     try {
       await env.DB.batch([                 // une transaction : jamais de ligue sans son créateur ni son Bot IA
-        env.DB.prepare("INSERT INTO ligues (code, nom, cree_le, competitions) VALUES (?, ?, ?, ?)").bind(code, nom, quand, colonne),
+        env.DB.prepare("INSERT INTO ligues (code, nom, cree_le, competitions, createur_id) VALUES (?, ?, ?, ?, ?)")
+          .bind(code, nom, quand, colonne, joueur.id),
         membre(code, joueur.id, pseudo, joueur.hash, 0),
         membre(code, crypto.randomUUID(), BOT, "", 1),
       ]);
@@ -209,6 +210,17 @@ async function pronostiquer(req, env, code) {
     ON CONFLICT (ligue_code, membre_id, match_id) DO UPDATE SET buts_dom = excluded.buts_dom, buts_ext = excluded.buts_ext, maj_le = excluded.maj_le`)
     .bind(code, joueur.id, id, dom, ext, quand).run();
   return repondre({ match_id: id, buts_dom: dom, buts_ext: ext, coup_envoi: match.ko, maj_le: quand });
+}
+
+/* suppression définitive, réservée au créateur : une transaction, les lignes qui en référencent d'autres d'abord */
+async function supprimer(req, env, code) {
+  const ligue = await lireLigue(env, code);
+  const joueur = await lireJoueur(req, env, code);
+  if (!joueur) throw new Refus(401, "jeton_manquant", "En-tête « Authorization: Bearer <jeton> » manquant.");
+  if (joueur.id !== ligue.createur_id) throw new Refus(403, "pas_createur", "Seul le créateur peut supprimer la ligue.");
+  await env.DB.batch(["DELETE FROM pronos WHERE ligue_code = ?", "DELETE FROM membres WHERE ligue_code = ?",
+    "DELETE FROM ligues WHERE code = ?"].map((sql) => env.DB.prepare(sql).bind(code)));
+  return repondre({ code, supprimee: true });
 }
 
 /* un pronostic enregistré, rattaché à son match du programme (il le suit si le match est déplacé) */
@@ -295,7 +307,8 @@ async function consulter(req, env, code) {
     if (p.match) matchs[p.id] = { coup_envoi: p.match.ko, commence: p.commence, score: p.match.res, probas: p.match.p };
   }
   return repondre({
-    code: ligue.code, nom: ligue.nom, cree_le: ligue.cree_le, competitions, moi: moi?.id ?? null, programme_maj_utc: programme.maj_utc,
+    code: ligue.code, nom: ligue.nom, cree_le: ligue.cree_le, competitions, moi: moi?.id ?? null,
+    createur_id: ligue.createur_id ?? null, programme_maj_utc: programme.maj_utc,
     // le score du Bot IA est déjà public (c'est le score probable affiché par le site) : il n'est jamais masqué
     membres: membres.map((m) => ({ id: m.id, pseudo: m.pseudo, est_bot: Boolean(m.est_bot),
       pronos: parMembre.get(m.id).map((p) => montrer(p, Boolean(m.est_bot) || m.id === moi?.id || p.commence)) })),
@@ -307,7 +320,8 @@ async function consulter(req, env, code) {
 function router(req, env, chemin) {
   const [, , code, action, reste] = chemin.split("/");
   const route = code === undefined ? { POST: () => creer(req, env) }
-    : action === undefined ? { GET: () => consulter(req, env, code.toUpperCase()) }
+    : action === undefined ? { GET: () => consulter(req, env, code.toUpperCase()),
+      DELETE: () => supprimer(req, env, code.toUpperCase()) }
     : reste === undefined && action === "rejoindre" ? { POST: () => rejoindre(req, env, code.toUpperCase()) }
     : reste === undefined && action === "pronos" ? { POST: () => pronostiquer(req, env, code.toUpperCase()) }
     : null;

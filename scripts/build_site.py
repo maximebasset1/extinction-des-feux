@@ -294,6 +294,24 @@ LIGUES = """  <section class="titre-page">
             <label for="c-pseudo">Ton pseudo</label>
             <input id="c-pseudo" name="pseudo" type="text" minlength="2" maxlength="20" required placeholder="Ex. Maxime">
           </div>
+          <fieldset class="champ champ-comps">
+            <div class="champ-comps-tete">
+              <legend>Compétitions de la ligue</legend>
+              <div class="champ-comps-raccourcis">
+                <button type="button" class="btn-lien" id="btn-comp-toutes">Tout sélectionner</button>
+                <button type="button" class="btn-lien" id="btn-comp-aucune">Aucune</button>
+              </div>
+            </div>
+            <div class="comp-grille" id="c-comps">
+              <label class="comp-pilule"><input type="checkbox" name="comp" value="E0" checked><span>Premier League</span></label>
+              <label class="comp-pilule"><input type="checkbox" name="comp" value="D1" checked><span>Bundesliga</span></label>
+              <label class="comp-pilule"><input type="checkbox" name="comp" value="SP1" checked><span>Liga</span></label>
+              <label class="comp-pilule"><input type="checkbox" name="comp" value="I1" checked><span>Serie A</span></label>
+              <label class="comp-pilule"><input type="checkbox" name="comp" value="F1" checked><span>Ligue 1</span></label>
+              <label class="comp-pilule"><input type="checkbox" name="comp" value="LDC" checked><span>Ligue des champions</span></label>
+              <label class="comp-pilule"><input type="checkbox" name="comp" value="LEC" checked><span>Ligue Europa</span></label>
+            </div>
+          </fieldset>
           <button type="submit" class="btn-primaire" id="btn-creer">Créer la ligue</button>
           <p class="form-msg" id="msg-creer" aria-live="polite"></p>
         </form>
@@ -322,6 +340,7 @@ LIGUES = """  <section class="titre-page">
           <div>
             <p class="dep-quoi">Ligue active</p>
             <h2 id="l-nom">Chargement…</h2>
+            <ul class="ligue-comps" id="l-comps" aria-label="Compétitions de la ligue"></ul>
             <p class="note" id="l-moi"></p>
           </div>
           <div class="ligue-actions">

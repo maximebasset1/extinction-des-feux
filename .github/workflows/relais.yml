@@ -57,6 +57,11 @@ jobs:
           sed -i "s/D1_ID/$id/" wrangler.toml
       - name: Tables des ligues (sans effet si elles existent déjà)
         run: npx --yes wrangler@4 d1 execute extinction-ligues --remote --yes --file=schema.sql
+      - name: Migration colonne competitions (ignorée si déjà présente)
+        run: |
+          out=$(npx --yes wrangler@4 d1 execute extinction-ligues --remote --yes --command "ALTER TABLE ligues ADD COLUMN competitions TEXT" 2>&1) || {
+            echo "$out" | grep -qi "duplicate column name" || { echo "$out"; exit 1; }
+          }
       - name: Déployer
         run: npx --yes wrangler@4 deploy
       - name: Retirer la clé API-Football du Worker (elle ne sert plus que dans GitHub)

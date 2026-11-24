@@ -549,7 +549,7 @@ test("isolation : base D1 absente ou en panne, /direct répond toujours et rien 
 
 import {
   normaliserCode, estCodeValide, lireScoreSaisi, estVerrouille,
-  codeDepuisUrl, lienInvitation, chargerStockage, enregistrerLigue,
+  codeDepuisUrl, lienInvitation, competitionsActives, chargerStockage, enregistrerLigue,
   selectionnerLigue, retirerLigue, calculerClassementLive, filtrerMatchsPronosticables,
 } from "../site/assets/ligues.js";
 import { calculerPoints as calculerPointsSite } from "../site/assets/points.js";
@@ -650,4 +650,95 @@ test("frontend ligues : classement provisoire en direct sans double comptage", (
     lignes.map((r) => [r.rang_affiche, r.pseudo, r.points, r.points_live, r.points_total]),
     [[1, "Ana", 3, 15, 18], [2, "Bot IA", 10, 0, 10]],
   );
+});
+
+test("compétitions par ligue : création, alias, validation et rétrocompatibilité NULL", async (t) => {
+  const w = ligueMonde(t);
+  await w.publierProgramme();
+
+  // par défaut (sans competitions) -> toutes les 7, NULL en base
+  const defaut = await w.appel("POST", "/ligues", { corps: { nom: "Toutes", pseudo: "Max" } });
+  assert.equal(defaut.statut, 201);
+  assert.deepEqual(defaut.json.competitions, ["E0", "D1", "SP1", "I1", "F1", "LDC", "LEC"]);
+  assert.equal(w.DB.base.prepare("SELECT competitions FROM ligues WHERE code = ?").get(defaut.json.code).competitions, null);
+
+  // sous-ensemble avec codes canoniques
+  const l1Ldc = await w.appel("POST", "/ligues", { corps: { nom: "L1 et LDC", pseudo: "Ana", competitions: ["LDC", "F1"] } });
+  assert.equal(l1Ldc.statut, 201);
+  assert.deepEqual(l1Ldc.json.competitions, ["F1", "LDC"]);
+  assert.equal(w.DB.base.prepare("SELECT competitions FROM ligues WHERE code = ?").get(l1Ldc.json.code).competitions, '["F1","LDC"]');
+
+  // alias football-data.org (FL1, CL, PL, PD, BL1, SA, EL) normalisés et dédupliqués
+  const alias = await w.appel("POST", "/ligues", { corps: { nom: "Alias", pseudo: "Ben", competitions: ["FL1", "CL", "PL", "F1"] } });
+  assert.equal(alias.statut, 201);
+  assert.deepEqual(alias.json.competitions, ["E0", "F1", "LDC"]);
+
+  // saisies invalides refusées en 400
+  for (const mauvaises of [[], ["XX"], ["F1", "INCONNU"], "F1", [123]]) {
+    const r = await w.appel("POST", "/ligues", { corps: { nom: "Mauvaise", pseudo: "Max", competitions: mauvaises } });
+    assert.equal(r.statut, 400);
+    assert.equal(r.json.erreur.code, "competitions_invalides");
+  }
+});
+
+test("compétitions par ligue : refus des pronostics hors périmètre et filtrage du classement / Bot IA", async (t) => {
+  const w = ligueMonde(t);
+  await w.publierProgramme();
+  const r = await w.appel("POST", "/ligues", { corps: { nom: "Ligue 1 pure", pseudo: "Ana", competitions: ["F1"] } });
+  assert.equal(r.statut, 201);
+  const { code, jeton, membre_id } = r.json;
+
+  // match F1 accepté, match LDC refusé en 400
+  assert.equal((await w.pronostiquer(code, jeton, M1, 1, 0)).statut, 200);
+  const refus = await w.pronostiquer(code, jeton, M2, 0, 4);
+  assert.equal(refus.statut, 400);
+  assert.equal(refus.json.erreur.code, "competition_non_autorisee");
+
+  // même si une ligne hors périmètre existait en base, GET /ligues/:code l'ignore partout (membres, Bot IA, matchs, classement)
+  w.DB.base.prepare("INSERT INTO pronos (ligue_code, membre_id, match_id, buts_dom, buts_ext, maj_le) VALUES (?, ?, ?, 0, 4, ?)")
+    .run(code, membre_id, M2, new Date(MAINTENANT).toISOString());
+
+  w.horloge.t = KO1 + 3 * heure;
+  await w.publierProgramme({
+    [M1]: { etat: "joue", score: [1, 0] },
+    [M2]: { etat: "joue", score: [0, 4] },
+  });
+
+  const vue = (await w.appel("GET", `/ligues/${code}`, { jeton })).json;
+  assert.deepEqual(vue.competitions, ["F1"]);
+  assert.deepEqual(Object.keys(vue.matchs), [M1]);
+  assert.deepEqual(membre(vue, "Ana").pronos.map((p) => p.match_id), [M1]);
+  assert.deepEqual(membre(vue, "Bot IA").pronos.map((p) => p.match_id), [M1]);
+  assert.equal(rang(vue, "Ana").matchs_juges, 1);
+  assert.equal(rang(vue, "Ana").points, 10);
+  assert.equal(rang(vue, "Bot IA").matchs_juges, 1);
+});
+
+test("frontend ligues : competitionsActives et filtrage selon les compétitions de la ligue", () => {
+  assert.deepEqual(competitionsActives(null), ["E0", "D1", "SP1", "I1", "F1", "LDC", "LEC"]);
+  assert.deepEqual(competitionsActives({ competitions: ["LDC", "F1"] }), ["F1", "LDC"]);
+  const now = Date.parse("2026-11-24T12:00:00Z");
+  const matchs = [
+    { id: "m1", c: "F1", etat: "a_venir", kickoff: "2026-11-25T20:00:00Z", home: "FRA:Paris SG", away: "FRA:Lyon" },
+    { id: "m2", c: "LDC", etat: "a_venir", kickoff: "2026-11-26T20:00:00Z", home: "ESP:Real Madrid", away: "ITA:Inter" },
+    { id: "m3", c: "E0", etat: "a_venir", kickoff: "2026-11-26T20:00:00Z", home: "ENG:Arsenal", away: "ENG:Chelsea" },
+  ];
+  assert.deepEqual(
+    filtrerMatchsPronosticables(matchs, { autorisees: ["F1", "LDC"], maintenant: now }).map((m) => m.id),
+    ["m1", "m2"],
+  );
+  assert.deepEqual(
+    filtrerMatchsPronosticables(matchs, { comp: "FAV", favoris: new Set(["ENG:Arsenal", "FRA:Paris SG"]), autorisees: ["F1", "LDC"], maintenant: now }).map((m) => m.id),
+    ["m1"],
+  );
+  // calculerClassementLive ignore les matchs live hors compétitions de la ligue
+  const ligue = {
+    competitions: ["F1"],
+    matchs: { "E0|ENG:Arsenal|ENG:Chelsea|2026-11-26": { score: null, probas: [0.5, 0.25, 0.25] } },
+    classement: [{ rang: 1, membre_id: "ana", pseudo: "Ana", est_bot: false, points: 0, scores_exacts: 0, bonnes_issues: 0, coups_de_poker: 0, matchs_juges: 0 }],
+    membres: [{ id: "ana", pseudo: "Ana", est_bot: false, pronos: [{ match_id: "E0|ENG:Arsenal|ENG:Chelsea|2026-11-26", buts_dom: 2, buts_ext: 0 }] }],
+  };
+  const live = calculerClassementLive(ligue, new Map([["E0|ENG:Arsenal|ENG:Chelsea|2026-11-26", { st: "2H", g: [2, 0] }]]));
+  assert.equal(live.nbMatchsLive, 0);
+  assert.equal(live.lignes[0].points_total, 0);
 });

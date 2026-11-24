@@ -3,9 +3,10 @@
 -- demande une migration à part, ce fichier ne la ferait pas.
 
 CREATE TABLE IF NOT EXISTS ligues (
-  code    TEXT PRIMARY KEY,                    -- ex. EDF-742
-  nom     TEXT NOT NULL,
-  cree_le TEXT NOT NULL
+  code         TEXT PRIMARY KEY,               -- ex. EDF-742
+  nom          TEXT NOT NULL,
+  cree_le      TEXT NOT NULL,
+  competitions TEXT                            -- tableau JSON de codes (ex. '["F1","LDC"]'), NULL = toutes
 );
 
 CREATE TABLE IF NOT EXISTS membres (

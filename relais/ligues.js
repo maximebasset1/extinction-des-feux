@@ -3,7 +3,7 @@
    le direct et son quota ne dépendent pas des ligues. Pas de compte : le code de la ligue ouvre la consultation et
    l'inscription, le jeton remis à l'inscription (gardé par le navigateur) identifie un joueur. */
 import { calculerPoints } from "./points.js";
-import { CLE_PROGRAMME, trouver } from "./programme.js";
+import { CLE_PROGRAMME, FICHIERS, competition, trouver } from "./programme.js";
 
 const MAX_JOUEURS = 30;                    // par ligue, Bot IA non compris
 const CORPS_MAX = 2048;
@@ -14,6 +14,8 @@ const LETTRES = "ABCDEFGHJKLMNPQRSTUVWXYZ";   // sans I ni O, qu'on confond avec
 const FORMAT_CODE = /^[A-Z]{3}-\d{3}$/;
 const PSEUDO = { champ: "pseudo", min: 2, max: 20, permis: /^[\p{L}\p{M}\p{N} ._'’-]+$/u };
 const NOM = { champ: "nom", min: 3, max: 40, permis: /^[\p{L}\p{M}\p{N} ._'’!?&(),:+-]+$/u };
+const TOUTES_COMPETITIONS = Object.keys(FICHIERS);
+const ALIAS_COMPETITIONS = { PL: "E0", BL1: "D1", PD: "SP1", SA: "I1", FL1: "F1", CL: "LDC", EL: "LEC" };
 
 const ENTETES = {
   "content-type": "application/json; charset=utf-8",
@@ -76,10 +78,45 @@ function saisie(valeur, { champ, min, max, permis }) {
 const clePseudo = (pseudo) => pseudo.toLocaleLowerCase("fr");
 const pseudoPris = () => new Refus(409, "pseudo_pris", "Ce pseudo est déjà pris dans cette ligue.");
 
+/* compétitions d'une ligue : absent/null = toutes (rétrocompatibilité), sinon tableau non vide de codes connus */
+function normaliserCompetitions(valeur) {
+  if (valeur === undefined || valeur === null) return { colonne: null, liste: [...TOUTES_COMPETITIONS] };
+  if (!Array.isArray(valeur) || !valeur.length) {
+    throw new Refus(400, "competitions_invalides", "Choisis au moins une compétition valide.");
+  }
+  const set = new Set();
+  for (const brut of valeur) {
+    if (typeof brut !== "string") throw new Refus(400, "competitions_invalides", "Compétition invalide.");
+    const c = brut.trim().toUpperCase();
+    const code = ALIAS_COMPETITIONS[c] ?? c;
+    if (!Object.hasOwn(FICHIERS, code)) {
+      throw new Refus(400, "competitions_invalides", `Compétition inconnue : « ${brut} ».`);
+    }
+    set.add(code);
+  }
+  const liste = TOUTES_COMPETITIONS.filter((c) => set.has(c));
+  return { colonne: liste.length === TOUTES_COMPETITIONS.length ? null : JSON.stringify(liste), liste };
+}
+
+function competitionsLigue(colonne) {
+  if (!colonne) return [...TOUTES_COMPETITIONS];
+  try {
+    const brut = JSON.parse(colonne);
+    if (!Array.isArray(brut) || !brut.length) return [...TOUTES_COMPETITIONS];
+    const set = new Set(brut.map((c) => ALIAS_COMPETITIONS[c] ?? c).filter((c) => Object.hasOwn(FICHIERS, c)));
+    const liste = TOUTES_COMPETITIONS.filter((c) => set.has(c));
+    return liste.length ? liste : [...TOUTES_COMPETITIONS];
+  } catch {
+    return [...TOUTES_COMPETITIONS];
+  }
+}
+
 // ---------------------------------------------------------------- accès
 
 async function lireLigue(env, code) {
-  const ligue = FORMAT_CODE.test(code) ? await env.DB.prepare("SELECT code, nom, cree_le FROM ligues WHERE code = ?").bind(code).first() : null;
+  const ligue = FORMAT_CODE.test(code)
+    ? await env.DB.prepare("SELECT code, nom, cree_le, competitions FROM ligues WHERE code = ?").bind(code).first()
+    : null;
   if (!ligue) throw new Refus(404, "ligue_inconnue", "Aucune ligue ne porte ce code.");
   return ligue;
 }
@@ -106,6 +143,7 @@ async function lireProgramme(env) {
 async function creer(req, env) {
   const corps = await lireCorps(req);
   const nom = saisie(corps.nom, NOM), pseudo = saisie(corps.pseudo, PSEUDO);
+  const { colonne, liste: competitions } = normaliserCompetitions(corps.competitions);
   if (clePseudo(pseudo) === clePseudo(BOT)) throw pseudoPris();
   const joueur = await nouveauJoueur(), quand = maintenantIso();
   const membre = (code, id, p, hash, bot) => env.DB
@@ -115,11 +153,11 @@ async function creer(req, env) {
     const code = tirerCode();
     try {
       await env.DB.batch([                 // une transaction : jamais de ligue sans son créateur ni son Bot IA
-        env.DB.prepare("INSERT INTO ligues (code, nom, cree_le) VALUES (?, ?, ?)").bind(code, nom, quand),
+        env.DB.prepare("INSERT INTO ligues (code, nom, cree_le, competitions) VALUES (?, ?, ?, ?)").bind(code, nom, quand, colonne),
         membre(code, joueur.id, pseudo, joueur.hash, 0),
         membre(code, crypto.randomUUID(), BOT, "", 1),
       ]);
-      return repondre({ code, membre_id: joueur.id, jeton: joueur.jeton }, 201);
+      return repondre({ code, membre_id: joueur.id, jeton: joueur.jeton, competitions }, 201);
     } catch (error) {
       if (!dejaPris(error, "ligues.code")) throw error;
     }
@@ -146,7 +184,7 @@ async function rejoindre(req, env, code) {
 }
 
 async function pronostiquer(req, env, code) {
-  await lireLigue(env, code);
+  const ligue = await lireLigue(env, code);
   const joueur = await lireJoueur(req, env, code);
   if (!joueur) throw new Refus(401, "jeton_manquant", "En-tête « Authorization: Bearer <jeton> » manquant.");
   const { match_id: id, buts_dom: dom, buts_ext: ext } = await lireCorps(req);
@@ -159,6 +197,9 @@ async function pronostiquer(req, env, code) {
     throw new Refus(503, "programme_indisponible", "Le programme des matchs n'est plus à jour : les pronostics sont suspendus.");
   }
   if (!Object.hasOwn(programme.matchs, id)) throw new Refus(404, "match_inconnu", "Ce match ne figure pas au programme.");
+  if (!competitionsLigue(ligue.competitions).includes(competition(id))) {
+    throw new Refus(400, "competition_non_autorisee", "Cette compétition ne fait pas partie de cette ligue.");
+  }
   const match = programme.matchs[id];
   const quand = maintenantIso();            // l'heure du serveur, jamais celle du navigateur
   if (match.et !== "a_venir" || !(Date.parse(quand) < Date.parse(match.ko))) {
@@ -228,6 +269,8 @@ async function consulter(req, env, code) {
   const moi = await lireJoueur(req, env, code);
   const programme = await lireProgramme(env);
   const maintenant = Date.now();
+  const competitions = competitionsLigue(ligue.competitions);
+  const autorisees = new Set(competitions);
   const { results: membres } = await env.DB
     .prepare("SELECT id, pseudo, est_bot FROM membres WHERE ligue_code = ? ORDER BY est_bot, cree_le, pseudo_cle").bind(code).all();
   const { results: lignes } = await env.DB
@@ -235,8 +278,10 @@ async function consulter(req, env, code) {
 
   const brut = new Map();
   for (const ligne of lignes) {
+    const situe = situer(ligne, programme, maintenant);
+    if (!autorisees.has(competition(situe.id))) continue;
     if (!brut.has(ligne.membre_id)) brut.set(ligne.membre_id, []);
-    brut.get(ligne.membre_id).push(situer(ligne, programme, maintenant));
+    brut.get(ligne.membre_id).push(situe);
   }
   const parMembre = new Map(membres.map((m) => [m.id, unParMatch(brut.get(m.id) || [])]));
 
@@ -250,7 +295,7 @@ async function consulter(req, env, code) {
     if (p.match) matchs[p.id] = { coup_envoi: p.match.ko, commence: p.commence, score: p.match.res, probas: p.match.p };
   }
   return repondre({
-    code: ligue.code, nom: ligue.nom, cree_le: ligue.cree_le, moi: moi?.id ?? null, programme_maj_utc: programme.maj_utc,
+    code: ligue.code, nom: ligue.nom, cree_le: ligue.cree_le, competitions, moi: moi?.id ?? null, programme_maj_utc: programme.maj_utc,
     // le score du Bot IA est déjà public (c'est le score probable affiché par le site) : il n'est jamais masqué
     membres: membres.map((m) => ({ id: m.id, pseudo: m.pseudo, est_bot: Boolean(m.est_bot),
       pronos: parMembre.get(m.id).map((p) => montrer(p, Boolean(m.est_bot) || m.id === moi?.id || p.commence)) })),

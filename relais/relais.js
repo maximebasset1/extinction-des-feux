@@ -76,16 +76,18 @@ function fenetre(m, maintenant) {
   return [debut, fin];
 }
 
-/* minutes de suivi encore à couvrir aujourd'hui (union des fenêtres) et vrai si un match est suivi maintenant */
+/* minutes de suivi encore à couvrir aujourd'hui (union des fenêtres), vrai si un match est suivi maintenant,
+   et horodatage du prochain début de fenêtre à venir (null s'il n'y en a plus) */
 function aCouvrir(matchs, maintenant) {
   const f = matchs.map((m) => fenetre(m, maintenant)).filter(Boolean).sort((x, y) => x[0] - y[0]);
-  let total = 0, actif = false, fin = maintenant;
+  let total = 0, actif = false, fin = maintenant, prochainDebut = null;
   for (const [d, e] of f) {
     if (d <= maintenant && maintenant <= e) actif = true;
+    if (d > maintenant && prochainDebut === null) prochainDebut = d;
     const a = Math.max(d, fin);
     if (e > a) { total += e - a; fin = e; }
   }
-  return { actif, minutes: total / minute };
+  return { actif, minutes: total / minute, prochainDebut };
 }
 
 const jourUtc = (t) => new Date(t).toISOString().slice(0, 10);
@@ -112,7 +114,8 @@ async function avancer(env, etat, maintenant) {
     const avant = nouveauJour ? new Map() : new Map((etat.matchs || []).map((m) => [m.id, m]));
     // la relecture du programme (score final) ne doit pas effacer la chronologie déjà relevée
     const prog = nosMatchs(liste).map((m) => (avant.has(m.id) || m.st !== "NS" ? avecChronologie(m, avant.get(m.id)) : m));
-    Object.assign(etat, { jour, matchs: prog, relire: false, restant, programme_utc: new Date(maintenant).toISOString(),
+    Object.assign(etat, { jour, matchs: prog, relire: false, restant, programme_ms: maintenant,
+      programme_utc: new Date(maintenant).toISOString(),
       ...(nouveauJour ? { direct_utc: null, direct_ms: null, intervalle_min: null } : {}),
       erreur: null, erreur_ms: null });
     await env.DIRECT.put(CLE_ETAT, JSON.stringify(etat));
@@ -123,6 +126,19 @@ async function avancer(env, etat, maintenant) {
     await env.DIRECT.put(CLE_ETAT, JSON.stringify(etat));
   }
   const { actif, minutes } = aCouvrir(etat.matchs || [], maintenant);
+  // Si un match est resté « NS » alors que sa fenêtre de jeu est dépassée (ex. retard cron GitHub),
+  // on force une relecture du programme (au plus toutes les 15 min) pour récupérer son score final.
+  const manques = (etat.matchs || []).some((m) => m.st === "NS" && Date.parse(m.ko) + DUREE_MATCH_MIN * minute < maintenant);
+  const progFrais = etat.programme_ms && maintenant - etat.programme_ms < 15 * minute;
+  if (manques && !progFrais && (etat.restant ?? QUOTA_JOUR) > MARGE_SECURITE) {
+    const { liste, restant } = await appeler(env, `fixtures?date=${jour}`);
+    const avant = new Map((etat.matchs || []).map((m) => [m.id, m]));
+    const prog = nosMatchs(liste).map((m) => (avant.has(m.id) || m.st !== "NS" ? avecChronologie(m, avant.get(m.id)) : m));
+    Object.assign(etat, { jour, matchs: prog, relire: false, restant, programme_ms: maintenant,
+      programme_utc: new Date(maintenant).toISOString(), erreur: null, erreur_ms: null });
+    await env.DIRECT.put(CLE_ETAT, JSON.stringify(etat));
+    return etat;
+  }
   if (!actif) return etat;
   if (etat.restant != null && etat.restant <= MARGE_SECURITE) return etat;
   const budget = Math.max(1, (etat.restant ?? QUOTA_JOUR) - RESERVE);
@@ -133,8 +149,11 @@ async function avancer(env, etat, maintenant) {
   let sortis = false;
   const matchs = (etat.matchs || []).map((m) => {
     if (enDirect.has(m.id)) return avecChronologie(enDirect.get(m.id), m);
-    // sorti du direct après y être entré : terminé, le programme relu donnera le score final
-    if (EN_JEU.has(m.st)) { sortis = true; return { ...m, st: "FT?" }; }
+    // sorti du direct après y être entré, ou coup d'envoi passé sans avoir été vu (retard cron) : relire le score final
+    if (EN_JEU.has(m.st) || (m.st === "NS" && Date.parse(m.ko) + DUREE_MATCH_MIN * minute < maintenant)) {
+      sortis = true;
+      return { ...m, st: "FT?" };
+    }
     return m;
   });
   Object.assign(etat, { matchs, restant, direct_ms: maintenant, direct_utc: new Date(maintenant).toISOString(),

@@ -46,10 +46,15 @@ while (Date.now() - debut < DUREE_MAX_MS - PAS_MS) {
     await dormir(PAS_MS);
     continue;
   }
-  const t = Date.now(), { actif, minutes } = aCouvrir(etat.matchs || [], t);
+  const t = Date.now(), { actif, minutes, prochainDebut } = aCouvrir(etat.matchs || [], t);
   const enJeu = (etat.matchs || []).filter((m) => ["1H", "HT", "2H", "ET", "BT", "P"].includes(m.st)).length;
   console.log(new Date(t).toISOString(), `matchs ${etat.matchs?.length ?? 0}, en jeu ${enJeu}, suivi ${actif ? "oui" : "non"}, reste ${Math.round(minutes)} min, intervalle ${etat.intervalle_min ?? "-"} min, appels restants ${etat.restant ?? "-"}`);
   if (!actif && minutes === 0 && etat.jour) break;   // plus aucun match à suivre aujourd'hui
+  // si le prochain match commence après la fin de ce job (ex. cron déclenché la nuit ou en matinée), on s'arrête tout de suite
+  if (!actif && prochainDebut && prochainDebut >= debut + DUREE_MAX_MS - PAS_MS) {
+    console.log("Prochain match hors de ce créneau : arrêt propre sans attente à vide.");
+    break;
+  }
   await dormir(PAS_MS);
 }
 console.log("Fin de la boucle du direct.");

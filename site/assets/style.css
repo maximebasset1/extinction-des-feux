@@ -333,4 +333,33 @@ body:has(dialog.fiche[open]) { overflow: hidden; }
 .bilan-chiffres dt { font-weight: 700; font-size: 2rem; line-height: 1.05; margin-bottom: .35rem; color: var(--accent-clair); font-variant-numeric: tabular-nums; }
 .bilan-chiffres dd { margin: 0; color: var(--texte-doux); font-size: .92rem; }
 .bilan-chiffres dd b { color: var(--texte); }
+
+/* ---------- confiance, stats grille de scores et facteurs clés (football) */
+.m-centre { display: flex; flex-direction: column; align-items: center; gap: .32rem; }
+.m-centre > .m-score, .m-centre > .m-etat, .m-centre > .m-direct { width: 100%; }
+.badge-conf { display: inline-flex; align-items: center; padding: .08rem .52rem; border-radius: 99px; font-size: .74rem; font-weight: 700;
+  line-height: 1.4; letter-spacing: .01em; border: 1px solid var(--ligne-forte); white-space: nowrap; }
+.conf-elevee { background: rgba(5, 135, 133, .16); border-color: rgba(63, 189, 185, .55); color: var(--accent-clair); }
+.conf-indecis { background: var(--surface-2); border-color: var(--ligne-forte); color: var(--texte-doux); }
+.conf-imprevisible { background: rgba(242, 179, 102, .12); border-color: rgba(242, 179, 102, .55); color: #f2b366; }
+.detail-conf { margin: .2rem 0 .4rem; }
+.fiche-etat { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .6rem; }
+.stats-grille { display: flex; flex-wrap: wrap; gap: .5rem; margin: .6rem 0 .85rem; }
+.stats-grille span { display: inline-flex; align-items: baseline; gap: .45rem; padding: .3rem .75rem; border-radius: .55rem;
+  background: var(--surface-2); border: 1px solid var(--ligne); color: var(--texte-doux); font-size: .92rem; }
+.stats-grille b { color: var(--texte); font-weight: 700; font-variant-numeric: tabular-nums; }
+.facteurs-cles { margin: 1rem 0; padding: .85rem 1rem; background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); }
+dialog.fiche .facteurs-cles { background: var(--surface-2); }
+.facteurs-cles h3 { margin: 0 0 .5rem; font-size: 1rem; }
+.liste-facteurs { margin: 0 0 .7rem; padding-left: 1.15rem; color: var(--texte); font-size: .94rem; }
+.liste-facteurs li { margin-bottom: .25rem; }
+.liste-facteurs:last-child { margin-bottom: 0; }
+.buteurs-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem 1.4rem; margin: .4rem 0 .5rem; }
+.buteurs-equipe { margin: 0 0 .3rem; font-size: .86rem; font-weight: 700; color: var(--texte-doux); }
+.liste-buteurs { list-style: none; margin: 0; padding: 0; }
+.liste-buteurs li { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; padding: .28rem 0;
+  border-top: 1px solid var(--ligne); font-size: .94rem; }
+.liste-buteurs li:last-child { border-bottom: 1px solid var(--ligne); }
+.liste-buteurs b { color: var(--accent-clair); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 560px) { .buteurs-grille { grid-template-columns: 1fr; } }
 @media (max-width: 720px) { .calib { grid-template-columns: 1fr; } }

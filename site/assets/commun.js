@@ -66,6 +66,41 @@ function barre(p, dom, ext) {
 }
 const issue = (s) => (s[0] > s[1] ? 0 : s[0] === s[1] ? 1 : 2);
 
+const CONFIANCE = {
+  elevee: ["Confiance élevée", "conf-elevee"],
+  indecis: ["Match indécis", "conf-indecis"],
+  imprevisible: ["Équipe imprévisible", "conf-imprevisible"],
+};
+function badgeConfiance(m) {
+  const c = m && CONFIANCE[m.confiance];
+  return c ? `<span class="badge-conf ${c[1]}">${c[0]}</span>` : "";
+}
+function blocStatsGrille(m) {
+  if (m?.btts == null && m?.plus25 == null) return "";
+  const items = [];
+  if (m.btts != null) items.push(`<span>Les deux équipes marquent <b>${pct(m.btts)}</b></span>`);
+  if (m.plus25 != null) items.push(`<span>Plus de 2,5 buts <b>${pct(m.plus25)}</b></span>`);
+  return `<div class="stats-grille">${items.join("")}</div>`;
+}
+function blocFacteurs(m, clubs) {
+  const faits = Array.isArray(m?.facteurs) ? m.facteurs : [];
+  const but = m?.buteurs;
+  const hasBut = Boolean(but && ((but.dom && but.dom.length) || (but.ext && but.ext.length)));
+  if (!faits.length && !hasBut) return "";
+  const c = (k) => (clubs && clubs[k]) || { nom: String(k || "").split(":").pop() };
+  let html = `<section class="facteurs-cles"><h3>Facteurs clés du match</h3>`;
+  if (faits.length) {
+    html += `<ul class="liste-facteurs">${faits.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  }
+  if (hasBut) {
+    const col = (nom, liste) => (!liste?.length ? "" : `<div><p class="buteurs-equipe">${esc(nom)}</p><ul class="liste-buteurs">${
+      liste.map((b) => `<li><span>${esc(b.nom)}</span><b>${pct(b.p)}</b></li>`).join("")}</ul></div>`);
+    html += `<div class="buteurs-grille">${col(c(m.home).nom, but.dom)}${col(c(m.away).nom, but.ext)}</div>`
+      + `<p class="note">Probabilité qu'un joueur marque au moins un but (loi de Poisson d'après les buts attendus de son équipe et sa part des buts de la saison, hors absents annoncés).</p>`;
+  }
+  return `${html}</section>`;
+}
+
 /* ---------- une ligne de match ; `detail` (HTML) la rend dépliable, `lien` en fait un lien vers la page de la compétition */
 function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDansHeure = false, prefixe = "m" } = {}) {
   const c = (k) => clubs[k] || { nom: String(k).split(":").pop(), sigle: String(k).split(":").pop().slice(0, 3).toUpperCase() };
@@ -89,7 +124,7 @@ function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDan
   } else if (m.etat === "reporte") {
     centre = `<span class="m-etat">reporté, date à fixer</span>`;
   } else {
-    centre = barre(m.p, dom.nom, ext.nom);
+    centre = `${barre(m.p, dom.nom, ext.nom)}${badgeConfiance(m)}`;
   }
   const h = m.kickoff ? heure(m.kickoff) : "–";
   const quandTxt = jourDansHeure && m.jour ? `<small>${esc(midi(m.jour).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }))}</small>` : "";

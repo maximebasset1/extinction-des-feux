@@ -24,8 +24,12 @@ function detail(m) {
   let html = "";
   if (m.etat === "a_venir") {
     const sc = m.scores.map((s) => `${esc(s.score)} (${pct(s.p)})`).join(", ");
+    const badge = badgeConfiance(m);
+    if (badge) html += `<p class="detail-conf">${badge}</p>`;
     html += trois(m.p);
-    html += `<p>Scores les plus probables : ${sc}. Buts attendus : ${virgule(m.xg[0])} pour ${esc(h)}, ${virgule(m.xg[1])} pour ${esc(a)}. Plus de 2,5 buts : ${pct(m.plus25)}.</p>`;
+    html += blocStatsGrille(m);
+    html += `<p>Scores les plus probables : ${sc}. Buts attendus : ${virgule(m.xg[0])} pour ${esc(h)}, ${virgule(m.xg[1])} pour ${esc(a)}.</p>`;
+    html += blocFacteurs(m, C.d.clubs);
     html += `<p class="note">${m.source === "publie" ? `Pronostic figé et enregistré dans le journal${m.publie ? ` (${esc(quand(m.publie))})` : ""} : c'est lui qui sera jugé. `
       : ""}${m.avec_cotes ? "Cotes d'avant-match comprises : les blessures et l'actualité connues sont prises en compte."
       : "Statistiques seules : les cotes d'avant-match ne sont pas encore publiées, les blessures et l'actualité récentes ne sont donc pas prises en compte."} Probabilités sur 90 minutes.</p>`;

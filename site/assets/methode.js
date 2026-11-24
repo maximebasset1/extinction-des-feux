@@ -33,6 +33,32 @@ function rendreDirect(d) {
     <p class="note">Il s'agit d'un backtest sur des championnats passés, rejoué à la pause de chaque match, et non d'un suivi des matchs diffusés en direct sur ce site.</p>`;
 }
 
+function rendreEtude(e) {
+  const tVar = $("#m-etude"), tConf = $("#m-confiance");
+  if (!tVar || !tConf) return;
+  if (!e || !e.variantes?.length) {
+    tVar.innerHTML = "";
+    tConf.innerHTML = "";
+    return;
+  }
+  const ch = esc(e.periode_choix || "2021-22"), te = esc(e.periode_test || "2022-2026");
+  tVar.innerHTML = `<thead><tr><th>Variante testée (statistiques seules)</th><th class="num">RPS ${ch}</th><th class="num">Log-loss ${ch}</th><th class="num">RPS ${te}</th><th class="num">Log-loss ${te}</th><th>Décision</th></tr></thead><tbody>${
+    e.variantes.map((v) => `<tr${v.decision === "retenue" ? ' class="total"' : ""}><td>${esc(v.nom)}</td>`
+      + `<td class="num">${virgule(v.rps_choix, 5)}</td><td class="num">${virgule(v.ll_choix, 5)}</td>`
+      + `<td class="num">${virgule(v.rps_test, 5)}</td><td class="num">${virgule(v.ll_test, 5)}</td>`
+      + `<td>${esc(v.decision)}</td></tr>`).join("")
+  }</tbody><caption>Backtest walk-forward sans fuite du futur (${nombre(e.matchs_test).toLocaleString("fr-FR")} matchs sur ${te}). RPS et log-loss : plus bas = mieux.</caption>`;
+
+  if (e.confiance?.length) {
+    tConf.innerHTML = `<thead><tr><th>Indice de confiance</th><th class="num">Matchs (${te})</th><th class="num">RPS moyen</th><th class="num">Le favori gagne</th></tr></thead><tbody>${
+      e.confiance.map((c) => `<tr><td>${esc(c.nom)}</td><td class="num">${nombre(c.matchs).toLocaleString("fr-FR")}</td>`
+        + `<td class="num">${virgule(c.rps, 3)}</td><td class="num">${pct(c.favori_juste)}</td></tr>`).join("")
+    }</tbody><caption>Volatilité mesurée par l'écart-type des résidus de points sur les 25 derniers matchs de chaque club (seuil « Équipe imprévisible » = ${virgule(e.seuil_volatilite, 3)}, calibré au 80e percentile sur ${ch}).</caption>`;
+  } else {
+    tConf.innerHTML = "";
+  }
+}
+
 function rendreJournal(j) {
   const note = $("#m-journal-note"), chiffres = $("#m-journal-chiffres"), table = $("#m-journal");
   if (!note || !chiffres || !table) return;
@@ -81,6 +107,7 @@ async function main() {
     <td class="num">${r.avec_cotes ? virgule(r.avec_cotes.rps, 3) : "–"}</td><td class="num">${r.marche ? virgule(r.marche.rps, 3) : "–"}</td>
     <td class="num">${virgule(r.habitudes.rps, 3)}</td><td class="num">${pct((r.avec_cotes || r.modele).bons_favoris)}</td></tr>`).join("")}</tbody>
     <caption>Score RPS : plus il est bas, mieux c'est. En coupe d'Europe, pas d'historique de cotes gratuit : seules nos statistiques sont jugées.</caption>`;
+  rendreEtude(i.etude_multifacteur);
   rendreJournal(i.journal);
   if (Number.isFinite(i.part_marche)) $("#m-part").textContent = `Elles comptent pour environ ${Math.round(i.part_marche * 100)} % du pronostic final`;
   $("#m-maj").textContent = `Dernière mise à jour des pronostics de football : ${quand(i.maj_utc)}.`;

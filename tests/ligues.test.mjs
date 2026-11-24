@@ -544,3 +544,110 @@ test("isolation : base D1 absente ou en panne, /direct répond toujours et rien 
   assert.deepEqual(direct.json.matchs, []);
   assert.equal(direct.entetes.get("cache-control"), "public, max-age=20");
 });
+
+// ---------------------------------------------------------------- frontend (site/assets/ligues.js)
+
+import {
+  normaliserCode, estCodeValide, lireScoreSaisi, estVerrouille,
+  codeDepuisUrl, lienInvitation, chargerStockage, enregistrerLigue,
+  selectionnerLigue, retirerLigue, calculerClassementLive, filtrerMatchsPronosticables,
+} from "../site/assets/ligues.js";
+import { calculerPoints as calculerPointsSite } from "../site/assets/points.js";
+
+function memStorage() {
+  const m = new Map();
+  return {
+    getItem: (k) => (m.has(k) ? m.get(k) : null),
+    setItem: (k, v) => { m.set(k, String(v)); },
+  };
+}
+
+test("frontend ligues : synchronisation du barème points.js et helpers code / score / verrouillage", () => {
+  assert.deepEqual(calculerPointsSite([2, 1], [2, 1], [0.2, 0.3, 0.5]), calculerPoints([2, 1], [2, 1], [0.2, 0.3, 0.5]));
+  assert.equal(normaliserCode("klm 482"), "KLM-482");
+  assert.equal(normaliserCode("abc-007"), "ABC-007");
+  assert.equal(estCodeValide("KLM-482"), true);
+  assert.equal(estCodeValide("KLM-48"), false);
+  assert.equal(codeDepuisUrl("?code=klm482"), "KLM-482");
+  assert.equal(codeDepuisUrl("?code=invalide"), null);
+  assert.equal(lienInvitation("KLM-482", { origin: "https://example.test", pathname: "/foot/ligues.html" }),
+    "https://example.test/foot/ligues.html?code=KLM-482");
+  assert.equal(lireScoreSaisi("0"), 0);
+  assert.equal(lireScoreSaisi("20"), 20);
+  assert.equal(lireScoreSaisi("21"), null);
+  assert.equal(lireScoreSaisi("-1"), null);
+  assert.equal(lireScoreSaisi("1.5"), null);
+  assert.equal(lireScoreSaisi(""), null);
+  const ko = "2026-11-27T20:00:00Z";
+  assert.equal(estVerrouille(ko, Date.parse("2026-11-27T19:59:59Z")), false);
+  assert.equal(estVerrouille(ko, Date.parse("2026-11-27T20:00:00Z")), true);
+  assert.equal(estVerrouille(null, Date.parse("2026-11-27T19:00:00Z")), true);
+});
+
+test("frontend ligues : stockage multi-ligues dans localStorage", () => {
+  const st = memStorage();
+  assert.deepEqual(chargerStockage(st), { active: null, ligues: [] });
+  let etat = enregistrerLigue(st, { code: "klm482", nom: "Bureau", membre_id: "m1", jeton: "tok1", pseudo: "Max" });
+  assert.equal(etat.active, "KLM-482");
+  assert.equal(etat.ligues.length, 1);
+  etat = enregistrerLigue(st, { code: "ABC-123", nom: "Famille", membre_id: "m2", jeton: "tok2", pseudo: "Maxime" });
+  assert.equal(etat.active, "ABC-123");
+  assert.equal(etat.ligues.length, 2);
+  etat = selectionnerLigue(st, "KLM-482");
+  assert.equal(etat.active, "KLM-482");
+  etat = retirerLigue(st, "KLM-482");
+  assert.equal(etat.active, "ABC-123");
+  assert.equal(etat.ligues.length, 1);
+  etat = retirerLigue(st, "ABC-123");
+  assert.deepEqual(etat, { active: null, ligues: [] });
+});
+
+test("frontend ligues : filtrage des matchs pronosticables (compétition, favoris, horizon)", () => {
+  const now = Date.parse("2026-11-24T12:00:00Z");
+  const matchs = [
+    { id: "m1", c: "F1", etat: "a_venir", kickoff: "2026-11-25T20:00:00Z", home: "FRA:Paris SG", away: "FRA:Lyon" },
+    { id: "m2", c: "LDC", etat: "a_venir", kickoff: "2026-11-26T20:00:00Z", home: "ESP:Real Madrid", away: "ITA:Inter" },
+    { id: "m3", c: "F1", etat: "a_venir", kickoff: "2026-11-24T11:00:00Z", home: "FRA:Lens", away: "FRA:Lille" },
+    { id: "m4", c: "F1", etat: "joue", kickoff: "2026-11-25T20:00:00Z", home: "FRA:Nice", away: "FRA:Brest" },
+    { id: "m5", c: "E0", etat: "a_venir", kickoff: "2026-12-20T20:00:00Z", home: "ENG:Arsenal", away: "ENG:Chelsea" },
+  ];
+  assert.deepEqual(filtrerMatchsPronosticables(matchs, { maintenant: now }).map((m) => m.id), ["m1", "m2"]);
+  assert.deepEqual(filtrerMatchsPronosticables(matchs, { comp: "LDC", maintenant: now }).map((m) => m.id), ["m2"]);
+  assert.deepEqual(
+    filtrerMatchsPronosticables(matchs, { comp: "FAV", favoris: new Set(["FRA:Paris SG"]), maintenant: now }).map((m) => m.id),
+    ["m1"],
+  );
+});
+
+test("frontend ligues : classement provisoire en direct sans double comptage", () => {
+  const ligue = {
+    matchs: {
+      m_fini: { score: [2, 1], probas: [0.5, 0.25, 0.25] },
+      m_live: { score: null, probas: [0.2, 0.3, 0.5] },
+    },
+    classement: [
+      { rang: 1, membre_id: "bot", pseudo: "Bot IA", est_bot: true, points: 10, scores_exacts: 1, bonnes_issues: 1, coups_de_poker: 0, matchs_juges: 1 },
+      { rang: 2, membre_id: "ana", pseudo: "Ana", est_bot: false, points: 3, scores_exacts: 0, bonnes_issues: 1, coups_de_poker: 0, matchs_juges: 1 },
+    ],
+    membres: [
+      { id: "bot", pseudo: "Bot IA", est_bot: true, pronos: [
+        { match_id: "m_fini", buts_dom: 2, buts_ext: 1, points: 10 },
+        { match_id: "m_live", buts_dom: 0, buts_ext: 2 },
+      ] },
+      { id: "ana", pseudo: "Ana", est_bot: false, pronos: [
+        { match_id: "m_fini", buts_dom: 1, buts_ext: 0, points: 3 },
+        { match_id: "m_live", buts_dom: 2, buts_ext: 0 }, // exact + coup de poker (< 0.25) -> 15 pts provisoires
+      ] },
+    ],
+  };
+  const direct = new Map([
+    ["m_fini", { st: "FT", g: [2, 1] }],   // déjà jugé officiellement -> ne doit pas être recompté
+    ["m_live", { st: "2H", g: [2, 0] }],   // en cours -> points provisoires
+  ]);
+  const { lignes, nbMatchsLive } = calculerClassementLive(ligue, direct);
+  assert.equal(nbMatchsLive, 1);
+  assert.deepEqual(
+    lignes.map((r) => [r.rang_affiche, r.pseudo, r.points, r.points_live, r.points_total]),
+    [[1, "Ana", 3, 15, 18], [2, "Bot IA", 10, 0, 10]],
+  );
+});

@@ -10,6 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
+POINTS_SRC = ROOT / "relais" / "points.js"
+POINTS_DST = SITE / "assets" / "points.js"
 CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; "
        "connect-src 'self' https://extinction-direct.maximebasset1.workers.dev; base-uri 'self'; form-action 'none'")
 COMPETITIONS = [("E0", "premier-league", "Premier League"), ("D1", "bundesliga", "Bundesliga"), ("SP1", "liga", "Liga"),
@@ -28,7 +30,7 @@ def empreinte(nom: str) -> str:
 
 
 def page(path: str, title: str, description: str, body: str, scripts: list[str], section: str, sub: str = "",
-         styles: tuple[str, ...] = (), common: bool = True, name: str = "") -> str:
+         styles: tuple[str, ...] = (), common: bool = True, name: str = "", modules: tuple[str, ...] = ()) -> str:
     """`common=False` : page d'un module autonome (F1), sans les scripts communs du site."""
     depth = path.count("/")
     r = "../" * depth or ""
@@ -46,13 +48,16 @@ def page(path: str, title: str, description: str, body: str, scripts: list[str],
     <div class="bande-in">
       <a href="{r}foot.html"{' aria-current="page"' if sub == "hub" else ""}>Tous les matchs</a>
       <a href="{r}foot/en-direct.html" data-direct{' aria-current="page"' if sub == "en-direct" else ""}>En direct<span class="bande-live" hidden><i class="pastille" aria-hidden="true"></i><b></b><span class="cache"> matchs en cours</span></span></a>
+      <a href="{r}foot/ligues.html"{' aria-current="page"' if sub == "ligues" else ""}>Ligues</a>
       {items}
     </div>
   </nav>'''
     # le compteur de l'onglet « En direct » (onglet-direct.js) est sur toutes les pages Football
     if section == "foot":
         scripts = [*scripts, "onglet-direct.js"]
-    js = "\n".join(f'<script src="{r}assets/{s}?v={empreinte(s)}" defer></script>' for s in (["commun.js"] if common else []) + scripts)
+    js_lines = [f'<script src="{r}assets/{s}?v={empreinte(s)}" defer></script>' for s in (["commun.js"] if common else []) + scripts]
+    js_lines += [f'<script type="module" src="{r}assets/{m}?v={empreinte(m)}"></script>' for m in modules]
+    js = "\n".join(js_lines)
     css = "".join(f'\n<link rel="stylesheet" href="{r}assets/{c}?v={empreinte(c)}">' for c in styles)
     return f"""<!DOCTYPE html>
 <html lang="fr">
@@ -263,6 +268,105 @@ LIVE = """  <section class="titre-page">
     </section>
   </div>"""
 
+LIGUES = """  <section class="titre-page">
+    <div class="titre-in">
+      <h1>Ligues de pronostics</h1>
+      <p class="chapeau">Crée une ligue entre amis, pronostique les scores avant le coup d'envoi et affronte le Bot IA sur les sept compétitions. Sans compte : ton accès reste dans ce navigateur.</p>
+      <div class="ligue-barre" id="ligue-barre" hidden>
+        <label for="ligue-select">Ligue active</label>
+        <select id="ligue-select"></select>
+        <button type="button" class="btn-secondaire" id="btn-nouvelle">Créer ou rejoindre</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="page">
+    <section class="bloc" id="ligue-entree" aria-label="Créer ou rejoindre une ligue">
+      <div class="ligue-entree-grille">
+        <form class="carte ligue-form" id="form-creer" novalidate>
+          <h2>Créer une ligue</h2>
+          <p class="note">Un code d'invitation est généré automatiquement et le Bot IA est inscrit d'office.</p>
+          <div class="champ">
+            <label for="c-nom">Nom de la ligue</label>
+            <input id="c-nom" name="nom" type="text" minlength="3" maxlength="40" required placeholder="Ex. Bureau du vendredi">
+          </div>
+          <div class="champ">
+            <label for="c-pseudo">Ton pseudo</label>
+            <input id="c-pseudo" name="pseudo" type="text" minlength="2" maxlength="20" required placeholder="Ex. Maxime">
+          </div>
+          <button type="submit" class="btn-primaire" id="btn-creer">Créer la ligue</button>
+          <p class="form-msg" id="msg-creer" aria-live="polite"></p>
+        </form>
+
+        <form class="carte ligue-form" id="form-rejoindre" novalidate>
+          <h2>Rejoindre avec un code</h2>
+          <p class="note">Saisis le code reçu d'un ami (format <code>ABC-123</code>) pour entrer dans sa ligue.</p>
+          <div class="champ">
+            <label for="r-code">Code de la ligue</label>
+            <input id="r-code" name="code" type="text" maxlength="10" required placeholder="KLM-482" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="champ">
+            <label for="r-pseudo">Ton pseudo</label>
+            <input id="r-pseudo" name="pseudo" type="text" minlength="2" maxlength="20" required placeholder="Ex. Lucas">
+          </div>
+          <button type="submit" class="btn-primaire" id="btn-rejoindre">Rejoindre la ligue</button>
+          <p class="form-msg" id="msg-rejoindre" aria-live="polite"></p>
+        </form>
+      </div>
+      <p class="plus" id="retour-ligue-wrap" hidden><button type="button" id="btn-retour-ligue">Revenir à ma ligue active</button></p>
+    </section>
+
+    <div id="ligue-vue" hidden>
+      <section class="bloc carte ligue-entete" aria-labelledby="l-nom">
+        <div class="ligue-entete-haut">
+          <div>
+            <p class="dep-quoi">Ligue active</p>
+            <h2 id="l-nom">Chargement…</h2>
+            <p class="note" id="l-moi"></p>
+          </div>
+          <div class="ligue-actions">
+            <span class="ligue-code" id="l-code" aria-label="Code de la ligue"></span>
+            <button type="button" class="btn-primaire" id="btn-inviter">Copier le lien d'invitation</button>
+            <button type="button" class="btn-discret" id="btn-oublier">Retirer de cet appareil</button>
+          </div>
+        </div>
+        <p class="note" id="l-statut" aria-live="polite"></p>
+        <details class="bareme">
+          <summary>Barème des points</summary>
+          <ul>
+            <li><b>+3 points</b> pour la bonne issue (victoire domicile, match nul ou victoire extérieur).</li>
+            <li><b>+2 points</b> supplémentaires pour le bon écart de buts si l'issue est juste (un match nul juste rapporte donc au moins 5 points).</li>
+            <li><b>+5 points</b> supplémentaires pour le score exact (<b>10 points</b> au total).</li>
+            <li><b>Coup de poker (×1,5)</b> : si l'issue trouvée avait strictement moins de 25&#8239;% de chances avant le match, le total est multiplié par 1,5 et arrondi au supérieur (jusqu'à <b>15 points</b>).</li>
+          </ul>
+        </details>
+      </section>
+
+      <section class="bloc" id="sec-classement" aria-labelledby="h-l-classement">
+        <div class="bloc-tete">
+          <h2 id="h-l-classement">Classement</h2>
+          <span class="note" id="l-maj"></span>
+        </div>
+        <p class="note" id="l-direct-note" hidden></p>
+        <div class="defile"><table class="tableau" id="l-classement"></table></div>
+      </section>
+
+      <section class="bloc" id="sec-suivi" aria-labelledby="h-l-suivi" hidden>
+        <div class="bloc-tete"><h2 id="h-l-suivi">Pronostics dévoilés et résultats</h2></div>
+        <p class="note">Les pronostics des autres membres apparaissent dès le coup d'envoi. Pendant un match en cours, les points provisoires suivent le score en direct.</p>
+        <div id="l-suivi"></div>
+      </section>
+
+      <section class="bloc" id="sec-pronos" aria-labelledby="h-l-pronos">
+        <div class="bloc-tete"><h2 id="h-l-pronos">Pronostiquer les prochains matchs</h2></div>
+        <div class="pastilles" id="l-chips" role="group" aria-label="Filtrer par compétition"></div>
+        <p class="note" id="l-pronos-note" aria-live="polite">Chargement du programme…</p>
+        <div id="l-pronos"></div>
+        <p class="plus"><button type="button" id="l-more" hidden>Voir plus de matchs</button></p>
+      </section>
+    </div>
+  </div>"""
+
 COMP = """  <section class="titre-page">
     <div class="titre-in">
       <h1 id="c-titre">{nom}</h1>
@@ -461,6 +565,9 @@ def pages() -> dict[str, str]:
         "foot/en-direct.html": page("foot/en-direct.html", "Football en direct : scores et chances des matchs en cours - Extinction des feux",
                                     "Les matchs du jour de la Premier League, de la Bundesliga, de la Liga, de la Serie A, de la Ligue 1, de la Ligue des champions et de la Ligue Europa : score, minute et chances recalculées à chaque but.",
                                     LIVE, ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "en-direct.js"], "foot", "en-direct"),
+        "foot/ligues.html": page("foot/ligues.html", "Ligues de pronostics entre amis - Extinction des feux",
+                                 "Crée ou rejoins une ligue de pronostics de football entre amis, saisis tes scores avant le coup d'envoi et affronte le Bot IA.",
+                                 LIGUES, ["favoris.js", "direct.js"], "foot", "ligues", modules=("ligues.js",)),
         "methode.html": page("methode.html", "Méthode - Extinction des feux",
                              "Comment les probabilités de Formule 1 et de football sont calculées, et ce qu'elles valent.",
                              METHODE, ["methode.js"], "methode"),
@@ -475,13 +582,26 @@ def pages() -> dict[str, str]:
     return out
 
 
+def sync_points(check: bool = False) -> bool:
+    """Copie relais/points.js vers site/assets/points.js (ou vérifie qu'il est à jour en mode --check)."""
+    src = POINTS_SRC.read_text(encoding="utf-8")
+    if check:
+        return POINTS_DST.exists() and POINTS_DST.read_text(encoding="utf-8") == src
+    POINTS_DST.parent.mkdir(parents=True, exist_ok=True)
+    POINTS_DST.write_text(src, encoding="utf-8")
+    return True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true")
+    args = ap.parse_args()
     stale = []
+    if not sync_points(check=args.check):
+        stale.append("assets/points.js")
     for rel, html in pages().items():
         f = SITE / rel
-        if ap.parse_args().check:
+        if args.check:
             if not f.exists() or f.read_text(encoding="utf-8") != html:
                 stale.append(rel)
             continue

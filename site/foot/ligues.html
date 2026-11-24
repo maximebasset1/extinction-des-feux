@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self' https://extinction-direct.maximebasset1.workers.dev; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0f1115">
+<meta name="description" content="Crée ou rejoins une ligue de pronostics de football entre amis, saisis tes scores avant le coup d'envoi et affronte le Bot IA.">
+<title>Ligues de pronostics entre amis - Extinction des feux</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="../assets/fonts/titillium-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../assets/fonts/titillium-900.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/style.css?v=199268e6">
+<script src="../assets/commun.js?v=d961019f" defer></script>
+<script src="../assets/favoris.js?v=7a1dc4c6" defer></script>
+<script src="../assets/direct.js?v=fd2ecc31" defer></script>
+<script src="../assets/onglet-direct.js?v=0b0da193" defer></script>
+<script type="module" src="../assets/ligues.js?v=23f50ad3"></script>
+</head>
+<body data-root="../">
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header class="tete">
+  <div class="tete-in">
+    <a class="marque" href="../index.html"><span class="feux" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Extinction des feux</span></a>
+    <nav class="menu" aria-label="Sections">
+    <a href="../f1.html">Formule 1</a>
+    <a href="../foot.html" aria-current="page">Football</a>
+    <a href="../methode.html">Méthode</a>
+    </nav>
+  </div>
+  <nav class="bande" aria-label="Compétitions">
+    <div class="bande-in">
+      <a href="../foot.html">Tous les matchs</a>
+      <a href="../foot/en-direct.html" data-direct>En direct<span class="bande-live" hidden><i class="pastille" aria-hidden="true"></i><b></b><span class="cache"> matchs en cours</span></span></a>
+      <a href="../foot/ligues.html" aria-current="page">Ligues</a>
+      <a href="../foot/premier-league.html">Premier League</a>
+      <a href="../foot/bundesliga.html">Bundesliga</a>
+      <a href="../foot/liga.html">Liga</a>
+      <a href="../foot/serie-a.html">Serie A</a>
+      <a href="../foot/ligue-1.html">Ligue 1</a>
+      <a href="../foot/ligue-des-champions.html">Ligue des champions</a>
+      <a href="../foot/ligue-europa.html">Ligue Europa</a>
+    </div>
+  </nav>
+</header>
+<main id="contenu">
+  <section class="titre-page">
+    <div class="titre-in">
+      <h1>Ligues de pronostics</h1>
+      <p class="chapeau">Crée une ligue entre amis, pronostique les scores avant le coup d'envoi et affronte le Bot IA sur les sept compétitions. Sans compte : ton accès reste dans ce navigateur.</p>
+      <div class="ligue-barre" id="ligue-barre" hidden>
+        <label for="ligue-select">Ligue active</label>
+        <select id="ligue-select"></select>
+        <button type="button" class="btn-secondaire" id="btn-nouvelle">Créer ou rejoindre</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="page">
+    <section class="bloc" id="ligue-entree" aria-label="Créer ou rejoindre une ligue">
+      <div class="ligue-entree-grille">
+        <form class="carte ligue-form" id="form-creer" novalidate>
+          <h2>Créer une ligue</h2>
+          <p class="note">Un code d'invitation est généré automatiquement et le Bot IA est inscrit d'office.</p>
+          <div class="champ">
+            <label for="c-nom">Nom de la ligue</label>
+            <input id="c-nom" name="nom" type="text" minlength="3" maxlength="40" required placeholder="Ex. Bureau du vendredi">
+          </div>
+          <div class="champ">
+            <label for="c-pseudo">Ton pseudo</label>
+            <input id="c-pseudo" name="pseudo" type="text" minlength="2" maxlength="20" required placeholder="Ex. Maxime">
+          </div>
+          <button type="submit" class="btn-primaire" id="btn-creer">Créer la ligue</button>
+          <p class="form-msg" id="msg-creer" aria-live="polite"></p>
+        </form>
+
+        <form class="carte ligue-form" id="form-rejoindre" novalidate>
+          <h2>Rejoindre avec un code</h2>
+          <p class="note">Saisis le code reçu d'un ami (format <code>ABC-123</code>) pour entrer dans sa ligue.</p>
+          <div class="champ">
+            <label for="r-code">Code de la ligue</label>
+            <input id="r-code" name="code" type="text" maxlength="10" required placeholder="KLM-482" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="champ">
+            <label for="r-pseudo">Ton pseudo</label>
+            <input id="r-pseudo" name="pseudo" type="text" minlength="2" maxlength="20" required placeholder="Ex. Lucas">
+          </div>
+          <button type="submit" class="btn-primaire" id="btn-rejoindre">Rejoindre la ligue</button>
+          <p class="form-msg" id="msg-rejoindre" aria-live="polite"></p>
+        </form>
+      </div>
+      <p class="plus" id="retour-ligue-wrap" hidden><button type="button" id="btn-retour-ligue">Revenir à ma ligue active</button></p>
+    </section>
+
+    <div id="ligue-vue" hidden>
+      <section class="bloc carte ligue-entete" aria-labelledby="l-nom">
+        <div class="ligue-entete-haut">
+          <div>
+            <p class="dep-quoi">Ligue active</p>
+            <h2 id="l-nom">Chargement…</h2>
+            <p class="note" id="l-moi"></p>
+          </div>
+          <div class="ligue-actions">
+            <span class="ligue-code" id="l-code" aria-label="Code de la ligue"></span>
+            <button type="button" class="btn-primaire" id="btn-inviter">Copier le lien d'invitation</button>
+            <button type="button" class="btn-discret" id="btn-oublier">Retirer de cet appareil</button>
+          </div>
+        </div>
+        <p class="note" id="l-statut" aria-live="polite"></p>
+        <details class="bareme">
+          <summary>Barème des points</summary>
+          <ul>
+            <li><b>+3 points</b> pour la bonne issue (victoire domicile, match nul ou victoire extérieur).</li>
+            <li><b>+2 points</b> supplémentaires pour le bon écart de buts si l'issue est juste (un match nul juste rapporte donc au moins 5 points).</li>
+            <li><b>+5 points</b> supplémentaires pour le score exact (<b>10 points</b> au total).</li>
+            <li><b>Coup de poker (×1,5)</b> : si l'issue trouvée avait strictement moins de 25&#8239;% de chances avant le match, le total est multiplié par 1,5 et arrondi au supérieur (jusqu'à <b>15 points</b>).</li>
+          </ul>
+        </details>
+      </section>
+
+      <section class="bloc" id="sec-classement" aria-labelledby="h-l-classement">
+        <div class="bloc-tete">
+          <h2 id="h-l-classement">Classement</h2>
+          <span class="note" id="l-maj"></span>
+        </div>
+        <p class="note" id="l-direct-note" hidden></p>
+        <div class="defile"><table class="tableau" id="l-classement"></table></div>
+      </section>
+
+      <section class="bloc" id="sec-suivi" aria-labelledby="h-l-suivi" hidden>
+        <div class="bloc-tete"><h2 id="h-l-suivi">Pronostics dévoilés et résultats</h2></div>
+        <p class="note">Les pronostics des autres membres apparaissent dès le coup d'envoi. Pendant un match en cours, les points provisoires suivent le score en direct.</p>
+        <div id="l-suivi"></div>
+      </section>
+
+      <section class="bloc" id="sec-pronos" aria-labelledby="h-l-pronos">
+        <div class="bloc-tete"><h2 id="h-l-pronos">Pronostiquer les prochains matchs</h2></div>
+        <div class="pastilles" id="l-chips" role="group" aria-label="Filtrer par compétition"></div>
+        <p class="note" id="l-pronos-note" aria-live="polite">Chargement du programme…</p>
+        <div id="l-pronos"></div>
+        <p class="plus"><button type="button" id="l-more" hidden>Voir plus de matchs</button></p>
+      </section>
+    </div>
+  </div>
+</main>
+<footer class="pied">
+  <div class="pied-in">
+    <p>Projet étudiant de Maxime Basset. Pronostics automatiques, sans lien avec la Formule 1, la FIA, l'UEFA, les ligues ni les clubs.</p>
+    <p>Ce n'est pas un outil de paris. Les jeux d'argent et de hasard peuvent être dangereux : pertes d'argent, conflits familiaux, addiction. Retrouvez nos conseils sur joueurs-info-service.fr (09 74 75 13 13, appel non surtaxé).</p>
+    <p><a href="https://github.com/maximebasset1/extinction-des-feux">Code source</a></p>
+  </div>
+</footer>
+</body>
+</html>

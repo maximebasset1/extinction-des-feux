@@ -1,24 +1,21 @@
 name: Direct football
 on:
   schedule:
-    # trois créneaux (heure UTC) de 5 h 30 au plus, loin des 6 h d'un job GitHub : 10 h 20 -> 15 h 50, 15 h 25 -> 20 h 55,
-    # 19 h 25 -> 0 h 55. Le premier couvre aussi les matchs de Serie A de 12 h 30 (heure de Paris, 10 h 30 UTC en été).
-    # Chaque lancement annule le précédent ; le chevauchement absorbe le retard des minuteries GitHub, et les matchs de
-    # 21 h (heure de Paris), prolongations comprises, restent couverts.
-    # Le quota ne dépend pas du nombre de créneaux : l'état (programme du jour, appels restants) est gardé dans KV.
-    - cron: "20 10 * * *"
-    - cron: "25 15 * * *"
-    - cron: "25 19 * * *"
+    # créneaux toutes les 2 heures de 10 h à 22 h UTC (durée max 3 h 15 chacun) : même si GitHub Actions retarde
+    # ou saute un cron de plusieurs heures, un autre créneau couvre les matchs de Serie A (11 h 30 / 10 h 30 UTC)
+    # jusqu'aux prolongations de Ligue des champions (22 h 30 UTC). Hors fenêtre de match, boucle.mjs rend la main
+    # immédiatement sans consommer de quota API-Football ni tourner à vide.
+    - cron: "15 10,12,14,16,18,20,22 * * *"
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: direct
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   boucle:
     runs-on: ubuntu-latest
-    timeout-minutes: 345   # filet de sécurité : la boucle s'arrête d'elle-même à 5 h 30
+    timeout-minutes: 210   # filet de sécurité : la boucle s'arrête d'elle-même à 3 h 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,5 +36,5 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
-          DUREE_MAX_MIN: "330"
+          DUREE_MAX_MIN: "195"
         run: node relais/boucle.mjs

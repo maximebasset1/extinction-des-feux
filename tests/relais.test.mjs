@@ -170,3 +170,28 @@ test("la marge de sécurité empêche de consommer le plafond gratuit de 100 req
   await tour(env, T0 + 90 * min);      // restant <= MARGE_SECURITE : plus aucun appel
   assert.equal(appels, 2);
 });
+
+test("un match manqué (resté NS après sa fenêtre de jeu) déclenche la relecture du score final", async () => {
+  const koTermine = "2026-11-24T17:45:00+00:00";
+  const koEnCours = "2026-11-24T20:00:00+00:00";
+  let relu = false;
+  const w = monde((c) => {
+    if (c === "fixtures?date=2026-11-24") {
+      if (!relu) {
+        relu = true;
+        return { response: [fixture(1, 2, koTermine, "NS"), fixture(2, 2, koEnCours, "NS")] };
+      }
+      return { response: [fixture(1, 2, koTermine, "FT", [2, 1], 90), fixture(2, 2, koEnCours, "1H", [1, 0], 15)] };
+    }
+    return { response: [fixture(2, 2, koEnCours, "1H", [1, 0], 15)] };
+  });
+  // Programme chargé le matin
+  await tour(w.env, Date.parse("2026-11-24T04:30:00Z"));
+  assert.equal(w.etat().matchs[0].st, "NS");
+  // Reprise après retard cron à 20 h 15 UTC (le match de 17 h 45 est déjà fini depuis > 125 min)
+  await tour(w.env, Date.parse("2026-11-24T20:15:00Z"));
+  assert.equal(w.etat().matchs[0].st, "FT");
+  assert.deepEqual(w.etat().matchs[0].g, [2, 1]);
+  assert.equal(w.etat().matchs[1].st, "1H");
+  assert.deepEqual(w.etat().matchs[1].g, [1, 0]);
+});

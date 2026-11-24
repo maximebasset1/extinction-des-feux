@@ -348,7 +348,9 @@ MOTS_ABSENCE = _phrases(
     "lesionado", "lesion", "sancionado", "infortunio", "infortunato", "squalificato", "indisponibile")
 MOTS_DOUTE = _phrases("incertain", "incertains", "doubtful", "a doubt", "injury doubt", "in doubt", "fraglich",
                       "es duda", "en duda", "in dubbio", "in forse")
-FAUX_AMIS = _phrases("injury time", "baja forma")
+FAUX_AMIS = _phrases("injury time", "baja forma", "without a doubt", "is out to", "are out to", "out for revenge",
+                     "puso en duda", "pone en duda", "poner en duda", "messo in dubbio", "mette in dubbio",
+                     "mettere in dubbio")
 # retour de blessure ou démenti : la phrase entière est ignorée (mieux vaut manquer un absent qu'en inventer un)
 MOTS_RETOUR = _phrases(
     "de retour", "retour de", "son retour", "revient", "retrouve", "apte", "retabli", "pas blesse", "pas forfait",
@@ -411,7 +413,7 @@ def club_aliases(*noms: str) -> set[tuple[str, ...]]:
                 out.add(tuple(forme))
         plein = " ".join(mots)
         for cle, surnoms in ALIAS_PRESSE.items():
-            if f" {cle} " in f" {plein} ":
+            if f" {cle} " in f" {plein} " and not (cle == "barcelona" and "espanyol" in mots):
                 out.update(tuple(_fold(a).split()) for a in surnoms)
     return out
 
@@ -467,10 +469,17 @@ def _joueurs_cites(mots: list, effectifs: dict[str, list[str]], mots_clubs: set[
     return sorted(out)
 
 
-def _lies(mots: list, x: tuple, y: tuple) -> bool:
-    """Deux noms d'une même énumération (« Kane, Olise », « Kane et Olise »)."""
-    gauche, droite = sorted((x, y))
-    return all(mots[i][1] in LIAISONS for i in range(gauche[1], droite[0]))
+def _lies(mots: list, nouveau: tuple, retenu: tuple, joueurs: list) -> bool:
+    """Deux noms d'une même énumération (« Kane, Olise », « Kane et Olise »). Après un nom retenu, une virgule
+    seule ne suffit pas si le nom suivant est le sujet d'autre chose (« l'absence de Kane, Olise a brillé »)."""
+    gauche, droite = sorted((nouveau, retenu))
+    entre = [mots[i][1] for i in range(gauche[1], droite[0])]
+    if any(m not in LIAISONS for m in entre):
+        return False
+    if entre or nouveau < retenu:
+        return True
+    fin = nouveau[1]
+    return fin >= len(mots) or mots[fin][1] in LIAISONS or any(j[0] == fin for j in joueurs)
 
 
 def _absents_phrase(mots: list, joueurs: list) -> dict[tuple[str, str], str]:
@@ -501,7 +510,7 @@ def _absents_phrase(mots: list, joueurs: list) -> dict[tuple[str, str], str]:
                 while ajout:
                     ajout = False
                     for j in joueurs:
-                        if j not in retenus and any(_lies(mots, j, r) for r in retenus):
+                        if j not in retenus and any(_lies(mots, j, r, joueurs) for r in retenus):
                             retenus.append(j)
                             ajout = True
                 for _, _, tid, nom in retenus:

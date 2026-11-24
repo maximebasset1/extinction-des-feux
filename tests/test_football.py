@@ -566,3 +566,28 @@ def test_predict_drops_press_absentees_from_the_final_scorers():
            "presse": {"FRA:A": [{"nom": "Premier Buteur", "statut": "incertain"}]}, "nom": lambda t: t[4:]}
     pr = P.predict(fit, r, bt, ctx)
     assert [b["nom"] for b in pr["buteurs"]["dom"]] == ["Second Buteur"]
+
+
+@pytest.mark.parametrize("titre", [
+    "Bayern: Kane is without a doubt the best striker",
+    "Bayern: Kane is out to prove his critics wrong",
+    "Bayern's Kane out for revenge against Lille",
+    "El Bayern: Kane puso en duda el arbitraje",
+])
+def test_press_ignores_common_idioms(titre):
+    assert _signales(titre) == set(), titre
+
+
+def test_press_comma_after_the_absentee_does_not_catch_the_next_subject():
+    assert {n for _, n, _ in _signales("Bayern : en l'absence de Kane, Olise a brillé")} == {"Harry Kane"}
+    assert {n for _, n, _ in _signales("Bayern, les forfaits : Kane, Olise")} == {"Harry Kane", "Michael Olise"}
+    assert {n for _, n, _ in _signales("Bayern, forfaits de Kane, Olise et Musiala")} == {
+        "Harry Kane", "Michael Olise", "Jamal Musiala"}
+
+
+def test_barcelona_nicknames_do_not_designate_espanyol():
+    from football import context as CTX
+    squads = {"ESP:Espanol": ["Pere Garcia"]}
+    alias = {"ESP:Espanol": CTX.club_aliases("RCD Espanyol de Barcelona", "Espanyol")}
+    item = [{"titre": "Barça : Garcia forfait", "resume": "", "date": 0}]
+    assert CTX.detect_press_absences(item, squads, alias) == {}

@@ -142,9 +142,10 @@ def fdorg_frame(js: dict, comp: str, idx: TeamIndex) -> pd.DataFrame:
         if not h.get("name") or not a.get("name"):
             continue   # tirage pas encore fait
         sc = x.get("score") or {}
-        reg = sc.get("regularTime") or sc.get("fullTime") or {}
+        rt, ft = sc.get("regularTime") or {}, sc.get("fullTime") or {}
+        reg = rt if rt.get("home") is not None and rt.get("away") is not None else ft
         # match attribué sur tapis vert : il compte comme joué, avec le score décidé
-        done = x.get("status") in ("FINISHED", "AWARDED") and reg.get("home") is not None
+        done = x.get("status") in ("FINISHED", "AWARDED") and reg.get("home") is not None and reg.get("away") is not None
         stage = x.get("stage")
         if stage in STAGES:
             label = STAGES[stage]

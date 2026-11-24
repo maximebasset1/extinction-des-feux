@@ -128,11 +128,18 @@ function lireRelais() {
 }
 
 /* suit les matchs donnés ; `listes` : [{ matchs, clubs, comp }] (comp : compétition commune quand les matchs n'ont pas de champ c) ;
-   `apresTour` est appelé après chaque lecture du relais, avant la mise à jour des lignes */
-async function suivreDirect(listes, { apresTour = null } = {}) {
+   `apresTour` est appelé après chaque lecture du relais, avant la mise à jour des lignes ;
+   `inclureDuJourSansScore` : rattache aussi les matchs du jour déjà finis dans le relais mais sans score publié dans le JSON statique */
+async function suivreDirect(listes, { apresTour = null, inclureDuJourSansScore = false } = {}) {
   const tous = listes.flatMap(({ matchs, clubs, comp }) => matchs.map((m) => ({ m: comp && !m.c ? { ...m, c: comp } : m, orig: m, clubs })));
+  const aRattacher = (m, t) => {
+    if (aSuivre(m, t)) return true;
+    if (!inclureDuJourSansScore || !m.kickoff || (m.etat === "joue" && m.score)) return false;
+    const ko = Date.parse(m.kickoff);
+    return t >= ko - SUIVI_AVANT_MS && t <= ko + 12 * 36e5;
+  };
   const tour = async () => {
-    const t = Date.now(), enCours = tous.filter(({ m }) => aSuivre(m, t));
+    const t = Date.now(), enCours = tous.filter(({ m }) => aRattacher(m, t));
     if (!enCours.length) return;
     try {
       if (!D.params) D.params = await donnees("foot/direct");

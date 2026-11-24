@@ -8,7 +8,8 @@ Plateforme statique multi-sport (**Formule 1 + Football**) de pronostics probabi
 
 - Calcul : pipelines Python exécutés par **GitHub Actions** (`.github/workflows/mise-a-jour.yml`, toutes les 1 à 3 h). Ils réentraînent les modèles, recalculent les pronostics et republient le site.
 - Direct Football : relais Edge **Cloudflare Worker** (`extinction-direct.maximebasset1.workers.dev`, code dans `relais/`). La boucle d'appels tourne dans GitHub Actions (`direct.yml`), le Worker ne fait que servir.
-- Site 100 % statique : pas de serveur, pas de base de données. CSP stricte, aucun CDN ni traceur.
+- Ligues de pronostics entre amis (Football uniquement) : routes `/ligues` sur le même Worker Cloudflare, stockant ligues, pseudos et pronostics sur **Cloudflare D1** (`extinction-ligues`, schéma dans `relais/schema.sql`, barème partagé dans `relais/points.js` copié vers `site/assets/points.js` par `build_site.py`). Sans compte : le navigateur conserve le code de ligue et le jeton dans `localStorage`.
+- Pages publiées sur GitHub Pages : 100 % statiques (la partie F1 n'a ni serveur ni base de données). CSP stricte, aucun CDN ni traceur.
 
 Carte du dépôt :
 

@@ -221,10 +221,13 @@ def europa_calendar(events: list, odds: dict, results: pd.DataFrame, idx: SRC.Te
                                    "hg": None, "ag": None, "played": False, "neutral": False} for e in started]))
     if len(results):
         r = results.copy()
-        r["home"] = [idx.resolve(n) for n in r["home_name"]]
-        r["away"] = [idx.resolve(n) for n in r["away_name"]]
-        r["played"], r["neutral"] = True, False
-        rows.append(r[["competition", "kickoff", "home", "away", "home_name", "away_name", "hg", "ag", "played", "neutral"]])
+        # Ne conserve que les résultats de la saison en cours (évite de mélanger plusieurs saisons de coupe)
+        r = r[r["kickoff"].astype(str) >= f"{C.CURRENT_SEASON}-07-01"]
+        if len(r):
+            r["home"] = [idx.resolve(n) for n in r["home_name"]]
+            r["away"] = [idx.resolve(n) for n in r["away_name"]]
+            r["played"], r["neutral"] = True, False
+            rows.append(r[["competition", "kickoff", "home", "away", "home_name", "away_name", "hg", "ag", "played", "neutral"]])
     if not rows:
         return pd.DataFrame()
     f = pd.concat(rows, ignore_index=True)
@@ -782,7 +785,7 @@ def main(offline: bool = False) -> None:
         f = cal.get(comp, pd.DataFrame())
         clubs = sorted(set(f["home"]) | set(f["away"])) if len(f) else []
         matchs = []
-        for _, r in f.sort_values(["ordre", "jour"]).iterrows() if len(f) else []:
+        for _, r in f.sort_values(["ordre", "jour"], na_position="last").iterrows() if len(f) else []:
             mid = JR.match_id(comp, r["home"], r["away"], r["jour"])
             item = {"id": mid, "journee": r["journee"], "ordre": int(r["ordre"]), "jour": r["jour"],
                     "kickoff": r["kickoff"] if isinstance(r["kickoff"], str) else None, "home": r["home"], "away": r["away"]}
@@ -826,7 +829,13 @@ def main(offline: bool = False) -> None:
                     item.update(p=S.round_probs(q), source="publie", publie=when)
             matchs.append(item)
         ahead = [m for m in matchs if m["etat"] == "a_venir" and (m["jour"] or "9999") >= today]
-        prochaine = choose_matchday(ahead, now) or (matchs[-1]["journee"] if matchs else None)
+        # Si des matchs de la compétition ont lieu aujourd'hui (en cours, en attente ou fraîchement joués),
+        # on garde leur journée/étape ouverte par défaut plutôt que de sauter déjà à la journée suivante.
+        du_jour = [m for m in matchs if m.get("jour") == today and m["etat"] in ("en_cours", "en_attente", "joue")]
+        if du_jour:
+            prochaine = du_jour[-1]["journee"]
+        else:
+            prochaine = choose_matchday(ahead, now) or (matchs[-1]["journee"] if matchs else None)
         journees = []
         for m in matchs:
             if m["journee"] not in journees:

@@ -44,7 +44,11 @@ function detail(m) {
       html += `<p class="note">Pas de pronostic enregistré pour ce match.</p>`;
     }
   } else if (m.p) {
+    const badge = badgeConfiance(m);
+    if (badge) html += `<p class="detail-conf">${badge}</p>`;
     html += `<p>Pronostic publié avant le coup d'envoi :</p>${trois(m.p)}`;
+    html += blocStatsGrille(m);
+    html += blocFacteurs(m, C.d.clubs);
   }
   const suivre = etoile(m.home, h, true) + etoile(m.away, a, true);
   if (suivre) html += `<div class="fiche-clubs">${suivre}</div>`;
@@ -68,11 +72,14 @@ function rendreJournee() {
   $("#j-prev").disabled = i <= 0;
   $("#j-next").disabled = i >= C.d.journees.length - 1;
   const aVenir = liste.filter((m) => m.etat === "a_venir");
+  const joues = liste.filter((m) => m.etat === "joue");
   const legende = legendeJoues(liste);
-  $("#j-note").textContent = !liste.length ? "" : !aVenir.length
-    ? `Journée terminée. Sous chaque score, la chance que le modèle donnait au résultat avant le match. ${legende ? `${legende} ` : ""}Déplie un match pour le détail.`
-    : `Chances de victoire à domicile, de nul et de victoire à l'extérieur${aVenir.some((m) => m.avec_cotes) ? ", cotes d'avant-match comprises quand elles sont publiées" : ""}. Heures à l'heure de ton appareil. ${legende ? `${legende} ` : ""}Déplie un match pour le détail.`;
+  $("#j-note").textContent = !liste.length ? "" : !aVenir.length && joues.length === liste.length
+    ? `Journée terminée (${accord(joues.length, "match", "matchs")} joué${joues.length > 1 ? "s" : ""}). Sous chaque score, la chance que le modèle donnait au résultat avant le match. ${legende ? `${legende} ` : ""}Déplie un match pour le détail.`
+    : `${joues.length ? `${accord(joues.length, "résultat")} enregistré${joues.length > 1 ? "s" : ""}, ` : ""}chances de victoire à domicile, de nul et de victoire à l'extérieur${aVenir.some((m) => m.avec_cotes) ? ", cotes d'avant-match comprises quand elles sont publiées" : ""}. Heures à l'heure de ton appareil. ${legende ? `${legende} ` : ""}Déplie un match pour le détail.`;
   $("#j-liste").innerHTML = liste.length ? parJour(liste, ligne) : `<p class="vide">Aucun match pour l'instant.</p>`;
+  if (typeof Favoris !== "undefined") Favoris.marquer($("#j-liste"));
+  if (typeof appliquer === "function") appliquer();
 }
 
 /* ---------- classement et fin de saison */
@@ -190,10 +197,13 @@ async function main() {
     rendreFiabilite();
     return;
   }
-  // un match en cours (coup d'envoi il y a moins de 2 h 30, ou 3 h en coupe) passe avant la prochaine journée : on ouvre la sienne
-  const t = Date.now(), fenetre = C.d.type === "coupe" ? 108e5 : 9e6;
+  // ouverture sur la journée/étape en cours (match commencé depuis < 12 h), sinon la prochaine ou la plus récente
+  const t = Date.now(), fenetre = 12 * 36e5;
   const enCours = C.d.matchs.find((m) => m.kickoff && m.etat !== "joue" && t >= Date.parse(m.kickoff) && t - Date.parse(m.kickoff) < fenetre);
-  C.journee = enCours?.journee || C.d.prochaine || C.d.journees[0];
+  const recentJoue = [...C.d.matchs].reverse().find((m) => m.etat === "joue" && m.jour === aujourdhui());
+  const defaut = enCours?.journee || recentJoue?.journee || (C.d.journees.includes(C.d.prochaine) ? C.d.prochaine : null)
+    || C.d.journees[C.d.journees.length - 1];
+  C.journee = defaut;
   $("#j-select").innerHTML = C.d.journees.map((j) => `<option>${esc(j)}</option>`).join("");
   const keys = Object.keys(C.d.clubs).sort((x, y) => nom(x).localeCompare(nom(y), "fr"));
   const tete = C.d.classement.map((r) => r.club);
@@ -201,7 +211,7 @@ async function main() {
   options($("#club-select"), keys, C.club); options($("#f-a"), keys, C.a); options($("#f-b"), keys, C.b);
   rendreJournee(); rendreClassement(); rendreClub(); rendreFace(); rendreFiabilite();
   ouvrirDepuisAdresse();
-  suivreDirect([{ matchs: C.d.matchs, clubs: C.d.clubs, comp: C.d.code }]);
+  suivreDirect([{ matchs: C.d.matchs, clubs: C.d.clubs, comp: C.d.code }], { inclureDuJourSansScore: true });
   $("#j-select").addEventListener("change", (e) => { C.journee = e.target.value; rendreJournee(); });
   $("#j-prev").addEventListener("click", () => { C.journee = C.d.journees[Math.max(0, C.d.journees.indexOf(C.journee) - 1)]; rendreJournee(); });
   $("#j-next").addEventListener("click", () => { C.journee = C.d.journees[Math.min(C.d.journees.length - 1, C.d.journees.indexOf(C.journee) + 1)]; rendreJournee(); });

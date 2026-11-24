@@ -103,10 +103,14 @@ def test_football_data_org_uses_the_score_after_90_minutes():
           "matches": [{"utcDate": "2027-03-10T20:00:00Z", "status": "FINISHED", "stage": "LAST_16",
                        "homeTeam": {"id": 1, "name": "Lille OSC"}, "awayTeam": {"id": 2, "name": "FC Bayern München"},
                        "score": {"fullTime": {"home": 3, "away": 2}, "regularTime": {"home": 2, "away": 2}}},
+                      {"utcDate": "2026-11-24T20:00:00Z", "status": "FINISHED", "stage": "LEAGUE_STAGE", "matchday": 5,
+                       "homeTeam": {"id": 2, "name": "FC Bayern München"}, "awayTeam": {"id": 1, "name": "Lille OSC"},
+                       "score": {"fullTime": {"home": 2, "away": 1}, "regularTime": {"home": None, "away": None}}},
                       {"utcDate": "2027-03-17T20:00:00Z", "status": "TIMED", "stage": "LAST_16",
                        "homeTeam": {"id": None, "name": None}, "awayTeam": {"id": None, "name": None}, "score": {}}]}
     f = sources.fdorg_frame(js, "LDC", sources.TeamIndex(["FRA:Lille", "GER:Bayern Munich"]))
-    assert len(f) == 1 and f.loc[0, "away"] == "GER:Bayern Munich" and (f.loc[0, "hg"], f.loc[0, "ag"]) == (2, 2)
+    assert len(f) == 2 and f.loc[0, "away"] == "GER:Bayern Munich" and (f.loc[0, "hg"], f.loc[0, "ag"]) == (2, 2)
+    assert (f.loc[1, "hg"], f.loc[1, "ag"]) == (2, 1) and bool(f.loc[1, "played"])
 
 
 def leagues_and_cup(seed=0):
@@ -235,10 +239,14 @@ def test_europa_league_match_stays_listed_until_its_result_arrives():
     seen = {"a": {"id": "a", "commence_time": "2026-11-26T20:00:00Z", "home_team": "Lille OSC", "away_team": "Real Betis"}}
     f = P.europa_calendar([], {}, pd.DataFrame(), idx, now, seen)
     assert len(f) == 1 and not f.loc[0, "played"] and P.etat(f.iloc[0], now) == "en_cours"
-    done = pd.DataFrame([{"id": "a", "competition": "LEC", "kickoff": "2026-11-26T20:00:00Z", "home_name": "Lille OSC",
-                          "away_name": "Real Betis", "hg": 2, "ag": 1}])
+    done = pd.DataFrame([
+        {"id": "old", "competition": "LEC", "kickoff": "2025-11-26T20:00:00Z", "home_name": "Lille OSC",
+         "away_name": "Real Betis", "hg": 0, "ag": 0},
+        {"id": "a", "competition": "LEC", "kickoff": "2026-11-26T20:00:00Z", "home_name": "Lille OSC",
+         "away_name": "Real Betis", "hg": 2, "ag": 1},
+    ])
     f = P.europa_calendar([], {}, done, idx, now, seen)
-    assert len(f) == 1 and bool(f.loc[0, "played"])
+    assert len(f) == 1 and bool(f.loc[0, "played"]) and (f.loc[0, "hg"], f.loc[0, "ag"]) == (2, 1)
 
 
 def test_europa_scores_are_fetched_only_after_a_match_and_twice_a_day_at_most(tmp_path, monkeypatch):

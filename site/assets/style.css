@@ -363,3 +363,83 @@ dialog.fiche .facteurs-cles { background: var(--surface-2); }
 .liste-buteurs b { color: var(--accent-clair); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (max-width: 560px) { .buteurs-grille { grid-template-columns: 1fr; } }
 @media (max-width: 720px) { .calib { grid-template-columns: 1fr; } }
+
+/* ---------- ligues de pronostics (foot/ligues.html, ligues.js) */
+.ligue-barre { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-top: 1.3rem; }
+.ligue-barre label { font-weight: 700; color: var(--texte-doux); font-size: .92rem; }
+.ligue-entree-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.ligue-form { display: grid; gap: .85rem; }
+.ligue-form h2 { font-size: 1.45rem; }
+.champ { display: grid; gap: .3rem; }
+.champ label { font-weight: 700; font-size: .92rem; color: var(--texte-doux); }
+.champ input { width: 100%; padding: .6rem .85rem; border-radius: .55rem; border: 1px solid var(--ligne-forte);
+  background: var(--fond); color: var(--texte); }
+.champ input::placeholder { color: var(--texte-faible); }
+.btn-primaire, .btn-secondaire, .btn-discret { display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  border-radius: 99px; font-weight: 700; cursor: pointer; padding: .48rem 1.05rem; border: 1px solid transparent; }
+.btn-primaire { background: var(--accent); color: #fff; }
+.btn-primaire:hover:not(:disabled) { background: #069c9a; }
+.btn-secondaire { background: transparent; border-color: var(--ligne-forte); color: var(--texte); }
+.btn-secondaire:hover:not(:disabled) { border-color: var(--accent-clair); background: var(--surface-2); }
+.btn-discret { background: transparent; border-color: transparent; color: var(--texte-doux); font-size: .9rem; padding: .4rem .7rem; }
+.btn-discret:hover { color: var(--texte); text-decoration: underline; }
+.btn-primaire:disabled, .btn-secondaire:disabled { opacity: .45; cursor: default; }
+.form-msg { margin: 0; font-size: .92rem; min-height: 1.2em; color: var(--accent-clair); font-weight: 600; }
+.form-msg.err { color: var(--feu); }
+
+.ligue-entete { display: grid; gap: .9rem; }
+.ligue-entete-haut { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.ligue-entete h2 { font-size: clamp(1.7rem, 1.4rem + 1vw, 2.2rem); margin: .15rem 0 .25rem; }
+.ligue-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.ligue-code { display: inline-flex; align-items: center; padding: .35rem .8rem; border-radius: .55rem; background: var(--surface-2);
+  border: 1px solid var(--accent); font-weight: 900; font-size: 1.1rem; letter-spacing: .08em; font-variant-numeric: tabular-nums; color: var(--accent-clair); }
+
+.bareme { border-top: 1px solid var(--ligne); padding-top: .7rem; }
+.bareme summary { cursor: pointer; font-weight: 700; color: var(--accent-clair); }
+.bareme ul { margin: .6rem 0 0; padding-left: 1.2rem; color: var(--texte-doux); font-size: .94rem; }
+.bareme li { margin-bottom: .3rem; }
+.bareme b { color: var(--texte); }
+
+.badge-bot, .badge-moi, .badge-poker, .badge-exact { display: inline-flex; align-items: center; padding: .04rem .46rem; border-radius: 99px;
+  font-size: .74rem; font-weight: 700; line-height: 1.45; margin-left: .4rem; vertical-align: middle; white-space: nowrap; }
+.badge-bot { background: var(--accent); color: #fff; }
+.badge-moi { background: var(--surface-3); border: 1px solid var(--ligne-forte); color: var(--texte); }
+.badge-poker { background: rgba(242, 179, 102, .14); border: 1px solid rgba(242, 179, 102, .55); color: #f2b366; }
+.badge-exact { background: rgba(5, 135, 133, .18); border: 1px solid rgba(63, 189, 185, .55); color: var(--accent-clair); }
+.pts-live { color: var(--accent-clair); font-weight: 700; font-size: .85rem; margin-left: .35rem; font-variant-numeric: tabular-nums; }
+
+.prono-liste { list-style: none; margin: 0; padding: 0; }
+.prono-item { border-top: 1px solid var(--ligne); padding: .75rem .3rem; }
+.prono-item:last-child { border-bottom: 1px solid var(--ligne); }
+.prono-item.fav { box-shadow: inset 4px 0 0 var(--accent-clair); background: rgba(5, 135, 133, .08); padding-left: .6rem; }
+.prono-grille { display: grid; grid-template-columns: 6.8rem minmax(0, 1fr) minmax(10.5rem, 13.5rem) minmax(0, 1fr); align-items: center; gap: .75rem; }
+.prono-centre { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+.prono-inputs { display: inline-flex; align-items: center; gap: .35rem; }
+.prono-inputs input { width: 3rem; padding: .38rem .2rem; text-align: center; font-weight: 900; font-size: 1.15rem;
+  font-variant-numeric: tabular-nums; border-radius: .5rem; border: 1px solid var(--ligne-forte); background: var(--fond); color: var(--texte); }
+.prono-inputs input:disabled { opacity: .55; cursor: not-allowed; }
+.prono-inputs span { color: var(--texte-doux); font-weight: 700; }
+.prono-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem .6rem; font-size: .78rem; color: var(--texte-doux); }
+.prono-bot { color: var(--accent-clair); font-weight: 700; font-variant-numeric: tabular-nums; }
+.prono-etat { font-weight: 600; }
+.prono-etat.ok { color: var(--accent-clair); }
+.prono-etat.err { color: var(--feu); }
+
+.suivi-carte { background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); padding: .95rem 1.1rem; margin-bottom: .85rem; }
+.suivi-tete { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: .7rem; }
+.suivi-affiche { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .8rem; font-weight: 700; }
+.suivi-score { font-weight: 900; font-size: 1.25rem; padding: .08rem .55rem; border-radius: .45rem; background: var(--surface-3); font-variant-numeric: tabular-nums; }
+.suivi-pronos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: .45rem; }
+.suivi-pronos li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .4rem .65rem;
+  background: var(--surface-2); border: 1px solid var(--ligne); border-radius: .55rem; font-size: .9rem; }
+.suivi-pronos .sp-score { font-weight: 900; font-variant-numeric: tabular-nums; }
+.suivi-pronos .sp-pts { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent-clair); }
+
+@media (max-width: 720px) {
+  .ligue-entree-grille { grid-template-columns: 1fr; }
+  .prono-grille { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "heure heure" "dom ext" "centre centre"; gap: .45rem .75rem; }
+  .prono-grille .m-heure { grid-area: heure; }
+  .prono-grille .m-dom { grid-area: dom; flex-direction: row-reverse; justify-content: flex-end; text-align: left; }
+  .prono-grille .m-ext { grid-area: ext; flex-direction: row-reverse; justify-content: flex-start; text-align: right; }
+  .prono-grille .prono-centre { grid-area: centre; }
+}

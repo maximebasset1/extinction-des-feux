@@ -3,16 +3,21 @@ on:
   push:
     branches: [main, "feat/direct-relais"]
     paths: ["relais/**", ".github/workflows/relais.yml"]
+  schedule:
+    # programme des ligues (coups d'envoi, résultats, score du Bot IA) repris du site publié ; pas de redéploiement
+    - cron: "7,37 * * * *"
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: relais
-  cancel-in-progress: false
+# la file d'attente est propre à chaque tâche : une mise à jour programmée ne doit pas annuler un déploiement en attente
 jobs:
   deployer:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: relais
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: relais
@@ -24,9 +29,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Tester le relais
+      - name: Tester le relais et les ligues
         working-directory: .
-        run: node --test tests/relais.test.mjs
+        run: node --test tests/relais.test.mjs tests/ligues.test.mjs
       - name: Stockage KV (créé au premier déploiement)
         run: |
           base="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces"
@@ -37,6 +42,21 @@ jobs:
           fi
           test -n "$id" && test "$id" != null
           sed -i "s/KV_ID/$id/" wrangler.toml
+      # le jeton Cloudflare doit avoir le droit « D1 : modification » (compte), sinon cette étape échoue
+      - name: Base D1 des ligues (créée au premier déploiement)
+        run: |
+          base="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database"
+          auth="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          liste=$(curl -sf -H "$auth" "$base?name=extinction-ligues&per_page=100") || {
+            echo "::error::Base D1 inaccessible : ajouter le droit « D1 : modification » au jeton CLOUDFLARE_API_TOKEN."; exit 1; }
+          id=$(echo "$liste" | jq -r '.result[] | select(.name=="extinction-ligues") | .uuid')
+          if [ -z "$id" ]; then
+            id=$(curl -sf -X POST -H "$auth" -H "Content-Type: application/json" --data '{"name":"extinction-ligues"}' "$base" | jq -r '.result.uuid')
+          fi
+          test -n "$id" && test "$id" != null
+          sed -i "s/D1_ID/$id/" wrangler.toml
+      - name: Tables des ligues (sans effet si elles existent déjà)
+        run: npx --yes wrangler@4 d1 execute extinction-ligues --remote --yes --file=schema.sql
       - name: Déployer
         run: npx --yes wrangler@4 deploy
       - name: Retirer la clé API-Football du Worker (elle ne sert plus que dans GitHub)
@@ -44,3 +64,35 @@ jobs:
       - name: Vérifier la réponse publique
         run: |
           curl -sf https://extinction-direct.maximebasset1.workers.dev/direct | jq -c '{jour, maj_utc, intervalle_min, erreur, matchs: (.matchs | length), en_jeu: [.matchs[] | select(.st|IN("1H","HT","2H")) | "\(.h) \(.g[0])-\(.g[1]) \(.a) \(.min)"]}'
+      # une ligue inconnue doit répondre 404 : la route est en ligne et la base répond (rien n'est créé).
+      # III-000 ne peut pas être tiré au sort (les codes n'ont pas de I)
+      - name: Vérifier l'API des ligues
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' https://extinction-direct.maximebasset1.workers.dev/ligues/III-000)
+          echo "réponse : $code"
+          test "$code" = 404
+
+  programme:
+    needs: deployer
+    # après un déploiement réussi, et à chaque lancement programmé (où le déploiement est sauté) ; seule « main » planifie
+    if: ${{ !cancelled() && (needs.deployer.result == 'success' || github.event_name == 'schedule') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: relais-programme
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Programme des ligues dans KV
+        run: |
+          id=$(curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces?per_page=100" \
+            | jq -r '.result[] | select(.title=="extinction-direct") | .id')
+          test -n "$id"
+          KV_ID="$id" node relais/publier-programme.mjs

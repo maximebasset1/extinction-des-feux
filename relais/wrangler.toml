@@ -14,3 +14,9 @@ crons = []
 [[kv_namespaces]]
 binding = "DIRECT"
 id = "KV_ID"
+
+# ligues de pronostics (schéma : schema.sql) ; D1_ID est remplacé au déploiement, comme KV_ID
+[[d1_databases]]
+binding = "DB"
+database_name = "extinction-ligues"
+database_id = "D1_ID"

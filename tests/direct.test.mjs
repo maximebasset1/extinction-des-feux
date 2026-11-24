@@ -8,7 +8,7 @@ const ctx = vm.createContext({ document: { body: { dataset: {} }, querySelectorA
 for (const f of ["commun.js", "modele-direct.js", "direct.js"]) {
   vm.runInContext(readFileSync(new URL(`../site/assets/${f}`, import.meta.url), "utf8").replace(/^"use strict";/m, ""), ctx, { filename: f });
 }
-const { rattacher, minuteMaintenant, chancesEnDirect, tempsRestant, courbeChances, chronologieDe, scoreA } = vm.runInContext("({ rattacher, minuteMaintenant, chancesEnDirect, tempsRestant, courbeChances, chronologieDe, scoreA })", ctx);
+const { rattacher, minuteMaintenant, chancesEnDirect, tempsRestant, courbeChances, chronologieDe, scoreA, aSuivre, D } = vm.runInContext("({ rattacher, minuteMaintenant, chancesEnDirect, tempsRestant, courbeChances, chronologieDe, scoreA, aSuivre, D })", ctx);
 
 const clubs = {
   "FRA:Lorient": { nom: "Lorient" }, "FRA:Rennes": { nom: "Stade Rennais" }, "FRA:Paris FC": { nom: "Paris FC" },
@@ -19,6 +19,7 @@ const clubs = {
   "GER:Werder Bremen": { nom: "Werder Brême" }, "GER:Hamburg": { nom: "Hamburger SV" },
   "GER:Augsburg": { nom: "Augsbourg" }, "GER:Mainz": { nom: "Mayence" },
   "ESP:Ath Madrid": { nom: "Atlético de Madrid" }, "ESP:Getafe": { nom: "Getafe" },
+  "ITA:Inter": { nom: "Inter" }, "ITA:Napoli": { nom: "Napoli" },
 };
 const m = (c, ko, home, away) => ({ id: `${c}-${home}-${away}`, c, kickoff: ko, home, away });
 const f = (id, c, ko, h, a) => ({ id, c, ko, h, a, st: "1H", min: 10, g: [0, 0] });
@@ -124,4 +125,33 @@ test("un match du jour déjà « joué » mais sans score publié ne fait pas é
   const ligne = vm.runInContext(`ligneMatch({ id: "F1|a|b", etat: "joue", kickoff: "2026-11-22T14:00:00Z", home: "FRA:Lille", away: "FRA:Lyon", p: [0.5, 0.3, 0.2] }, {})`, ctx);
   assert.match(ligne, /terminé/);
   assert.match(ligne, /data-match=/);
+});
+
+test("le suivi couvre les prolongations et tirs au but en coupe et tant que le relais indique un match en jeu", () => {
+  const ko = "2026-11-24T20:00:00Z", t0 = Date.parse(ko), min = 6e4;
+  const ligue = m("I1", ko, "ITA:Inter", "ITA:Napoli");
+  const coupe = m("LDC", ko, "ITA:Inter", "ENG:Liverpool");
+  D.suivis = [];
+  assert.equal(aSuivre(ligue, t0 + 150 * min), true);
+  assert.equal(aSuivre(ligue, t0 + 160 * min), false);
+  // coupe : suivi étendu à 180 min sans même avoir besoin du statut relais
+  assert.equal(aSuivre(coupe, t0 + 175 * min), true);
+  assert.equal(aSuivre(coupe, t0 + 185 * min), false);
+  // prolongations / tirs au but encore en cours dans le relais : le suivi continue au-delà de 180 min
+  D.suivis = [{ m: coupe, f: { st: "P" }, clubs }];
+  assert.equal(aSuivre(coupe, t0 + 195 * min), true);
+  // dès que le match est terminé (PEN / FT), le suivi s'arrête
+  D.suivis = [{ m: coupe, f: { st: "PEN" }, clubs }];
+  assert.equal(aSuivre(coupe, t0 + 195 * min), false);
+  // filet de sécurité à 240 min même si le statut reste figé
+  D.suivis = [{ m: coupe, f: { st: "ET" }, clubs }];
+  assert.equal(aSuivre(coupe, t0 + 245 * min), false);
+  D.suivis = [];
+});
+
+test("les clubs de Serie A d'API-Football se rattachent bien aux nôtres", () => {
+  const nos = [m("I1", "2026-11-22T19:45:00Z", "ITA:Inter", "ITA:Napoli")];
+  const leurs = [f(50, "I1", "2026-11-22T19:45:00+00:00", "Inter", "Napoli")];
+  const lien = rattacher(nos, leurs, clubs);
+  assert.equal(lien.get(nos[0])?.id, 50);
 });

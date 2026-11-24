@@ -1,11 +1,12 @@
 name: Direct football
 on:
   schedule:
-    # trois créneaux (heure UTC) de 5 h 30 au plus, loin des 6 h d'un job GitHub : 10 h 55 -> 16 h 25, 15 h 25 -> 20 h 55,
-    # 19 h 25 -> 0 h 55. Chaque lancement annule le précédent ; l'heure de chevauchement absorbe le retard des minuteries
-    # GitHub, et les matchs de 21 h (heure de Paris), prolongations comprises, restent couverts.
+    # trois créneaux (heure UTC) de 5 h 30 au plus, loin des 6 h d'un job GitHub : 10 h 20 -> 15 h 50, 15 h 25 -> 20 h 55,
+    # 19 h 25 -> 0 h 55. Le premier couvre aussi les matchs de Serie A de 12 h 30 (heure de Paris, 10 h 30 UTC en été).
+    # Chaque lancement annule le précédent ; le chevauchement absorbe le retard des minuteries GitHub, et les matchs de
+    # 21 h (heure de Paris), prolongations comprises, restent couverts.
     # Le quota ne dépend pas du nombre de créneaux : l'état (programme du jour, appels restants) est gardé dans KV.
-    - cron: "55 10 * * *"
+    - cron: "20 10 * * *"
     - cron: "25 15 * * *"
     - cron: "25 19 * * *"
   workflow_dispatch:

@@ -33,6 +33,45 @@ function rendreDirect(d) {
     <p class="note">Il s'agit d'un backtest sur des championnats passés, rejoué à la pause de chaque match, et non d'un suivi des matchs diffusés en direct sur ce site.</p>`;
 }
 
+function rendreJournal(j) {
+  const note = $("#m-journal-note"), chiffres = $("#m-journal-chiffres"), table = $("#m-journal");
+  if (!note || !chiffres || !table) return;
+  if (!j || !j.matchs) {
+    chiffres.hidden = true;
+    table.innerHTML = "";
+    note.textContent = j?.en_attente
+      ? `Aucun match publié dans le journal n'est encore terminé (${j.en_attente} pronostic${j.en_attente > 1 ? "s" : ""} déjà figé${j.en_attente > 1 ? "s" : ""} en attente de résultat).`
+      : "Aucun match publié dans le journal n'est encore évalué ; le bilan apparaîtra dès les premiers résultats.";
+    return;
+  }
+  const periode = j.premier && j.dernier
+    ? (j.premier === j.dernier ? `le ${jourCourt(j.premier)}` : `du ${jourCourt(j.premier)} au ${jourCourt(j.dernier)}`)
+    : "";
+  note.textContent = `Pronostics enregistrés avant le coup d'envoi et jugés sur leur résultat réel${periode ? ` (${periode})` : ""}`
+    + `${j.en_attente ? `, plus ${j.en_attente} pronostic${j.en_attente > 1 ? "s" : ""} déjà figé${j.en_attente > 1 ? "s" : ""} pour les matchs à venir` : ""}.`;
+  const rpsRef = `contre ${virgule(j.rps_habitudes, 3)} pour les habitudes`
+    + (j.rps_marche != null
+      ? ` et ${virgule(j.rps_marche, 3)} pour les cotes seules`
+        + (j.matchs_cotes < j.matchs
+          ? ` (${nombre(j.matchs_cotes)} match${j.matchs_cotes > 1 ? "s" : ""} avec cotes, journal à ${virgule(j.rps_sur_cotes, 3)} sur ces mêmes matchs)`
+          : "")
+      : "");
+  chiffres.innerHTML = [
+    [nombre(j.matchs).toLocaleString("fr-FR"), `<b>Match${j.matchs > 1 ? "s" : ""} évalué${j.matchs > 1 ? "s" : ""}</b> · ${j.surprises ? `${nombre(j.surprises)} surprise${j.surprises > 1 ? "s" : ""} (<20\u202f%)` : "aucune surprise (<20\u202f%)"}`],
+    [virgule(j.rps, 3), `<b>RPS moyen</b> · ${rpsRef}`],
+    [pct(j.taux_favori), `<b>Le favori gagne</b> · ${nombre(j.favoris_justes)} fois sur ${nombre(j.matchs)}`],
+  ].map(([v, d]) => `<div><dt>${esc(v)}</dt><dd>${d}</dd></div>`).join("");
+  chiffres.hidden = false;
+  const rows = j.par_competition || [];
+  const ligne = (r, total = false) => `<tr${total ? ' class="total"' : ""}><td>${esc(r.nom)}</td><td class="num">${nombre(r.matchs).toLocaleString("fr-FR")}</td>`
+    + `<td class="num">${virgule(r.rps, 3)}</td><td class="num">${r.rps_marche != null ? virgule(r.rps_marche, 3) : "–"}</td>`
+    + `<td class="num">${virgule(r.rps_habitudes, 3)}</td><td class="num">${pct(r.taux_favori)}</td></tr>`;
+  table.innerHTML = `<thead><tr><th>Compétition</th><th class="num">Matchs</th><th class="num">RPS journal</th><th class="num">Cotes seules</th><th class="num">Habitudes</th><th class="num">Le favori gagne</th></tr></thead><tbody>`
+    + rows.map((r) => ligne(r)).join("")
+    + (rows.length > 1 ? ligne({ nom: "Total", ...j }, true) : "")
+    + `</tbody><caption>Score RPS : plus il est bas, mieux c'est. Cotes seules : calculé sur les matchs disposant des cotes d'avant-match (football-data.co.uk). L'échantillon grandit journée après journée : il faut plusieurs centaines de matchs pour conclure statistiquement.</caption>`;
+}
+
 async function main() {
   donnees("foot/direct").then(rendreDirect).catch((err) => { $("#m-jugement").innerHTML = ""; erreur($("#m-calib"), err); });
   let i;
@@ -42,6 +81,7 @@ async function main() {
     <td class="num">${r.avec_cotes ? virgule(r.avec_cotes.rps, 3) : "–"}</td><td class="num">${r.marche ? virgule(r.marche.rps, 3) : "–"}</td>
     <td class="num">${virgule(r.habitudes.rps, 3)}</td><td class="num">${pct((r.avec_cotes || r.modele).bons_favoris)}</td></tr>`).join("")}</tbody>
     <caption>Score RPS : plus il est bas, mieux c'est. En coupe d'Europe, pas d'historique de cotes gratuit : seules nos statistiques sont jugées.</caption>`;
+  rendreJournal(i.journal);
   if (Number.isFinite(i.part_marche)) $("#m-part").textContent = `Elles comptent pour environ ${Math.round(i.part_marche * 100)} % du pronostic final`;
   $("#m-maj").textContent = `Dernière mise à jour des pronostics de football : ${quand(i.maj_utc)}.`;
 }

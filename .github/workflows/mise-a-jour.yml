@@ -128,7 +128,7 @@ jobs:
 
       # clés gratuites rangées dans les secrets du dépôt ; sans elles, les coupes d'Europe sont simplement absentes
       # limite de temps : une source qui ne répond plus ne doit pas retarder la publication de la F1
-      - name: "Football : six compétitions"
+      - name: "Football : sept compétitions"
         id: foot
         if: github.ref == 'refs/heads/main'   # les branches n'utilisent pas les crédits des API de football
         continue-on-error: true

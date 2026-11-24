@@ -6,9 +6,12 @@ const RELAIS = "https://extinction-direct.maximebasset1.workers.dev/direct";
 const D = { params: null, relais: null, suivis: [], minuteur: null, horloge: null };
 const DIRECT_EN_JEU = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
 const DIRECT_FINI = new Set(["FT", "AET", "PEN", "FT?"]);
+const DIRECT_COUPES = new Set(["LDC", "LEC"]);
 const DIRECT_REPORTE = { PST: "reporté", CANC: "annulé", ABD: "arrêté", AWD: "sur tapis vert", WO: "forfait" };
-const SUIVI_AVANT_MS = 15 * 6e4;       // on interroge le relais 15 min avant le coup d'envoi
-const SUIVI_APRES_MS = 150 * 6e4;      // et jusqu'à 2 h 30 après
+const SUIVI_AVANT_MS = 15 * 6e4;         // on interroge le relais 15 min avant le coup d'envoi
+const SUIVI_APRES_MS = 150 * 6e4;        // jusqu'à 2 h 30 après en championnat
+const SUIVI_APRES_COUPE_MS = 180 * 6e4;  // jusqu'à 3 h en coupe (prolongations et tirs au but)
+const SUIVI_MAX_MS = 240 * 6e4;          // filet de sécurité (4 h) si un statut en jeu reste figé
 const TOUR_RELAIS_MS = 60e3;
 const TOUR_HORLOGE_MS = 20e3;
 const ECART_KO_MS = 20 * 6e4;          // un coup d'envoi déplacé de quelques minutes reste le même match
@@ -97,7 +100,17 @@ function appliquer() {
   if (typeof majFiche === "function") majFiche();   // la fiche du match, si elle est ouverte (fiche.js)
 }
 
-const aSuivre = (m, t) => m.kickoff && t >= Date.parse(m.kickoff) - SUIVI_AVANT_MS && t <= Date.parse(m.kickoff) + SUIVI_APRES_MS;
+function suiviEnJeu(m) {
+  const cle = cleId(m.id);
+  return D.suivis.some((x) => cleId(x.m.id) === cle && DIRECT_EN_JEU.has(x.f?.st));
+}
+function aSuivre(m, t, comp = m.c) {
+  if (!m.kickoff) return false;
+  const ko = Date.parse(m.kickoff);
+  if (t < ko - SUIVI_AVANT_MS || t > ko + SUIVI_MAX_MS) return false;
+  const apres = DIRECT_COUPES.has(comp) ? SUIVI_APRES_COUPE_MS : SUIVI_APRES_MS;
+  return t <= ko + apres || suiviEnJeu(m);
+}
 
 /* une page peut demander le relais depuis plusieurs endroits (suivi des matchs, compteur de l'onglet « En direct ») :
    une même lecture sert pendant 15 secondes (le relais lui-même garde sa réponse 20 secondes) */
@@ -163,7 +176,7 @@ function sectionDirect(index, lien) {
       if (typeof Favoris !== "undefined") Favoris.marquer(liste);
     }
     const n = D.relais?.intervalle_min;
-    note.textContent = `Les matchs en cours des six compétitions, avec les chances recalculées à chaque but. Clique un match pour sa fiche : courbe des chances, scores probables.${typeof Favoris !== "undefined" && Favoris.liste().length ? " Les matchs de tes clubs favoris passent en tête." : ""}${n ? ` Scores relevés toutes les ${n === 1 ? "minutes" : `${n} minutes`} ; la minute avance entre deux relevés.` : ""}`;
+    note.textContent = `Les matchs en cours des sept compétitions, avec les chances recalculées à chaque but. Clique un match pour sa fiche : courbe des chances, scores probables.${typeof Favoris !== "undefined" && Favoris.liste().length ? " Les matchs de tes clubs favoris passent en tête." : ""}${n ? ` Scores relevés toutes les ${n === 1 ? "minutes" : `${n} minutes`} ; la minute avance entre deux relevés.` : ""}`;
   };
   rendre();
   setInterval(rendre, TOUR_RELAIS_MS);

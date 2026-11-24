@@ -140,3 +140,41 @@ def test_matchs_a_caler():
         {"id": "ancien", "jour": "2026-11-10", "etat": "joue", "p": p},
     ]}, "index": {"clubs": {}}}
     assert [m["id"] for m in P.matchs_a_caler(files, "2026-11-21")] == ["futur", "sans_date", "aujourdhui", "veille"]
+
+
+def test_serie_a_is_enabled_across_pipeline_and_sources():
+    from football import joint_backtest as JB
+    from football import leagues as L
+    from football import names as N
+    from football import pipeline as P
+    from football import sources as SRC
+    assert L.MAIN["I1"] == ("ITA", "Serie A", True)
+    assert SRC.FDORG_CODES["I1"] == "SA"
+    assert "I1" in JB.TARGET_LEAGUES
+    assert P.COMPS["I1"]["slug"] == "serie-a" and P.COMPS["I1"]["of"] == "it.1"
+    assert list(P.COMPS).index("SP1") < list(P.COMPS).index("I1") < list(P.COMPS).index("F1")
+    assert N.match("ITA", "Hellas Verona FC", ["Verona", "Inter"]) == "Verona"
+    assert N.match("ITA", "Parma Calcio 1913", ["Parma", "Milan"]) == "Parma"
+    assert P.display("SSC Napoli") == "Napoli"
+
+
+def test_journal_summary_aggregates_rps_market_habits_and_favourites():
+    evals = [
+        {"joue_id": "F1|FRA:A|FRA:B|2026-11-21", "competition": "F1", "coup_envoi": "2026-11-21T19:45:00Z",
+         "p": [0.7, 0.2, 0.1], "resultat": 0, "favori_juste": True, "surprise": False, "rps": 0.05},
+        {"joue_id": "I1|ITA:Inter|ITA:Napoli|2026-11-22", "competition": "I1", "coup_envoi": "2026-11-22T19:45:00Z",
+         "p": [0.5, 0.3, 0.2], "resultat": 2, "favori_juste": False, "surprise": False, "rps": 0.445},
+    ]
+    habits = {"F1": np.array([0.45, 0.27, 0.28]), "I1": np.array([0.44, 0.27, 0.29])}
+    market = {"F1|FRA:A|FRA:B|2026-11-21": np.array([0.6, 0.25, 0.15])}
+    s = JR.summary(evals, habits, market, pending_count=3, names={"I1": "Serie A", "F1": "Ligue 1"})
+    assert s["matchs"] == 2 and s["en_attente"] == 3
+    assert s["favoris_justes"] == 1 and s["taux_favori"] == pytest.approx(0.5)
+    assert s["premier"] == "2026-11-21" and s["dernier"] == "2026-11-22"
+    assert s["matchs_cotes"] == 1 and s["rps_marche"] is not None
+    assert s["rps"] < s["rps_habitudes"] or np.isfinite(s["rps_habitudes"])
+    assert [c["code"] for c in s["par_competition"]] == ["I1", "F1"]
+    assert s["par_competition"][0]["rps_marche"] is None
+    assert s["par_competition"][1]["rps_marche"] is not None
+    empty = JR.summary([], habits, {}, pending_count=4)
+    assert empty == {"matchs": 0, "en_attente": 4, "par_competition": []}

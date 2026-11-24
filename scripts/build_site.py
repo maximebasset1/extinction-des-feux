@@ -13,8 +13,8 @@ SITE = ROOT / "site"
 CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; "
        "connect-src 'self' https://extinction-direct.maximebasset1.workers.dev; base-uri 'self'; form-action 'none'")
 COMPETITIONS = [("E0", "premier-league", "Premier League"), ("D1", "bundesliga", "Bundesliga"), ("SP1", "liga", "Liga"),
-                ("F1", "ligue-1", "Ligue 1"), ("LDC", "ligue-des-champions", "Ligue des champions"),
-                ("LEC", "ligue-europa", "Ligue Europa")]
+                ("I1", "serie-a", "Serie A"), ("F1", "ligue-1", "Ligue 1"),
+                ("LDC", "ligue-des-champions", "Ligue des champions"), ("LEC", "ligue-europa", "Ligue Europa")]
 LIGHTS = '<span class="feux" aria-hidden="true">' + '<i></i>' * 5 + "</span>"
 
 
@@ -99,7 +99,7 @@ HOME = """  <section class="depart" aria-labelledby="h-depart">
     <div class="depart-in">
       <div class="feux-grands" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <h1 id="h-depart">Les prochains départs</h1>
-      <p class="chapeau">Les chances de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, recalculées plusieurs fois par jour et comparées ensuite aux vrais résultats.</p>
+      <p class="chapeau">Les chances de chaque Grand Prix de Formule 1 et de chaque match de sept compétitions de football, recalculées plusieurs fois par jour et comparées ensuite aux vrais résultats.</p>
       <div class="departs">
         <a class="dep" href="f1.html" id="dep-f1"><span class="dep-quoi">Formule 1</span><b id="dep-f1-titre">Chargement…</b><span id="dep-f1-quand"></span><span id="dep-f1-detail" class="dep-detail"></span></a>
         <a class="dep" href="foot.html" id="dep-foot"><span class="dep-quoi">Football</span><b id="dep-foot-titre">Chargement…</b><span id="dep-foot-quand"></span><span id="dep-foot-detail" class="dep-detail"></span></a>
@@ -110,7 +110,7 @@ HOME = """  <section class="depart" aria-labelledby="h-depart">
   <div class="page">
     <section class="bloc" aria-labelledby="h-direct" id="direct" hidden>
       <div class="bloc-tete"><h2 id="h-direct">En direct</h2></div>
-      <p class="note" id="direct-note">Les matchs en cours des six compétitions, avec les chances recalculées à chaque but.</p>
+      <p class="note" id="direct-note">Les matchs en cours des sept compétitions, avec les chances recalculées à chaque but.</p>
       <ul class="matchs avec-comp" id="direct-liste"></ul>
     </section>
 
@@ -133,7 +133,7 @@ HOME = """  <section class="depart" aria-labelledby="h-depart">
     </section>
 
     <section class="bloc" aria-labelledby="h-comp">
-      <div class="bloc-tete"><h2 id="h-comp">Six compétitions de football</h2></div>
+      <div class="bloc-tete"><h2 id="h-comp">Sept compétitions de football</h2></div>
       <ul class="competitions" id="competitions"></ul>
     </section>
 
@@ -205,7 +205,7 @@ F1 = """  <section class="depart depart-f1" aria-labelledby="gp-name">
 FOOT = """  <section class="titre-page">
     <div class="titre-in">
       <h1>Football</h1>
-      <p class="chapeau">Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions et Ligue Europa : les chances de chaque match à venir.</p>
+      <p class="chapeau">Premier League, Bundesliga, Liga, Serie A, Ligue 1, Ligue des champions et Ligue Europa : les chances de chaque match à venir.</p>
       <div class="recherche">
         <label for="q">Chercher un club ou un match</label>
         <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Lille, ou Lille Bayern" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
@@ -245,7 +245,7 @@ FOOT = """  <section class="titre-page">
 LIVE = """  <section class="titre-page">
     <div class="titre-in">
       <h1>En direct</h1>
-      <p class="chapeau">Les matchs du jour des six compétitions, de quinze minutes avant le coup d'envoi jusqu'au coup de sifflet final : le score, la minute et les chances de chaque camp, recalculées à chaque but.</p>
+      <p class="chapeau">Les matchs du jour des sept compétitions, de quinze minutes avant le coup d'envoi jusqu'au coup de sifflet final : le score, la minute et les chances de chaque camp, recalculées à chaque but.</p>
     </div>
   </section>
 
@@ -337,6 +337,10 @@ METHODE = """  <section class="titre-page">
       <p>Chaque semaine depuis 2022, le modèle est rejoué avec les seuls matchs joués avant, comme s'il avait tourné à l'époque. On le compare à deux références : les pourcentages habituels de victoire à domicile, de nul et de victoire à l'extérieur, et les cotes des bookmakers. Le score utilisé, le RPS, est d'autant plus bas que les probabilités annoncées étaient justes.</p>
       <div class="defile"><table class="tableau" id="m-table"></table></div>
       <p>Un pronostic de football se trompe souvent sur un match donné : même bien calibré, le favori ne gagne qu'un peu plus d'une fois sur deux. Ce qui compte, c'est qu'un événement annoncé à 30 % arrive à peu près trois fois sur dix.</p>
+      <h3 id="journal">Bilan réel du journal</h3>
+      <p id="m-journal-note">Chaque pronostic est enregistré avant le coup d'envoi dans le journal, jamais réécrit, puis comparé au résultat réel.</p>
+      <dl class="bilan-chiffres" id="m-journal-chiffres" hidden></dl>
+      <div class="defile"><table class="tableau" id="m-journal"></table></div>
       <h3 id="direct">Les chances en direct</h3>
       <p id="m-direct-txt">Pendant un match, les chances sont recalculées dans ton navigateur à chaque but et à chaque minute qui passe.</p>
       <div class="defile"><table class="tableau" id="m-jugement"></table></div>
@@ -439,7 +443,7 @@ REDIRECT = """<!DOCTYPE html>
 def pages() -> dict[str, str]:
     out = {
         "index.html": page("index.html", "Extinction des feux : pronostics F1 et football",
-                           "Probabilités de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, mises à jour plusieurs fois par jour.",
+                           "Probabilités de chaque Grand Prix de Formule 1 et de chaque match de sept compétitions de football, mises à jour plusieurs fois par jour.",
                            HOME, ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "accueil.js"], "accueil"),
         "f1.html": page("f1.html", "Formule 1 : pole et victoire au prochain Grand Prix - Extinction des feux",
                         "Probabilités de pole et de victoire pour chaque pilote au prochain Grand Prix, comparées ensuite aux vrais résultats.",
@@ -448,10 +452,10 @@ def pages() -> dict[str, str]:
                                 "Comment les chances de pole et de victoire sont calculées, et ce qu'elles valent face aux vrais résultats.",
                                 F1_METHODE, ["f1.js"], "f1", styles=("f1.css",), common=False, name="f1-methode"),
         "foot.html": page("foot.html", "Football : probabilités des prochains matchs - Extinction des feux",
-                          "Chercher un club et voir les chances de ses prochains matchs : Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions, Ligue Europa.",
+                          "Chercher un club et voir les chances de ses prochains matchs : Premier League, Bundesliga, Liga, Serie A, Ligue 1, Ligue des champions, Ligue Europa.",
                           FOOT, ["favoris.js", "direct.js", "foot.js"], "foot", "hub"),
         "foot/en-direct.html": page("foot/en-direct.html", "Football en direct : scores et chances des matchs en cours - Extinction des feux",
-                                    "Les matchs du jour de la Premier League, de la Bundesliga, de la Liga, de la Ligue 1, de la Ligue des champions et de la Ligue Europa : score, minute et chances recalculées à chaque but.",
+                                    "Les matchs du jour de la Premier League, de la Bundesliga, de la Liga, de la Serie A, de la Ligue 1, de la Ligue des champions et de la Ligue Europa : score, minute et chances recalculées à chaque but.",
                                     LIVE, ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "en-direct.js"], "foot", "en-direct"),
         "methode.html": page("methode.html", "Méthode - Extinction des feux",
                              "Comment les probabilités de Formule 1 et de football sont calculées, et ce qu'elles valent.",

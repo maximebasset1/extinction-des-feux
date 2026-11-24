@@ -123,7 +123,58 @@ def evaluate(path: Path, played: dict, links: dict) -> list[dict]:
         p = np.array([r.p_dom, r.p_nul, r.p_ext], float)
         out.append({"match_id": r.match_id, "joue_id": target, "competition": r.competition, "journee": str(r.journee),
                     "home": r.domicile, "away": r.exterieur, "coup_envoi": r.coup_envoi, "publie_utc": r.publie_utc,
-                    "p": [float(x) for x in p], "score": [int(hg), int(ag)], "resultat": y,
+                    "p": [float(x) for x in p], "avec_cotes": bool(r.avec_cotes), "score": [int(hg), int(ag)], "resultat": y,
                     "favori_juste": bool(p.argmax() == y), "surprise": bool(p[y] < SURPRISE),
                     "rps": round(float(M.rps(p[None], np.array([y]))[0]), 4)})
     return out
+
+
+def summary(evals: list[dict], habits: dict[str, np.ndarray], market: dict[str, np.ndarray] | None = None,
+            pending_count: int = 0, names: dict[str, str] | None = None) -> dict:
+    """Bilan agrégé des pronostics réellement publiés et jugés, global et par compétition."""
+    if not evals:
+        return {"matchs": 0, "en_attente": int(pending_count), "par_competition": []}
+    fallback = np.mean(list(habits.values()), axis=0) if habits else np.array([0.45, 0.27, 0.28])
+    rows = []
+    for e in evals:
+        y = np.array([e["resultat"]])
+        p = np.array([e["p"]], float)
+        hab = np.asarray(habits.get(e["competition"], fallback), float)
+        mk = (market or {}).get(e["joue_id"])
+        rps_mk = float(M.rps(np.asarray(mk, float)[None], y)[0]) if mk is not None and np.isfinite(mk).all() else None
+        rows.append({"competition": e["competition"], "rps": float(M.rps(p, y)[0]),
+                     "rps_hab": float(M.rps(hab[None], y)[0]), "rps_marche": rps_mk,
+                     "favori_juste": bool(e["favori_juste"]), "surprise": bool(e["surprise"])})
+
+    def _agg(items: list[dict]) -> dict:
+        n = len(items)
+        fav = sum(1 for x in items if x["favori_juste"])
+        surp = sum(1 for x in items if x["surprise"])
+        with_mk = [x for x in items if x["rps_marche"] is not None]
+        return {
+            "matchs": n,
+            "rps": round(float(np.mean([x["rps"] for x in items])), 4),
+            "rps_habitudes": round(float(np.mean([x["rps_hab"] for x in items])), 4),
+            "rps_marche": round(float(np.mean([x["rps_marche"] for x in with_mk])), 4) if with_mk else None,
+            "rps_sur_cotes": round(float(np.mean([x["rps"] for x in with_mk])), 4) if with_mk else None,
+            "matchs_cotes": len(with_mk),
+            "favoris_justes": fav,
+            "taux_favori": round(fav / n, 4),
+            "surprises": surp,
+        }
+
+    order = list(names) if names else sorted({r["competition"] for r in rows})
+    extra = sorted({r["competition"] for r in rows} - set(order))
+    by_comp = []
+    for comp in order + extra:
+        sub = [r for r in rows if r["competition"] == comp]
+        if sub:
+            by_comp.append({"code": comp, "nom": (names or {}).get(comp, comp), **_agg(sub)})
+    dates = [str(e["coup_envoi"])[:10] for e in evals if e.get("coup_envoi")]
+    return {
+        **_agg(rows),
+        "en_attente": int(pending_count),
+        "premier": min(dates) if dates else None,
+        "dernier": max(dates) if dates else None,
+        "par_competition": by_comp,
+    }

@@ -10,7 +10,7 @@ except ImportError:  # lancé comme script
     import joint as J  # type: ignore
     import model as M  # type: ignore
 
-TARGET_LEAGUES = ["E0", "D1", "SP1", "F1", "LDC", "LEC"]
+TARGET_LEAGUES = ["E0", "D1", "SP1", "I1", "F1", "LDC", "LEC"]
 
 
 def sot_ratio(m: pd.DataFrame, before: pd.Timestamp) -> float:

@@ -4,9 +4,10 @@
 
 const API = "https://v3.football.api-sports.io";
 // identifiants API-Football de nos compétitions (codes du site entre parenthèses)
-const LIGUES = { 39: "E0", 78: "D1", 140: "SP1", 61: "F1", 2: "LDC", 3: "LEC" };
+const LIGUES = { 39: "E0", 78: "D1", 140: "SP1", 135: "I1", 61: "F1", 2: "LDC", 3: "LEC" };
 const QUOTA_JOUR = 100;          // offre gratuite : remis à zéro à minuit UTC
-const RESERVE = 4;               // gardés pour relire le programme en fin de match
+const MARGE_SECURITE = 10;       // marge conservée sous le plafond gratuit de 100 appels/jour
+const RESERVE = 15;              // marge + appels gardés pour relire le programme en fin de match
 const AVANT_MATCH_MIN = 2;       // on commence à suivre un match 2 min avant le coup d'envoi
 const DUREE_MATCH_MIN = 125;     // 90 min, mi-temps, arrêts de jeu ; prolongé tant que le match est en cours
 const EN_JEU = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
@@ -105,18 +106,25 @@ async function tour(env, maintenant = Date.now()) {
 /* programme du jour une fois par jour, puis scores en direct à un intervalle qui fait tenir le quota jusqu'au soir */
 async function avancer(env, etat, maintenant) {
   const jour = jourUtc(maintenant);
-  if (etat.jour !== jour || etat.relire) {
+  const nouveauJour = etat.jour !== jour;
+  if (nouveauJour || (etat.relire && (etat.restant ?? QUOTA_JOUR) > MARGE_SECURITE)) {
     const { liste, restant } = await appeler(env, `fixtures?date=${jour}`);
-    const avant = new Map((etat.matchs || []).map((m) => [m.id, m]));
+    const avant = nouveauJour ? new Map() : new Map((etat.matchs || []).map((m) => [m.id, m]));
     // la relecture du programme (score final) ne doit pas effacer la chronologie déjà relevée
     const prog = nosMatchs(liste).map((m) => (avant.has(m.id) || m.st !== "NS" ? avecChronologie(m, avant.get(m.id)) : m));
     Object.assign(etat, { jour, matchs: prog, relire: false, restant, programme_utc: new Date(maintenant).toISOString(),
+      ...(nouveauJour ? { direct_utc: null, direct_ms: null, intervalle_min: null } : {}),
       erreur: null, erreur_ms: null });
     await env.DIRECT.put(CLE_ETAT, JSON.stringify(etat));
     return etat;
   }
+  if (etat.relire) {
+    etat.relire = false;
+    await env.DIRECT.put(CLE_ETAT, JSON.stringify(etat));
+  }
   const { actif, minutes } = aCouvrir(etat.matchs || [], maintenant);
   if (!actif) return etat;
+  if (etat.restant != null && etat.restant <= MARGE_SECURITE) return etat;
   const budget = Math.max(1, (etat.restant ?? QUOTA_JOUR) - RESERVE);
   const intervalle = Math.max(1, Math.ceil(minutes / budget));
   if (etat.direct_ms && maintenant - etat.direct_ms < intervalle * minute - 5000) return etat;
@@ -130,7 +138,7 @@ async function avancer(env, etat, maintenant) {
     return m;
   });
   Object.assign(etat, { matchs, restant, direct_ms: maintenant, direct_utc: new Date(maintenant).toISOString(),
-    intervalle_min: intervalle, relire: sortis && (restant ?? 0) > 0, erreur: null, erreur_ms: null });
+    intervalle_min: intervalle, relire: sortis && (restant ?? 0) > MARGE_SECURITE, erreur: null, erreur_ms: null });
   await env.DIRECT.put(CLE_ETAT, JSON.stringify(etat));
   return etat;
 }
@@ -162,4 +170,4 @@ export default {
   },
 };
 
-export { tour, avancer, aCouvrir, fenetre, nosMatchs, LIGUES };
+export { tour, avancer, aCouvrir, fenetre, nosMatchs, servir, LIGUES, MARGE_SECURITE, RESERVE };

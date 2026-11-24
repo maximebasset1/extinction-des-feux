@@ -1,4 +1,4 @@
-/* Page « En direct » du football : les matchs du jour des six compétitions entre 15 min avant le coup d'envoi et la fin du suivi,
+/* Page « En direct » du football : les matchs du jour des sept compétitions entre 15 min avant le coup d'envoi et la fin du suivi,
    groupés par compétition, les clubs favoris en tête. Même suivi (direct.js) et même fiche de match (fiche.js) que l'accueil
    et les pages de compétition ; cette page ne fait que présenter la liste. Sans match à suivre : les prochains coups d'envoi. */
 "use strict";
@@ -72,7 +72,7 @@ async function main() {
   L.recherche = recherche.status === "fulfilled" ? recherche.value : null;   // sans lui : pas de « prochains coups d'envoi », le reste marche
   rendre();
   suivreDirect([{ matchs: L.index.du_jour || [], clubs: L.index.clubs }], { apresTour: rendre });
-  setInterval(rendre, TOUR_RELAIS_MS);   // un match entre dans la liste 15 min avant son coup d'envoi, en sort 2 h 30 après
+  setInterval(rendre, TOUR_RELAIS_MS);   // un match entre dans la liste 15 min avant son coup d'envoi, en sort 2 h 30 après (3 h en coupe, ou à la fin du direct)
   document.addEventListener("favoris", () => { L.montres = ""; rendre(); });   // un favori ajouté ou retiré réordonne la liste tout de suite
 }
 main();

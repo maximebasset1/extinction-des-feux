@@ -15,7 +15,7 @@ except ImportError:  # lancé comme script
 
 # code football-data -> (pays au format openfootball, nom affiché, compétition recherchable)
 MAIN = {"E0": ("ENG", "Premier League", True), "E1": ("ENG", "Championship", False),
-        "D1": ("GER", "Bundesliga", True), "SP1": ("ESP", "Liga", True), "I1": ("ITA", "Serie A", False),
+        "D1": ("GER", "Bundesliga", True), "SP1": ("ESP", "Liga", True), "I1": ("ITA", "Serie A", True),
         "F1": ("FRA", "Ligue 1", True), "N1": ("NED", "Eredivisie", False), "P1": ("POR", "Liga Portugal", False),
         "B1": ("BEL", "Pro League", False), "SC0": ("SCO", "Premiership", False), "T1": ("TUR", "Süper Lig", False),
         "G1": ("GRE", "Super League", False)}

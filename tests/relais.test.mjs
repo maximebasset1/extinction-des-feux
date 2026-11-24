@@ -1,7 +1,7 @@
 // tests du relais du direct avec une fausse API-Football et un faux stockage KV
 import test from "node:test";
 import assert from "node:assert/strict";
-import { tour, aCouvrir } from "../relais/relais.js";
+import { tour, aCouvrir, servir, MARGE_SECURITE } from "../relais/relais.js";
 
 const T0 = Date.parse("2026-11-22T13:00:00Z");
 const min = 60000;
@@ -28,10 +28,14 @@ function monde(reponses) {
 }
 
 test("le programme du jour ne garde que nos compétitions", async () => {
-  const w = monde(() => ({ response: [fixture(1, 61, "2026-11-22T14:00:00+00:00", "NS"), fixture(2, 999, "2026-11-22T14:00:00+00:00", "NS")] }));
+  const w = monde(() => ({ response: [
+    fixture(1, 61, "2026-11-22T14:00:00+00:00", "NS"),
+    fixture(2, 135, "2026-11-22T11:30:00+00:00", "NS"),
+    fixture(3, 999, "2026-11-22T14:00:00+00:00", "NS"),
+  ] }));
   await tour(w.env, T0);
   assert.deepEqual(w.appels, ["fixtures?date=2026-11-22"]);
-  assert.deepEqual(w.etat().matchs.map((m) => [m.id, m.c]), [[1, "F1"]]);
+  assert.deepEqual(w.etat().matchs.map((m) => [m.id, m.c]), [[1, "F1"], [2, "I1"]]);
 });
 
 test("aucun appel en direct hors des fenêtres de match", async () => {
@@ -120,4 +124,49 @@ test("la relecture du programme garde la chronologie et ajoute le score final", 
   const m = w.etat().matchs[0];
   assert.equal(m.st, "FT");
   assert.deepEqual(m.ev, [[80, 0, 2, 0], [90, 0, 3, 1]]);
+});
+
+test("le changement de jour réinitialise direct_utc, direct_ms et intervalle_min", async () => {
+  const ko1 = "2026-11-22T13:00:00+00:00";
+  const ko2 = "2026-11-23T19:45:00+00:00";
+  const w = monde((c) => {
+    if (c === "fixtures?date=2026-11-22") return { response: [fixture(1, 61, ko1, "NS")] };
+    if (c === "fixtures?date=2026-11-23") return { response: [fixture(2, 135, ko2, "NS")] };
+    return { response: [fixture(1, 61, ko1, "1H", [1, 0], 25)] };
+  });
+  await tour(w.env, T0);
+  await tour(w.env, T0 + 25 * min);
+  assert.ok(w.etat().direct_utc && w.etat().direct_ms && w.etat().intervalle_min);
+
+  const lendemain = Date.parse("2026-11-23T10:20:00Z");
+  await tour(w.env, lendemain);
+  assert.equal(w.etat().jour, "2026-11-23");
+  assert.equal(w.etat().direct_utc, null);
+  assert.equal(w.etat().direct_ms, null);
+  assert.equal(w.etat().intervalle_min, null);
+  const pub = await (await servir(w.env)).json();
+  assert.equal(pub.jour, "2026-11-23");
+  assert.equal(pub.maj_utc, new Date(lendemain).toISOString());
+  assert.equal(pub.intervalle_min, null);
+});
+
+test("la marge de sécurité empêche de consommer le plafond gratuit de 100 requêtes/jour", async () => {
+  const ko = "2026-11-22T13:00:00+00:00";
+  const kv = new Map();
+  let appels = 0;
+  globalThis.fetch = async (url) => {
+    appels += 1;
+    const chemin = String(url).split("/v3.football.api-sports.io/")[1];
+    const body = chemin.startsWith("fixtures?date")
+      ? [fixture(1, 135, ko, "NS")]
+      : [fixture(1, 135, ko, "1H", [0, 0], 10)];
+    return new Response(JSON.stringify({ errors: [], response: body }),
+      { headers: { "x-ratelimit-requests-remaining": String(MARGE_SECURITE + 2 - appels) } });
+  };
+  const env = { API_FOOTBALL_KEY: "x", DIRECT: {
+    get: async (k) => (kv.has(k) ? JSON.parse(kv.get(k)) : null), put: async (k, v) => { kv.set(k, v); } } };
+  await tour(env, T0 - 3 * min);       // 1er appel : programme, restant = MARGE_SECURITE + 1
+  await tour(env, T0 + 10 * min);      // 2e appel : live, restant = MARGE_SECURITE
+  await tour(env, T0 + 90 * min);      // restant <= MARGE_SECURITE : plus aucun appel
+  assert.equal(appels, 2);
 });

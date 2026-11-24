@@ -1,4 +1,4 @@
-/* Page Football : recherche d'un club ou d'un match dans les six compétitions, prochains matchs, compétitions, fiabilité. */
+/* Page Football : recherche d'un club ou d'un match dans les sept compétitions, prochains matchs, compétitions, fiabilité. */
 "use strict";
 
 const PAGE = 30;
@@ -18,7 +18,7 @@ function rendre() {
   $("#note").textContent = !liste.length
     ? (cherche ? "Aucun match à venir pour cette recherche. Vérifie l'orthographe, ou essaie un seul club." : "Aucun match à venir.")
     : cherche ? `${liste.length} match${liste.length > 1 ? "s" : ""} à venir. Clique sur un match pour le détail.`
-      : "Les prochains matchs des six compétitions, à l'heure de ton appareil. Clique sur un match pour le détail.";
+      : "Les prochains matchs des sept compétitions, à l'heure de ton appareil. Clique sur un match pour le détail.";
   const cf = $("#club-favori");
   cf.hidden = !F.club;
   if (F.club) cf.innerHTML = etoile(F.club, F.r.clubs[F.club].nom, true);

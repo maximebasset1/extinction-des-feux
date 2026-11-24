@@ -16,8 +16,8 @@ le Worker ne fait que le servir.
 | `maj_utc` | texte ISO | dernier relevé des scores (ou du programme) |
 | `intervalle_min` | entier ou `null` | minutes entre deux relevés en direct (quota d'appels de l'API) |
 | `source`, `erreur` | | provenance ; dernière erreur du relais (`utc`, `message`) ou `null` |
-| `matchs[]` | liste | matchs du jour de nos six compétitions |
-| `matchs[].id`, `c` | | identifiant API-Football ; code de la compétition du site (`E0`, `D1`, `SP1`, `F1`, `LDC`, `LEC`) |
+| `matchs[]` | liste | matchs du jour de nos sept compétitions |
+| `matchs[].id`, `c` | | identifiant API-Football ; code de la compétition du site (`E0`, `D1`, `SP1`, `I1`, `F1`, `LDC`, `LEC`) |
 | `matchs[].ko`, `st` | | coup d'envoi (ISO) ; statut (`NS`, `1H`, `HT`, `2H`, `ET`, `BT`, `P`, `FT`, `FT?` : sorti du direct, score à confirmer, `AET`, `PEN`, `PST`, …) |
 | `matchs[].min`, `plus` | entiers ou `null` | minute de jeu et arrêts de jeu |
 | `matchs[].h`, `a` | texte | noms des équipes chez API-Football (le site les rattache à ses clubs) |

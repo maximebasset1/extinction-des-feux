@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import build_site  # noqa: E402
 
-ORDRE = ["Tous les matchs", "En direct", "Premier League", "Bundesliga", "Liga", "Ligue 1", "Ligue des champions", "Ligue Europa"]
+ORDRE = ["Tous les matchs", "En direct", "Premier League", "Bundesliga", "Liga", "Serie A", "Ligue 1", "Ligue des champions", "Ligue Europa"]
 
 
 def onglets(html: str) -> list[str]:
@@ -17,7 +17,7 @@ def onglets(html: str) -> list[str]:
 def test_onglets_football_dans_l_ordre_sur_toutes_les_pages():
     pages = build_site.pages()
     foot = [p for p in pages if p == "foot.html" or p.startswith("foot/")]
-    assert "foot/en-direct.html" in foot and len(foot) == 8
+    assert "foot/en-direct.html" in foot and "foot/serie-a.html" in foot and len(foot) == 9
     for p in foot:
         assert onglets(pages[p]) == ORDRE, p
         # le compteur et son script sont sur chaque page Football, rien de tel côté F1

@@ -6,16 +6,16 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self' https://extinction-direct.maximebasset1.workers.dev; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#0f1115">
-<meta name="description" content="Probabilités de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, mises à jour plusieurs fois par jour.">
+<meta name="description" content="Probabilités de chaque Grand Prix de Formule 1 et de chaque match de sept compétitions de football, mises à jour plusieurs fois par jour.">
 <title>Extinction des feux : pronostics F1 et football</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/titillium-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/titillium-900.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=5bfff81a">
+<link rel="stylesheet" href="assets/style.css?v=6a8c3407">
 <script src="assets/commun.js?v=413e531f" defer></script>
 <script src="assets/favoris.js?v=7a1dc4c6" defer></script>
 <script src="assets/modele-direct.js?v=cd098144" defer></script>
-<script src="assets/direct.js?v=54420fbe" defer></script>
+<script src="assets/direct.js?v=c0eb0c0e" defer></script>
 <script src="assets/fiche.js?v=4b62d2b6" defer></script>
 <script src="assets/accueil.js?v=2bebb5e9" defer></script>
 </head>
@@ -36,7 +36,7 @@
     <div class="depart-in">
       <div class="feux-grands" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <h1 id="h-depart">Les prochains départs</h1>
-      <p class="chapeau">Les chances de chaque Grand Prix de Formule 1 et de chaque match de six compétitions de football, recalculées plusieurs fois par jour et comparées ensuite aux vrais résultats.</p>
+      <p class="chapeau">Les chances de chaque Grand Prix de Formule 1 et de chaque match de sept compétitions de football, recalculées plusieurs fois par jour et comparées ensuite aux vrais résultats.</p>
       <div class="departs">
         <a class="dep" href="f1.html" id="dep-f1"><span class="dep-quoi">Formule 1</span><b id="dep-f1-titre">Chargement…</b><span id="dep-f1-quand"></span><span id="dep-f1-detail" class="dep-detail"></span></a>
         <a class="dep" href="foot.html" id="dep-foot"><span class="dep-quoi">Football</span><b id="dep-foot-titre">Chargement…</b><span id="dep-foot-quand"></span><span id="dep-foot-detail" class="dep-detail"></span></a>
@@ -47,7 +47,7 @@
   <div class="page">
     <section class="bloc" aria-labelledby="h-direct" id="direct" hidden>
       <div class="bloc-tete"><h2 id="h-direct">En direct</h2></div>
-      <p class="note" id="direct-note">Les matchs en cours des six compétitions, avec les chances recalculées à chaque but.</p>
+      <p class="note" id="direct-note">Les matchs en cours des sept compétitions, avec les chances recalculées à chaque but.</p>
       <ul class="matchs avec-comp" id="direct-liste"></ul>
     </section>
 
@@ -70,7 +70,7 @@
     </section>
 
     <section class="bloc" aria-labelledby="h-comp">
-      <div class="bloc-tete"><h2 id="h-comp">Six compétitions de football</h2></div>
+      <div class="bloc-tete"><h2 id="h-comp">Sept compétitions de football</h2></div>
       <ul class="competitions" id="competitions"></ul>
     </section>
 

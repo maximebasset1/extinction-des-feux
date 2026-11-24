@@ -31,7 +31,7 @@ ODDS_HORIZON_HOURS = 72     # et seulement quand un match a lieu dans les 3 jour
 ODDS_RESERVE = 50           # crédits gardés de côté : en dessous, plus aucun appel payant jusqu'au mois suivant
 SCORES_MIN_HOURS = 12       # résultats de Ligue Europa (2 crédits) : au plus deux fois par jour, et seulement après des matchs
 FDORG_PAUSE_S = 6.5         # football-data.org gratuit : 10 appels par minute au plus
-FDORG_CODES = {"E0": "PL", "D1": "BL1", "SP1": "PD", "F1": "FL1", "LDC": "CL"}
+FDORG_CODES = {"E0": "PL", "D1": "BL1", "SP1": "PD", "I1": "SA", "F1": "FL1", "LDC": "CL"}
 # codes pays de football-data.org (ISO) -> codes openfootball utilisés partout ailleurs
 ISO = {"DEU": "GER", "NLD": "NED", "PRT": "POR", "CHE": "SUI", "DNK": "DEN", "HRV": "CRO", "GRC": "GRE", "SVN": "SVN",
        "SCT": "SCO", "MCO": "FRA", "CZE": "CZE", "SRB": "SRB", "AUT": "AUT", "BEL": "BEL", "TUR": "TUR", "POL": "POL",

@@ -1,6 +1,6 @@
-"""Football : Premier League, Bundesliga, Liga, Ligue 1, Ligue des champions, Ligue Europa.
+"""Football : Premier League, Bundesliga, Liga, Serie A, Ligue 1, Ligue des champions, Ligue Europa.
 
-Un seul modèle pour les six compétitions. Chaque lancement télécharge les nouveaux résultats, réajuste les forces
+Un seul modèle pour les sept compétitions. Chaque lancement télécharge les nouveaux résultats, réajuste les forces
 de tous les clubs, publie les pronostics des matchs à venir, tient le journal des pronostics publiés,
 calcule les classements et simule les fins de saison, puis écrit les fichiers du site (site/data/foot/).
 
@@ -62,6 +62,7 @@ COMPS = {
     "E0": {"slug": "premier-league", "nom": "Premier League", "type": "ligue", "cc": "ENG", "of": "en.1", "tz": "Europe/London"},
     "D1": {"slug": "bundesliga", "nom": "Bundesliga", "type": "ligue", "cc": "GER", "of": "de.1", "tz": "Europe/Berlin"},
     "SP1": {"slug": "liga", "nom": "Liga", "type": "ligue", "cc": "ESP", "of": "es.1", "tz": "Europe/Madrid"},
+    "I1": {"slug": "serie-a", "nom": "Serie A", "type": "ligue", "cc": "ITA", "of": "it.1", "tz": "Europe/Rome"},
     "F1": {"slug": "ligue-1", "nom": "Ligue 1", "type": "ligue", "cc": "FRA", "of": "fr.1", "tz": "Europe/Paris"},
     "LDC": {"slug": "ligue-des-champions", "nom": "Ligue des champions", "type": "coupe"},
     "LEC": {"slug": "ligue-europa", "nom": "Ligue Europa", "type": "coupe"},
@@ -69,6 +70,10 @@ COMPS = {
 KEEP_SUFFIX = {"Paris FC"}
 # noms officiels trop longs pour une ligne de match
 DISPLAY = {"Club Atlético de Madrid": "Atlético de Madrid", "Stade Rennais FC 1901": "Stade Rennais", "FC Internazionale Milano": "Inter",
+           "SSC Napoli": "Napoli", "SS Lazio": "Lazio", "Atalanta BC": "Atalanta", "ACF Fiorentina": "Fiorentina",
+           "Bologna FC 1909": "Bologna", "Udinese Calcio": "Udinese", "Como 1907": "Como", "Cagliari Calcio": "Cagliari",
+           "Parma Calcio 1913": "Parma", "US Lecce": "Lecce", "US Sassuolo Calcio": "Sassuolo", "US Cremonese": "Cremonese",
+           "AC Pisa 1909": "Pisa", "Pisa Sporting Club": "Pisa", "AC Monza": "Monza",
            "Paris Saint-Germain FC": "Paris Saint-Germain", "Real Sociedad de Fútbol": "Real Sociedad", "Real Betis Balompié": "Real Betis",
            "RCD Espanyol de Barcelona": "Espanyol", "Rayo Vallecano de Madrid": "Rayo Vallecano", "TSG 1899 Hoffenheim": "Hoffenheim",
            "Racing Club de Lens": "RC Lens", "Real Racing Club de Santander": "Racing Santander", "RC Deportivo La Coruña": "Deportivo La Coruña",
@@ -120,7 +125,7 @@ def download() -> None:
         for y in range(FIRST_SEASON, C.CURRENT_SEASON + 1):
             jobs.append((RAW / f"{code}_{y}.csv", f"https://www.football-data.co.uk/mmz4281/{season_code(y)}/{code}.csv",
                          None if y < C.CURRENT_SEASON else 1))
-    for code in ("E0", "D1", "SP1", "F1"):          # anciennes saisons : seulement pour les face-à-face
+    for code in ("E0", "D1", "SP1", "I1", "F1"):    # anciennes saisons : seulement pour les face-à-face
         for y in range(H2H_FIRST, FIRST_SEASON):
             jobs.append((RAW / f"{code}_{y}.csv", f"https://www.football-data.co.uk/mmz4281/{season_code(y)}/{code}.csv", None))
     jobs += [(RAW / f"new_{c}.csv", f"https://www.football-data.co.uk/new/{c}.csv", 20) for c in leagues.NEW]
@@ -254,7 +259,7 @@ def load(now: datetime):
 
     token, key = os.environ.get("FOOTBALL_DATA_ORG_TOKEN"), os.environ.get("ODDS_API_KEY")
     cal = {}
-    for comp in ("E0", "D1", "SP1", "F1", "LDC"):
+    for comp in ("E0", "D1", "SP1", "I1", "F1", "LDC"):
         # une source en panne, une clé refusée ou une réponse inattendue ne bloque pas les autres compétitions
         try:
             js = SRC.football_data_org(SRC.FDORG_CODES[comp], C.CURRENT_SEASON, token, RAW, now)
@@ -532,7 +537,7 @@ def matchs_a_caler(files: dict, veille: str) -> list[dict]:
 
 
 def matchs_du_jour(files: dict, today: str) -> list[dict]:
-    """Matchs du jour (date de Paris) des six compétitions, pour la section « En direct » de l'accueil.
+    """Matchs du jour (date de Paris) des sept compétitions, pour la section « En direct » de l'accueil.
 
     Gardent les chances d'avant-match et les buts attendus calés dessus (`lam`), dont le navigateur part pendant le match."""
     du_jour = [{"c": comp, "id": m["id"], "jour": m["jour"], "kickoff": m["kickoff"], "home": m["home"], "away": m["away"],
@@ -540,6 +545,35 @@ def matchs_du_jour(files: dict, today: str) -> list[dict]:
                for comp, info in COMPS.items() for m in files.get(info["slug"], {}).get("matchs", [])
                if m.get("jour") == today and m.get("kickoff")]
     return sorted(du_jour, key=lambda m: m["kickoff"])
+
+
+def journal_references(allm: pd.DataFrame, evals: list[dict]) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """Fréquences habituelles (saisons passées, sans fuite) et cotes d'avant-match pour comparer le journal réel."""
+    past = allm[allm["season"] < C.CURRENT_SEASON]
+    habits: dict[str, np.ndarray] = {}
+    for comp in COMPS:
+        sub = past[past["league"] == comp]
+        if len(sub):
+            y = np.select([sub["hg"] > sub["ag"], sub["hg"] == sub["ag"]], [0, 1], 2)
+            habits[comp] = np.bincount(y, minlength=3) / len(sub)
+    market: dict[str, np.ndarray] = {}
+    if evals and {"oh", "od", "oa"}.issubset(allm.columns):
+        cur = allm[allm["season"] == C.CURRENT_SEASON].dropna(subset=["oh", "od", "oa"])
+        if len(cur):
+            probs = M.market_probs(cur[["oh", "od", "oa"]].to_numpy(float))
+            by_key: dict[tuple[str, str, str], list[tuple[pd.Timestamp, np.ndarray]]] = {}
+            for r, q in zip(cur.itertuples(), probs):
+                if np.isfinite(q).all():
+                    by_key.setdefault((r.league, r.home, r.away), []).append((r.date, q))
+            for e in evals:
+                jour = e["joue_id"].rsplit("|", 1)[-1]
+                if not jour:
+                    continue
+                d = pd.Timestamp(jour)
+                cands = [q for dt, q in by_key.get((e["competition"], e["home"], e["away"]), []) if abs((dt - d).days) <= 3]
+                if cands:
+                    market[e["joue_id"]] = cands[0]
+    return habits, market
 
 
 def main(offline: bool = False) -> None:
@@ -716,10 +750,12 @@ def main(offline: bool = False) -> None:
             e = all_clubs.setdefault(t, {**c, "competitions": []})
             e["competitions"].append(comp)
     search.sort(key=lambda m: m["kickoff"] or (m["jour"] or "9999") + "T23:59")
+    habits, market = journal_references(allm, evals)
+    journal_bilan = JR.summary(evals, habits, market, len(pending), {c: v["nom"] for c, v in COMPS.items()})
     shown = {t for m in featured + recent[:8] for t in (m["home"], m["away"])}
     files["index"] = {"maj_utc": iso(now), "competitions": summary, "a_la_une": featured,
                       "surprises": recent[:8], "part_marche": round(bt["b"] / (bt["a"] + bt["b"]), 1),
-                      "fiabilite": bt["table"], "saisons_test": TEST,
+                      "fiabilite": bt["table"], "journal": journal_bilan, "saisons_test": TEST,
                       "slugs": {c: v["slug"] for c, v in COMPS.items()}, "noms": {c: v["nom"] for c, v in COMPS.items()},
                       "clubs": {t: all_clubs[t] for t in shown if t in all_clubs}}
     files["recherche"] = {"maj_utc": iso(now), "clubs": all_clubs, "matchs": search,

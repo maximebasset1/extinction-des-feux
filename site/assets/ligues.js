@@ -15,6 +15,7 @@ export const COMP_ORDRE = [
   ["LEC", "ligue-europa", "Ligue Europa"],
 ];
 const COMP_NOMS = Object.fromEntries(COMP_ORDRE.map(([c, , n]) => [c, n]));
+const TOUTES_COMP = COMP_ORDRE.map(([c]) => c);
 const FORMAT_CODE = /^[A-Z]{3}-\d{3}$/;
 const PAGE_MATCHS = 24;
 const HORIZON_JOURS = 14;
@@ -60,6 +61,14 @@ export function codeDepuisUrl(search) {
 export function lienInvitation(code, loc = globalThis.location) {
   if (!loc) return `?code=${encodeURIComponent(code)}`;
   return `${loc.origin}${loc.pathname}?code=${encodeURIComponent(code)}`;
+}
+
+export function competitionsActives(ligue) {
+  const brut = ligue?.competitions;
+  if (!Array.isArray(brut) || !brut.length) return [...TOUTES_COMP];
+  const set = new Set(brut.filter((c) => Object.hasOwn(COMP_NOMS, c)));
+  const liste = TOUTES_COMP.filter((c) => set.has(c));
+  return liste.length ? liste : [...TOUTES_COMP];
 }
 
 // ---------------------------------------------------------------- stockage multi-ligues (localStorage)
@@ -117,6 +126,7 @@ export function calculerClassementLive(ligue, directParId = new Map()) {
   const base = (ligue?.classement || []).map((r) => ({ ...r, points_live: 0, live_matchs: 0 }));
   const parMembre = new Map(base.map((r) => [r.membre_id, r]));
   const matchsLigue = ligue?.matchs || {};
+  const autorisees = new Set(competitionsActives(ligue));
   let nbMatchsLive = 0;
   const matchsLiveSet = new Set();
 
@@ -125,6 +135,8 @@ export function calculerClassementLive(ligue, directParId = new Map()) {
     if (!ligne) continue;
     for (const p of membre.pronos || []) {
       if (p.masque || p.hors_delai || typeof p.buts_dom !== "number") continue;
+      const compId = String(p.match_id || "").split("|")[0];
+      if (compId && Object.hasOwn(COMP_NOMS, compId) && !autorisees.has(compId)) continue;
       const meta = matchsLigue[p.match_id];
       if (meta?.score) continue;   // déjà jugé officiellement dans ligue.classement
       const live = directParId.get(p.match_id);
@@ -149,10 +161,15 @@ export function calculerClassementLive(ligue, directParId = new Map()) {
   return { lignes, nbMatchsLive };
 }
 
-export function filtrerMatchsPronosticables(matchs, { comp = "", favoris = null, maintenant = Date.now(), horizonJours = HORIZON_JOURS } = {}) {
+export function filtrerMatchsPronosticables(
+  matchs,
+  { comp = "", favoris = null, autorisees = null, maintenant = Date.now(), horizonJours = HORIZON_JOURS } = {},
+) {
   const limite = maintenant + horizonJours * 86400e3;
+  const setAuto = autorisees ? (autorisees instanceof Set ? autorisees : new Set(autorisees)) : null;
   return matchs.filter((m) => {
     if (m.etat !== "a_venir" || !m.kickoff) return false;
+    if (setAuto && !setAuto.has(m.c)) return false;
     const ko = Date.parse(m.kickoff);
     if (!Number.isFinite(ko) || ko <= maintenant || ko > limite) return false;
     if (comp === "FAV") return Boolean(favoris && (favoris.has(m.home) || favoris.has(m.away)));
@@ -230,6 +247,8 @@ function rendreEnteteLigue() {
   const loc = ligueCourante(), d = S.ligue;
   if (!loc) return;
   el("l-nom").textContent = d?.nom || loc.nom || loc.code;
+  const comps = competitionsActives(d || loc);
+  el("l-comps").innerHTML = comps.map((c) => `<li>${esc(COMP_NOMS[c] || c)}</li>`).join("");
   el("l-code").textContent = loc.code;
   el("l-moi").textContent = `Connecté en tant que ${loc.pseudo} (accès enregistré dans ce navigateur).`;
   el("l-maj").textContent = d?.programme_maj_utc ? `Programme mis à jour : ${quand(d.programme_maj_utc)}` : "";
@@ -264,8 +283,11 @@ function rendreSuivi() {
   const sec = el("sec-suivi"), cont = el("l-suivi");
   if (!S.ligue) { sec.hidden = true; return; }
   const now = Date.now();
+  const autorisees = new Set(competitionsActives(S.ligue));
   const matchsLigue = S.ligue.matchs || {};
   const ids = Object.keys(matchsLigue).filter((id) => {
+    const compId = id.split("|")[0];
+    if (Object.hasOwn(COMP_NOMS, compId) && !autorisees.has(compId)) return false;
     const m = matchsLigue[id];
     return m.commence || m.score != null || (m.coup_envoi && Date.parse(m.coup_envoi) <= now) || S.directParId.has(id);
   });
@@ -333,9 +355,19 @@ function rendreSuivi() {
 
 function rendreChips() {
   const favs = typeof Favoris !== "undefined" ? Favoris.liste() : [];
-  const present = new Set(filtrerMatchsPronosticables(S.matchs).map((m) => m.c));
-  const chips = [["", "Toutes"], ...(favs.length ? [["FAV", "Mes favoris"]] : []), ...COMP_ORDRE.map(([c, , n]) => [c, n])];
-  el("l-chips").innerHTML = chips.map(([c, label]) => {
+  const actives = competitionsActives(S.ligue);
+  const autoSet = new Set(actives);
+  if (S.filtre && S.filtre !== "FAV" && !autoSet.has(S.filtre)) S.filtre = "";
+  const cont = el("l-chips");
+  if (actives.length <= 1 && !favs.length) { cont.innerHTML = ""; cont.hidden = true; return; }
+  cont.hidden = false;
+  const present = new Set(filtrerMatchsPronosticables(S.matchs, { autorisees: autoSet }).map((m) => m.c));
+  const chips = [
+    ["", "Toutes"],
+    ...(favs.length ? [["FAV", "Mes favoris"]] : []),
+    ...(actives.length > 1 ? actives.map((c) => [c, COMP_NOMS[c] || c]) : []),
+  ];
+  cont.innerHTML = chips.map(([c, label]) => {
     const actif = !c || c === "FAV" || present.has(c);
     return `<button type="button" data-comp="${esc(c)}" aria-pressed="${c === S.filtre}"${actif ? "" : " disabled"}>${esc(label)}</button>`;
   }).join("");
@@ -345,7 +377,8 @@ function rendrePronos() {
   const cont = el("l-pronos"), note = el("l-pronos-note"), more = el("l-more");
   if (!S.ligue) { cont.innerHTML = ""; more.hidden = true; return; }
   const favSet = typeof Favoris !== "undefined" ? new Set(Favoris.liste()) : null;
-  const liste = filtrerMatchsPronosticables(S.matchs, { comp: S.filtre, favoris: favSet });
+  const autoSet = new Set(competitionsActives(S.ligue));
+  const liste = filtrerMatchsPronosticables(S.matchs, { comp: S.filtre, favoris: favSet, autorisees: autoSet });
   if (!liste.length) {
     note.textContent = S.filtre === "FAV"
       ? "Aucun match de tes clubs favoris ouvert aux pronostics dans les 14 prochains jours."
@@ -490,24 +523,48 @@ async function chargerLigueActive({ silencieux = false } = {}) {
 
 // ---------------------------------------------------------------- événements & démarrage
 
+function competitionsSelectionnees() {
+  return [...document.querySelectorAll('#c-comps input[name="comp"]:checked')].map((i) => i.value);
+}
+
+function majEtatSelectionComps() {
+  const nb = competitionsSelectionnees().length;
+  el("btn-creer").disabled = nb === 0;
+  const msg = el("msg-creer");
+  if (nb === 0) { msg.className = "form-msg err"; msg.textContent = "Sélectionne au moins une compétition."; }
+  else if (msg.textContent === "Sélectionne au moins une compétition.") { msg.className = "form-msg"; msg.textContent = ""; }
+}
+
 function attacherEvenements() {
+  el("c-comps").addEventListener("change", majEtatSelectionComps);
+  el("btn-comp-toutes").addEventListener("click", () => {
+    document.querySelectorAll('#c-comps input[name="comp"]').forEach((i) => { i.checked = true; });
+    majEtatSelectionComps();
+  });
+  el("btn-comp-aucune").addEventListener("click", () => {
+    document.querySelectorAll('#c-comps input[name="comp"]').forEach((i) => { i.checked = false; });
+    majEtatSelectionComps();
+  });
+
   el("form-creer").addEventListener("submit", async (e) => {
     e.preventDefault();
     const nom = el("c-nom").value.trim(), pseudo = el("c-pseudo").value.trim(), msg = el("msg-creer"), btn = el("btn-creer");
+    const competitions = competitionsSelectionnees();
     if (nom.length < 3 || nom.length > 40) { msg.className = "form-msg err"; msg.textContent = "Le nom de la ligue doit contenir entre 3 et 40 caractères."; return; }
     if (pseudo.length < 2 || pseudo.length > 20) { msg.className = "form-msg err"; msg.textContent = "Le pseudo doit contenir entre 2 et 20 caractères."; return; }
+    if (!competitions.length) { msg.className = "form-msg err"; msg.textContent = "Sélectionne au moins une compétition."; return; }
     msg.className = "form-msg"; msg.textContent = "Création en cours…"; btn.disabled = true;
     try {
-      const rep = await apiJson("", { method: "POST", body: { nom, pseudo } });
+      const rep = await apiJson("", { method: "POST", body: { nom, pseudo, competitions } });
       S.stock = enregistrerLigue(localStorage, { code: rep.code, nom, membre_id: rep.membre_id, jeton: rep.jeton, pseudo });
-      S.montrerEntree = false; S.etatsSave.clear();
+      S.montrerEntree = false; S.filtre = ""; S.etatsSave.clear();
       el("form-creer").reset(); msg.textContent = "";
       basculerVues();
       await chargerLigueActive();
     } catch (err) {
       msg.className = "form-msg err"; msg.textContent = err.message;
     } finally {
-      btn.disabled = false;
+      btn.disabled = competitionsSelectionnees().length === 0;
     }
   });
 
@@ -521,7 +578,7 @@ function attacherEvenements() {
     try {
       const rep = await apiJson(`/${encodeURIComponent(code)}/rejoindre`, { method: "POST", body: { pseudo } });
       S.stock = enregistrerLigue(localStorage, { code, nom: code, membre_id: rep.membre_id, jeton: rep.jeton, pseudo });
-      S.montrerEntree = false; S.etatsSave.clear();
+      S.montrerEntree = false; S.filtre = ""; S.montres = PAGE_MATCHS; S.etatsSave.clear();
       el("form-rejoindre").reset(); msg.textContent = "";
       basculerVues();
       await chargerLigueActive();
@@ -534,7 +591,7 @@ function attacherEvenements() {
 
   el("ligue-select").addEventListener("change", async (e) => {
     S.stock = selectionnerLigue(localStorage, e.target.value);
-    S.montrerEntree = false; S.etatsSave.clear();
+    S.montrerEntree = false; S.filtre = ""; S.montres = PAGE_MATCHS; S.etatsSave.clear();
     basculerVues();
     await chargerLigueActive();
   });

@@ -18,7 +18,7 @@ const score = (texte) => {
   const m = /^(\d+)-(\d+)$/.exec(texte || "");
   return m ? [Number(m[1]), Number(m[2])] : null;
 };
-const competition = (id) => id.slice(0, id.indexOf("|"));
+export const competition = (id) => (id.includes("|") ? id.slice(0, id.indexOf("|")) : "");
 const affiche = (id) => id.slice(0, id.lastIndexOf("|"));
 const jour = (id) => Date.parse(id.slice(id.lastIndexOf("|") + 1));
 

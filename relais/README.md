@@ -38,15 +38,15 @@ Le code de la ligue suffit pour consulter et s'inscrire : il se partage entre am
 
 | Route | Corps | Réponse |
 |---|---|---|
-| `POST /ligues` | `{ nom, pseudo }` | 201 `{ code, membre_id, jeton }` ; le `Bot IA` est inscrit avec la ligue |
+| `POST /ligues` | `{ nom, pseudo, competitions? }` (`competitions` facultatif : tableau non vide parmi `E0`, `D1`, `SP1`, `I1`, `F1`, `LDC`, `LEC` ou alias `PL`, `BL1`, `PD`, `SA`, `FL1`, `CL`, `EL` ; toutes par défaut) | 201 `{ code, membre_id, jeton, competitions }` ; le `Bot IA` est inscrit avec la ligue |
 | `POST /ligues/:code/rejoindre` | `{ pseudo }` | 201 `{ membre_id, jeton }` |
-| `POST /ligues/:code/pronos` | `{ match_id, buts_dom, buts_ext }` + `Authorization: Bearer <jeton>` | 200 `{ match_id, buts_dom, buts_ext, coup_envoi, maj_le }` |
+| `POST /ligues/:code/pronos` | `{ match_id, buts_dom, buts_ext }` + `Authorization: Bearer <jeton>` | 200 `{ match_id, buts_dom, buts_ext, coup_envoi, maj_le }` (refuse `400` si la compétition du match n'appartient pas à la ligue) |
 | `GET /ligues/:code` | `Authorization` facultatif (sans lui, tous les pronostics à venir sont masqués) | 200, voir plus bas |
 
 `nom` : 3 à 40 caractères ; `pseudo` : 2 à 20, unique dans la ligue sans tenir compte de la casse ; scores : entiers de 0 à 20 ;
 30 joueurs au plus par ligue.
 
-Codes d'erreur : `corps_invalide`, `nom_invalide`, `pseudo_invalide`, `match_invalide`, `score_invalide` (400) ;
+Codes d'erreur : `corps_invalide`, `nom_invalide`, `pseudo_invalide`, `competitions_invalides`, `competition_non_autorisee`, `match_invalide`, `score_invalide` (400) ;
 `jeton_manquant`, `jeton_invalide` (401) ; `ligue_inconnue`, `match_inconnu`, `route_inconnue` (404) ;
 `methode_non_permise` (405) ; `pseudo_pris`, `ligue_complete`, `match_verrouille` (409) ; `corps_trop_long` (413) ;
 `erreur_interne` (500) ; `ligues_indisponibles`, `programme_indisponible` (503, ce dernier aussi pour un pronostic quand le
@@ -57,6 +57,7 @@ programme a plus de 48 h).
 | Champ | Sens |
 |---|---|
 | `code`, `nom`, `cree_le` | la ligue |
+| `competitions[]` | codes canoniques des compétitions jouées par la ligue (`E0`, `D1`, `SP1`, `I1`, `F1`, `LDC`, `LEC` ; toutes par défaut) |
 | `moi` | identifiant du joueur du jeton, ou `null` |
 | `programme_maj_utc` | date du programme utilisé |
 | `membres[]` | `id`, `pseudo`, `est_bot`, `pronos[]` |

@@ -38,4 +38,5 @@ def test_page_ligues_charge_module_et_synchronise_points():
     assert html.count('aria-current="page"') == 2   # « Football » (menu) et « Ligues » (barre)
     assert '<a href="../foot/ligues.html" aria-current="page">Ligues</a>' in html
     assert re.search(r'<script type="module" src="\.\./assets/ligues\.js\?v=[0-9a-f]{8}"></script>', html)
+    assert 'id="c-comps"' in html and 'id="l-comps"' in html
     assert build_site.POINTS_DST.read_text(encoding="utf-8") == build_site.POINTS_SRC.read_text(encoding="utf-8")

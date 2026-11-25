@@ -73,6 +73,9 @@ export function competitionsActives(ligue) {
 
 export const estCreateur = (ligue) => Boolean(ligue?.moi) && ligue.moi === ligue.createur_id;
 
+/* la même ligue ouverte avec le même jeton */
+export const memeEntree = (a, b) => Boolean(a && b) && a.code === b.code && a.jeton === b.jeton;
+
 // ---------------------------------------------------------------- stockage multi-ligues (localStorage)
 
 export function chargerStockage(storage) {
@@ -96,7 +99,8 @@ function ecrireStockage(storage, etat) {
 export function enregistrerLigue(storage, entree) {
   const etat = chargerStockage(storage);
   const code = normaliserCode(entree.code);
-  const propre = { code, nom: entree.nom || code, membre_id: entree.membre_id, jeton: entree.jeton, pseudo: entree.pseudo };
+  const propre = { code, nom: entree.nom || code, membre_id: entree.membre_id, jeton: entree.jeton, pseudo: entree.pseudo,
+    ...(entree.compte ? { compte: entree.compte } : {}) };
   const idx = etat.ligues.findIndex((l) => l.code === code);
   if (idx >= 0) etat.ligues[idx] = { ...etat.ligues[idx], ...propre };
   else etat.ligues.push(propre);
@@ -218,6 +222,23 @@ const S = {
 const el = (id) => document.getElementById(id);
 const clubDe = (k) => S.clubs[k] || { nom: String(k || "").split(":").pop(), sigle: String(k || "").split(":").pop().slice(0, 3).toUpperCase() };
 const ligueCourante = () => S.stock.ligues.find((l) => l.code === S.stock.active) || null;
+const etoile = (k, nom) => (typeof Favoris === "undefined" ? "" : Favoris.bouton(k, nom, { mini: true }));
+
+/* compte facultatif (compte.js, script classique) : absent, les ligues marchent comme sans compte */
+const compteApi = () => (typeof Compte === "undefined" ? null : Compte);
+const compteOuvert = () => compteApi()?.lire() ?? null;
+const lieeAuCompte = (loc) => Boolean(loc?.compte) && loc.compte === compteOuvert()?.compte_id;
+
+/* le pseudo du compte est proposé dans les deux formulaires, sans écraser ce qui a été tapé */
+let pseudoPropose = "";
+function proposerPseudo() {
+  const pseudo = compteOuvert()?.pseudo ?? "";
+  const neuf = pseudo.length <= 20 ? pseudo : "";
+  for (const champ of [el("c-pseudo"), el("r-pseudo")]) {
+    if (!champ.value || champ.value === pseudoPropose) champ.value = neuf;
+  }
+  pseudoPropose = neuf;
+}
 
 function mesPronosMap() {
   const m = new Map();
@@ -252,7 +273,7 @@ function rendreEnteteLigue() {
   const comps = competitionsActives(d || loc);
   el("l-comps").innerHTML = comps.map((c) => `<li>${esc(COMP_NOMS[c] || c)}</li>`).join("");
   el("l-code").textContent = loc.code;
-  el("l-moi").textContent = `Pseudo : ${loc.pseudo}`;
+  el("l-moi").textContent = `Pseudo : ${loc.pseudo}${lieeAuCompte(loc) ? " · liée à ton compte" : ""}`;
   el("btn-supprimer").hidden = !estCreateur(d) || d.code !== loc.code;
   el("l-maj").textContent = d?.programme_maj_utc ? `Programme mis à jour : ${quand(d.programme_maj_utc)}` : "";
 }
@@ -360,7 +381,7 @@ function rendreChips() {
   const favs = typeof Favoris !== "undefined" ? Favoris.liste() : [];
   const actives = competitionsActives(S.ligue);
   const autoSet = new Set(actives);
-  if (S.filtre && S.filtre !== "FAV" && !autoSet.has(S.filtre)) S.filtre = "";
+  if (S.filtre === "FAV" ? !favs.length : S.filtre && !autoSet.has(S.filtre)) S.filtre = "";
   const cont = el("l-chips");
   if (actives.length <= 1 && !favs.length) { cont.innerHTML = ""; cont.hidden = true; return; }
   cont.hidden = false;
@@ -407,10 +428,10 @@ function rendrePronos() {
     const estFav = Boolean(favSet && (favSet.has(m.home) || favSet.has(m.away)));
     const st = S.etatsSave.get(m.id) || (verrou ? { texte: "Verrouillé", cls: "" } : p ? { texte: "Enregistré", cls: "ok" } : { texte: "", cls: "" });
     const midAttr = esc(m.id);
-    html += `<li class="prono-item${estFav ? " fav" : ""}" data-match-id="${midAttr}" data-kickoff="${esc(m.kickoff)}">
+    html += `<li class="prono-item${estFav ? " fav" : ""}" data-match-id="${midAttr}" data-kickoff="${esc(m.kickoff)}" data-home="${esc(m.home)}" data-away="${esc(m.away)}">
       <div class="prono-grille">
         <span class="m-heure">${esc(heure(m.kickoff))}<small class="m-comp">${esc(COMP_NOMS[m.c] || m.c)}</small></span>
-        <span class="m-club m-dom"><b>${esc(dom.nom)}</b>${ecusson(dom)}</span>
+        <span class="m-club m-dom">${etoile(m.home, dom.nom)}<b>${esc(dom.nom)}</b>${ecusson(dom)}</span>
         <div class="prono-centre">
           <div class="prono-inputs">
             <input type="number" min="0" max="20" step="1" inputmode="numeric" data-side="dom" aria-label="Score ${esc(dom.nom)}" value="${p ? p.buts_dom : ""}"${verrou ? " disabled" : ""}>
@@ -422,7 +443,7 @@ function rendrePronos() {
             <span class="prono-etat ${st.cls}" data-etat>${esc(st.texte)}</span>
           </div>
         </div>
-        <span class="m-club m-ext">${ecusson(ext)}<b>${esc(ext.nom)}</b></span>
+        <span class="m-club m-ext">${ecusson(ext)}<b>${esc(ext.nom)}</b>${etoile(m.away, ext.nom)}</span>
       </div>
     </li>`;
   }
@@ -509,8 +530,11 @@ async function chargerLigueActive({ silencieux = false } = {}) {
     el("l-statut").textContent = "Chargement de la ligue…";
     el("btn-supprimer").hidden = true;
   }
+  // ligue changée ou déconnexion pendant la requête : sa réponse ne doit rien afficher ni rien réécrire dans le navigateur
+  const perimee = () => !memeEntree(loc, ligueCourante());
   try {
     const data = await apiJson(`/${encodeURIComponent(loc.code)}`, { jeton: loc.jeton });
+    if (perimee()) return;
     S.ligue = data;
     if (data.nom && data.nom !== loc.nom) {
       S.stock = enregistrerLigue(localStorage, { ...loc, nom: data.nom });
@@ -523,6 +547,7 @@ async function chargerLigueActive({ silencieux = false } = {}) {
     rendreSuivi();
     if (!silencieux) { rendreChips(); rendrePronos(); }
   } catch (err) {
+    if (perimee()) return;
     // ligue supprimée par son créateur (ou jeton refusé) : rien d'une autre ligue ne doit rester affiché
     if (err.statut === 404 || err.statut === 401) {
       S.ligue = null;
@@ -535,7 +560,38 @@ async function chargerLigueActive({ silencieux = false } = {}) {
       el("l-pronos-note").textContent = "";
     }
     el("l-statut").textContent = err.message;
+    if (err.statut === 401 && loc.compte) compteApi()?.synchroniser();   // session fermée ailleurs : compte.js nettoie
   }
+}
+
+function viderVueLigue() {
+  S.ligue = null; S.filtre = ""; S.montres = PAGE_MATCHS; S.etatsSave.clear();
+  el("l-statut").textContent = "";
+  for (const id of ["l-classement", "l-suivi", "l-pronos", "l-comps", "l-chips", "l-pronos-note", "l-maj"]) el(id).innerHTML = "";
+  el("sec-suivi").hidden = true;
+  el("l-more").hidden = true;
+  el("l-direct-note").hidden = true;
+}
+
+/* connexion, déconnexion ou synchronisation : la liste des ligues du navigateur a changé */
+async function surLiguesDuCompte() {
+  const avant = ligueCourante();
+  S.stock = chargerStockage(localStorage);
+  const codeUrl = codeDepuisUrl(location.search);
+  if (codeUrl && el("r-code").value === codeUrl && S.stock.ligues.some((l) => l.code === codeUrl)) {
+    // invitation vers une ligue que le compte a déjà : on l'ouvre
+    S.stock = selectionnerLigue(localStorage, codeUrl);
+    S.montrerEntree = false;
+    el("r-code").value = "";
+  } else if (!avant && S.stock.active && !codeUrl) {
+    S.montrerEntree = false;
+  }
+  const apres = ligueCourante();
+  const change = !memeEntree(avant, apres);
+  if (change) viderVueLigue();
+  basculerVues();
+  if (change && apres && !S.montrerEntree) await chargerLigueActive();
+  else rendreEnteteLigue();
 }
 
 // ---------------------------------------------------------------- événements & démarrage
@@ -571,14 +627,17 @@ function attacherEvenements() {
     if (pseudo.length < 2 || pseudo.length > 20) { msg.className = "form-msg err"; msg.textContent = "Le pseudo doit contenir entre 2 et 20 caractères."; return; }
     if (!competitions.length) { msg.className = "form-msg err"; msg.textContent = "Sélectionne au moins une compétition."; return; }
     msg.className = "form-msg"; msg.textContent = "Création en cours…"; btn.disabled = true;
+    const compte = compteOuvert();
     try {
-      const rep = await apiJson("", { method: "POST", body: { nom, pseudo, competitions } });
-      S.stock = enregistrerLigue(localStorage, { code: rep.code, nom, membre_id: rep.membre_id, jeton: rep.jeton, pseudo });
+      const rep = await apiJson("", { method: "POST", body: { nom, pseudo, competitions }, jeton: compte?.jeton });
+      compteApi()?.liguesModifiees();
+      S.stock = enregistrerLigue(localStorage, { code: rep.code, nom, membre_id: rep.membre_id, jeton: rep.jeton, pseudo, compte: compte?.compte_id });
       S.montrerEntree = false; S.filtre = ""; S.etatsSave.clear();
-      el("form-creer").reset(); msg.textContent = "";
+      el("form-creer").reset(); msg.textContent = ""; pseudoPropose = ""; proposerPseudo();
       basculerVues();
       await chargerLigueActive();
     } catch (err) {
+      if (err.code === "session_invalide") compteApi()?.expirer();
       msg.className = "form-msg err"; msg.textContent = err.message;
     } finally {
       btn.disabled = competitionsSelectionnees().length === 0;
@@ -592,14 +651,19 @@ function attacherEvenements() {
     if (!estCodeValide(code)) { msg.className = "form-msg err"; msg.textContent = "Code invalide (format attendu : ABC-123)."; return; }
     if (pseudo.length < 2 || pseudo.length > 20) { msg.className = "form-msg err"; msg.textContent = "Le pseudo doit contenir entre 2 et 20 caractères."; return; }
     msg.className = "form-msg"; msg.textContent = "Inscription en cours…"; btn.disabled = true;
+    const compte = compteOuvert();
     try {
-      const rep = await apiJson(`/${encodeURIComponent(code)}/rejoindre`, { method: "POST", body: { pseudo } });
-      S.stock = enregistrerLigue(localStorage, { code, nom: code, membre_id: rep.membre_id, jeton: rep.jeton, pseudo });
+      const rep = await apiJson(`/${encodeURIComponent(code)}/rejoindre`, { method: "POST", body: { pseudo }, jeton: compte?.jeton });
+      compteApi()?.liguesModifiees();
+      // déjà dans la ligue avec ce compte : le serveur rend le joueur existant, avec son pseudo
+      S.stock = enregistrerLigue(localStorage, { code, nom: code, membre_id: rep.membre_id, jeton: rep.jeton,
+        pseudo: rep.pseudo || pseudo, compte: compte?.compte_id });
       S.montrerEntree = false; S.filtre = ""; S.montres = PAGE_MATCHS; S.etatsSave.clear();
-      el("form-rejoindre").reset(); msg.textContent = "";
+      el("form-rejoindre").reset(); msg.textContent = ""; pseudoPropose = ""; proposerPseudo();
       basculerVues();
       await chargerLigueActive();
     } catch (err) {
+      if (err.code === "session_invalide") compteApi()?.expirer();
       msg.className = "form-msg err"; msg.textContent = err.message;
     } finally {
       btn.disabled = false;
@@ -641,7 +705,14 @@ function attacherEvenements() {
     const loc = ligueCourante();
     if (!loc) return;
     const createur = estCreateur(S.ligue) ? " Tu l'as créée : après l'avoir quittée, tu ne pourras plus la supprimer." : "";
-    if (!confirm(`Quitter « ${loc.nom} » (${loc.code}) ? Tu ne pourras plus modifier tes pronostics avec ce pseudo.${createur}`)) return;
+    const liee = lieeAuCompte(loc);
+    const perte = liee ? "Elle sera retirée de ton compte et tu ne pourras plus modifier tes pronostics avec ce pseudo."
+      : "Tu ne pourras plus modifier tes pronostics avec ce pseudo.";
+    if (!confirm(`Quitter « ${loc.nom} » (${loc.code}) ? ${perte}${createur}`)) return;
+    if (liee) {
+      // sans ce détachement, la ligue reviendrait à la synchronisation suivante
+      try { await compteApi().detacher(loc.code); } catch (err) { el("l-statut").textContent = err.message; return; }
+    }
     await oublier(loc.code);
   });
 
@@ -652,6 +723,7 @@ function attacherEvenements() {
     btn.disabled = true;
     try {
       await apiJson(`/${encodeURIComponent(loc.code)}`, { method: "DELETE", jeton: loc.jeton });
+      compteApi()?.liguesModifiees();
       await oublier(loc.code);
     } catch (err) {
       el("l-statut").textContent = err.message;
@@ -687,7 +759,15 @@ function attacherEvenements() {
     S.timersSave.set(matchId, setTimeout(() => sauvegarderProno(matchId, dom, ext), DEBOUNCE_MS));
   });
 
-  document.addEventListener("favoris", () => { if (S.ligue) { rendreChips(); rendrePronos(); } });
+  document.addEventListener("favoris", () => {
+    if (!S.ligue) return;
+    const filtreFavoris = S.filtre === "FAV";
+    rendreChips();
+    // sinon on ne refait pas la liste : un score en cours de saisie serait perdu (favoris.js marque les lignes)
+    if (filtreFavoris) rendrePronos();
+  });
+  document.addEventListener("ligues-compte", surLiguesDuCompte);
+  document.addEventListener("compte", () => { proposerPseudo(); rendreEnteteLigue(); });
 }
 
 async function main() {
@@ -703,6 +783,7 @@ async function main() {
     }
   }
   attacherEvenements();
+  proposerPseudo();
   basculerVues();
   await chargerProgramme();
   if (S.stock.active && !S.montrerEntree) await chargerLigueActive();

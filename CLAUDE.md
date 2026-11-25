@@ -9,6 +9,7 @@ Plateforme statique multi-sport (**Formule 1 + Football**) de pronostics probabi
 - Calcul : pipelines Python exécutés par **GitHub Actions** (`.github/workflows/mise-a-jour.yml`, toutes les 1 à 3 h). Ils réentraînent les modèles, recalculent les pronostics et republient le site.
 - Direct Football : relais Edge **Cloudflare Worker** (`extinction-direct.maximebasset1.workers.dev`, code dans `relais/`). La boucle d'appels tourne dans GitHub Actions (`direct.yml`), le Worker ne fait que servir.
 - Ligues de pronostics entre amis (Football uniquement) : routes `/ligues` sur le même Worker Cloudflare, stockant ligues, pseudos et pronostics sur **Cloudflare D1** (`extinction-ligues`, schéma dans `relais/schema.sql`, barème partagé dans `relais/points.js` copié vers `site/assets/points.js` par `build_site.py`). Sans compte : le navigateur conserve le code de ligue et le jeton dans `localStorage`.
+- Comptes personnels **facultatifs** (Football) : routes `/comptes` sur le même Worker (`relais/ligues.js`), clubs favoris et ligues retrouvés sur tous les appareils. Côté site : `site/assets/compte.js` (voir « Comptes et favoris »).
 - Pages publiées sur GitHub Pages : 100 % statiques (la partie F1 n'a ni serveur ni base de données). CSP stricte, aucun CDN ni traceur.
 
 Carte du dépôt :
@@ -33,6 +34,28 @@ Carte du dépôt :
 - Le code commun reste dans les assets génériques (`commun.js`, `style.css`) et ne doit dépendre d'aucun des deux sports.
 - **Contrat de données F1** (`docs/contrat-f1.md`) : on peut **ajouter** des champs, jamais **renommer ni supprimer** un champ existant, et l'adresse des fichiers JSON ne change pas. Raison : la partie F1 sera intégrée plus tard dans un site externe Node.js/EJS (*PitLane Insider*). Toute évolution est documentée dans le contrat, avec la date d'ajout.
 
+## Comptes et favoris (Football)
+
+- **Tout doit marcher sans compte.** Créer, rejoindre et pronostiquer sans en-tête de compte répondent comme avant (test « sans compte »). Les comptes ne font qu'ajouter.
+- Base D1 : tables `comptes`, `sessions` et `essais`, colonne `membres.compte_id`. `schema.sql` passe avant `migrations.sql` au déploiement : **un index sur une colonne ajoutée va dans `migrations.sql`**, sinon le déploiement échoue sur la base en ligne. Un ordre par ligne.
+- Aucun secret en clair : mot de passe en SHA-256 salé (sel propre à chaque compte), jetons gardés en empreinte seulement. `compte_id` ne sort jamais de `GET /ligues/:code`.
+- **Cinq essais de mot de passe par pseudo et par quart d'heure**, comptés avant l'examen du mot de passe en une seule écriture (ne pas les compter après coup : des demandes simultanées passeraient toutes). Toute nouvelle route qui vérifie un mot de passe doit passer par `compterEssai`.
+- Limites connues : qui connaît un pseudo peut retarder les connexions de son propriétaire ; rien ne limite un même mot de passe essayé sur beaucoup de pseudos ; SHA-256 est rapide (faible si la base fuit). Pas d'adresse e-mail, donc pas de récupération de mot de passe.
+- Une ligne de `sessions` par appareil connecté (10 au plus par compte). Le jeton de compte ouvre aussi les joueurs rattachés au compte ; les jetons de joueur d'origine restent valables. Vingt clubs favoris au plus par compte.
+- Navigateur : `localStorage` `extinction.compte.v1` (compte), `extinction.favoris.v1` (favoris : source de vérité sans compte, copie avec compte), `extinction_ligues_v1` (ligues ; `compte` marque celles du compte). La déconnexion retire du navigateur ce qui est sur le compte.
+- `compte.js` et `favoris.js` sont chargés par `build_site.py` sur toutes les pages **sauf F1** (découplage). Partout où une étoile peut être touchée, `compte.js` doit être là, sinon le favori n'est pas envoyé au compte.
+
+## Navigation
+
+- Une seule barre principale : `F1`, `Football`, `En direct` (pastille quand un match est en cours), `Ligues`, `Méthode`, puis le bouton du compte. Pas de seconde rangée dans l'en-tête.
+- Une seule ligne de filtres : `Mes favoris` (dès un club suivi), `Tout`, puis les compétitions dans l'ordre de `FILTRES` (`scripts/build_site.py`). Les pages de compétition ont la même ligne en liens.
+- Une ligne de match cliquable est un `div` recouvert par un lien (`.m-lien`) : ne jamais remettre les étoiles à l'intérieur d'un `<a>`.
+
+## Charte éditoriale
+
+- **Aucun exemple fictif dans les `placeholder`** : champs vides, avec un `<label>` court (vérifié par `pytest`).
+- Textes concis et directs.
+
 ## Charte graphique (design system)
 
 - Thème sombre unifié inspiré de *PitLane Insider* : fonds `#0f1115` et `#161920`.
@@ -54,7 +77,7 @@ Carte du dépôt :
 
 - Toujours travailler sur une branche dédiée (`feat/...` ou `fix/...`). Jamais de commit direct sur `main` sans validation explicite de Maxime.
 - Avant de proposer une fusion :
-  1. lancer `python -m pytest` (état de référence sur GitHub : tout passe ; en local, 3 tests sont ignorés car Node est absent, et avec Node installé les tests `relais` et `live` s'exécutent) ;
+  1. lancer `python -m pytest` et `node --test tests/*.test.mjs` (état de référence : tout passe ; sans Node, `pytest` ignore les tests JavaScript ; les tests des ligues et des comptes demandent Node 22.13 ou plus récent, pour `node:sqlite`) ;
   2. vérifier les empreintes de cache des fichiers statiques (`?v=...`) : `build_site.py` les calcule (sha256 du fichier, 8 premiers caractères) et les écrit dans les pages. Après tout changement d'un CSS/JS de `site/assets/`, relancer `python scripts/build_site.py` et commiter les pages régénérées. `python scripts/build_site.py --check` (appelé par `pytest`) échoue si une page est périmée. Les JSON de `data/` ne portent pas d'empreinte : ils sont demandés avec `?t=<minute>` ;
   3. lancer `/review` (relecture indépendante du `git diff main`).
 - Le site se régénère avec `scripts/build_site.py`. Ne jamais éditer à la main les pages HTML générées.

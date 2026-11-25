@@ -1,19 +1,17 @@
-/* Barre des compétitions de la section Football : l'onglet « En direct » affiche une pastille et le nombre de matchs en cours
-   (masqués quand il n'y en a aucun), et l'onglet de la page courante reste visible quand la barre défile (mobile).
+/* Barre principale : « En direct » montre une pastille et le nombre de matchs de football en cours (masqués quand il n'y
+   en a aucun), et l'entrée de la page courante reste visible quand la barre ou la ligne de filtres défile (mobile).
    Le nombre vient du relais du direct (direct.js, partagé avec le suivi des matchs : une seule lecture toutes les 15 s au plus). */
 "use strict";
 
 (() => {
-  const bande = document.querySelector(".bande-in");
-  if (!bande) return;
-
-  const courant = bande.querySelector('[aria-current="page"]');
-  if (courant) {
-    const dx = courant.getBoundingClientRect().left - bande.getBoundingClientRect().left;
-    bande.scrollLeft = Math.max(0, bande.scrollLeft + dx - (bande.clientWidth - courant.offsetWidth) / 2);
+  for (const barre of document.querySelectorAll(".menu, .filtres")) {
+    const courant = barre.querySelector('[aria-current="page"]');
+    if (!courant) continue;
+    const dx = courant.getBoundingClientRect().left - barre.getBoundingClientRect().left;
+    barre.scrollLeft = Math.max(0, barre.scrollLeft + dx - (barre.clientWidth - courant.offsetWidth) / 2);
   }
 
-  const lien = bande.querySelector("a[data-direct]"), pastille = lien && lien.querySelector(".bande-live");
+  const pastille = document.querySelector(".menu a[data-direct] .menu-live");
   if (!pastille || typeof lireRelais !== "function") return;
   const chiffre = pastille.querySelector("b"), texte = pastille.querySelector(".cache");
   const FRAIS_MS = 20 * 6e4;   // un relais muet depuis 20 min ne dit plus rien de fiable : on masque

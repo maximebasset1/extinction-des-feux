@@ -1,7 +1,9 @@
-/* API des ligues de pronostics (routes /ligues du Worker, contrat dans relais/README.md). Données : base D1 `DB`
-   (schema.sql) et programme des matchs dans KV (programme.js). Aucune route n'appelle API-Football ni n'écrit dans KV :
-   le direct et son quota ne dépendent pas des ligues. Pas de compte : le code de la ligue ouvre la consultation et
-   l'inscription, le jeton remis à l'inscription (gardé par le navigateur) identifie un joueur. */
+/* API des ligues de pronostics et des comptes (routes /ligues et /comptes du Worker, contrat dans relais/README.md).
+   Données : base D1 `DB` (schema.sql) et programme des matchs dans KV (programme.js). Aucune route n'appelle
+   API-Football ni n'écrit dans KV : le direct et son quota ne dépendent pas des ligues.
+   Le compte est facultatif. Sans lui, le code de la ligue ouvre la consultation et l'inscription, et le jeton remis à
+   l'inscription (gardé par le navigateur) identifie un joueur. Avec lui, le jeton de compte ouvre en plus tous les
+   joueurs rattachés au compte, sur chaque appareil connecté. */
 import { calculerPoints } from "./points.js";
 import { CLE_PROGRAMME, FICHIERS, competition, trouver } from "./programme.js";
 
@@ -14,6 +16,17 @@ const LETTRES = "ABCDEFGHJKLMNPQRSTUVWXYZ";   // sans I ni O, qu'on confond avec
 const FORMAT_CODE = /^[A-Z]{3}-\d{3}$/;
 const PSEUDO = { champ: "pseudo", min: 2, max: 20, permis: /^[\p{L}\p{M}\p{N} ._'’-]+$/u };
 const NOM = { champ: "nom", min: 3, max: 40, permis: /^[\p{L}\p{M}\p{N} ._'’!?&(),:+-]+$/u };
+const PSEUDO_COMPTE = { ...PSEUDO, max: 24 };
+const MDP_MIN = 4, MDP_MAX = 128;
+const FAVORIS_MAX = 20;                    // par compte
+const FAVORIS_LOCAUX_MAX = 100;            // ce qu'un navigateur peut apporter au rattachement (favoris.js)
+const FORMAT_CLUB = /^[A-Z]{2,4}:[^\p{C}<>]{1,60}$/u;      // identifiant de club du site : « FRA:Paris SG »
+const SESSIONS_MAX = 10;                   // appareils connectés par compte
+const ESSAIS_MAX = 5;                      // mots de passe examinés par pseudo et par période
+const ESSAIS_PERIODE_MS = 15 * 60000;
+const RATTACHER_MAX = 20;                  // ligues par requête : une écriture chacune, D1 limite les requêtes par appel
+const CORPS_RATTACHER_MAX = 16384;
+const CORPS_FAVORIS_MAX = 4096;
 const TOUTES_COMPETITIONS = Object.keys(FICHIERS);
 const ALIAS_COMPETITIONS = { PL: "E0", BL1: "D1", PD: "SP1", SA: "I1", FL1: "F1", CL: "LDC", EL: "LEC" };
 
@@ -26,7 +39,7 @@ const ENTETES = {
 };
 const PREVOL = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+  "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
   "access-control-allow-headers": "authorization, content-type",
   "access-control-max-age": "86400",
 };
@@ -55,9 +68,9 @@ async function nouveauJoueur() {
 
 // ---------------------------------------------------------------- saisies
 
-async function lireCorps(req) {
+async function lireCorps(req, max = CORPS_MAX) {
   const texte = await req.text();
-  if (texte.length > CORPS_MAX) throw new Refus(413, "corps_trop_long", "Requête trop longue.");
+  if (texte.length > max) throw new Refus(413, "corps_trop_long", "Requête trop longue.");
   let corps = null;
   try { corps = JSON.parse(texte); } catch { /* refusé juste après */ }
   if (!corps || typeof corps !== "object" || Array.isArray(corps)) {
@@ -121,16 +134,41 @@ async function lireLigue(env, code) {
   return ligue;
 }
 
-/* le joueur du jeton « Authorization: Bearer ... » dans cette ligue ; null sans en-tête, refus si le jeton ne correspond pas */
+const jetonDe = (entete) => /^Bearer ([0-9a-f]{64})$/.exec(entete)?.[1];
+
+/* le joueur du jeton « Authorization: Bearer ... » dans cette ligue ; null sans en-tête, refus si le jeton ne correspond pas.
+   Deux jetons conviennent : celui remis au joueur, ou celui d'une session du compte auquel ce joueur est rattaché */
 async function lireJoueur(req, env, code) {
   const entete = req.headers.get("authorization");
   if (!entete) return null;
-  const jeton = /^Bearer ([0-9a-f]{64})$/.exec(entete)?.[1];
-  const joueur = jeton && await env.DB.prepare("SELECT id FROM membres WHERE ligue_code = ? AND jeton_hash = ? AND est_bot = 0")
-    .bind(code, await hacher(jeton)).first();
+  const jeton = jetonDe(entete);
+  const hash = jeton && await hacher(jeton);
+  const joueur = hash && await env.DB.prepare(`SELECT id FROM membres WHERE ligue_code = ? AND est_bot = 0
+    AND (jeton_hash = ? OR compte_id = (SELECT compte_id FROM sessions WHERE jeton_hash = ?))`).bind(code, hash, hash).first();
   if (!joueur) throw new Refus(401, "jeton_invalide", "Jeton refusé pour cette ligue.");
   return joueur;
 }
+
+/* le compte de la session « Authorization: Bearer <jeton de compte> » ; null sans en-tête, refus si la session est inconnue */
+async function lireCompte(req, env) {
+  const entete = req.headers.get("authorization");
+  if (!entete) return null;
+  const jeton = jetonDe(entete);
+  const hash = jeton && await hacher(jeton);
+  const compte = hash && await env.DB.prepare(`SELECT c.id, c.pseudo, c.favoris FROM sessions s JOIN comptes c ON c.id = s.compte_id
+    WHERE s.jeton_hash = ?`).bind(hash).first();
+  if (!compte) throw new Refus(401, "session_invalide", "Session expirée : reconnecte-toi.");
+  return { ...compte, jeton, hash };
+}
+
+async function exigerCompte(req, env) {
+  const compte = await lireCompte(req, env);
+  if (!compte) throw new Refus(401, "jeton_manquant", "En-tête « Authorization: Bearer <jeton> » manquant.");
+  return compte;
+}
+
+const membreDuCompte = (env, code, compteId) => env.DB
+  .prepare("SELECT id, pseudo FROM membres WHERE ligue_code = ? AND compte_id = ?").bind(code, compteId).first();
 
 async function lireProgramme(env) {
   const programme = await env.DIRECT.get(CLE_PROGRAMME, { type: "json", cacheTtl: 60 });
@@ -141,22 +179,23 @@ async function lireProgramme(env) {
 // ---------------------------------------------------------------- routes
 
 async function creer(req, env) {
+  const compte = await lireCompte(req, env);
   const corps = await lireCorps(req);
   const nom = saisie(corps.nom, NOM), pseudo = saisie(corps.pseudo, PSEUDO);
   const { colonne, liste: competitions } = normaliserCompetitions(corps.competitions);
   if (clePseudo(pseudo) === clePseudo(BOT)) throw pseudoPris();
   const joueur = await nouveauJoueur(), quand = maintenantIso();
-  const membre = (code, id, p, hash, bot) => env.DB
-    .prepare("INSERT INTO membres (id, ligue_code, pseudo, pseudo_cle, jeton_hash, est_bot, cree_le) VALUES (?, ?, ?, ?, ?, ?, ?)")
-    .bind(id, code, p, clePseudo(p), hash, bot, quand);
+  const membre = (code, id, p, hash, bot, compteId) => env.DB
+    .prepare("INSERT INTO membres (id, ligue_code, pseudo, pseudo_cle, jeton_hash, est_bot, cree_le, compte_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(id, code, p, clePseudo(p), hash, bot, quand, compteId);
   for (let essai = 1; essai <= 5; essai++) {
     const code = tirerCode();
     try {
       await env.DB.batch([                 // une transaction : jamais de ligue sans son créateur ni son Bot IA
         env.DB.prepare("INSERT INTO ligues (code, nom, cree_le, competitions, createur_id) VALUES (?, ?, ?, ?, ?)")
           .bind(code, nom, quand, colonne, joueur.id),
-        membre(code, joueur.id, pseudo, joueur.hash, 0),
-        membre(code, crypto.randomUUID(), BOT, "", 1),
+        membre(code, joueur.id, pseudo, joueur.hash, 0, compte?.id ?? null),
+        membre(code, crypto.randomUUID(), BOT, "", 1, null),
       ]);
       return repondre({ code, membre_id: joueur.id, jeton: joueur.jeton, competitions }, 201);
     } catch (error) {
@@ -166,17 +205,26 @@ async function creer(req, env) {
   throw new Error("aucun code de ligue libre après 5 tirages");
 }
 
+/* le compte est déjà dans la ligue : on lui rend son joueur, que son jeton de compte ouvre déjà */
+const dejaMembre = (membre, compte) => repondre({ membre_id: membre.id, jeton: compte.jeton, pseudo: membre.pseudo, deja_membre: true });
+
 async function rejoindre(req, env, code) {
   await lireLigue(env, code);
+  const compte = await lireCompte(req, env);
+  const present = compte && await membreDuCompte(env, code, compte.id);
+  if (present) return dejaMembre(present, compte);
   const pseudo = saisie((await lireCorps(req)).pseudo, PSEUDO);
   const joueur = await nouveauJoueur();
   let resultat;
   try {
     // le compte des places fait partie de l'insertion : deux inscriptions simultanées ne peuvent pas dépasser la limite
-    resultat = await env.DB.prepare(`INSERT INTO membres (id, ligue_code, pseudo, pseudo_cle, jeton_hash, est_bot, cree_le)
-      SELECT ?, ?, ?, ?, ?, 0, ? WHERE (SELECT COUNT(*) FROM membres WHERE ligue_code = ? AND est_bot = 0) < ?`)
-      .bind(joueur.id, code, pseudo, clePseudo(pseudo), joueur.hash, maintenantIso(), code, MAX_JOUEURS).run();
+    resultat = await env.DB.prepare(`INSERT INTO membres (id, ligue_code, pseudo, pseudo_cle, jeton_hash, est_bot, cree_le, compte_id)
+      SELECT ?, ?, ?, ?, ?, 0, ?, ? WHERE (SELECT COUNT(*) FROM membres WHERE ligue_code = ? AND est_bot = 0) < ?`)
+      .bind(joueur.id, code, pseudo, clePseudo(pseudo), joueur.hash, maintenantIso(), compte?.id ?? null, code, MAX_JOUEURS).run();
   } catch (error) {
+    // deux demandes simultanées du même compte : la seconde retrouve le joueur créé par la première
+    const entretemps = compte && await membreDuCompte(env, code, compte.id);
+    if (entretemps) return dejaMembre(entretemps, compte);
     if (dejaPris(error, "pseudo_cle")) throw pseudoPris();
     throw error;
   }
@@ -317,6 +365,181 @@ async function consulter(req, env, code) {
   });
 }
 
+// ---------------------------------------------------------------- comptes
+
+function motDePasse(valeur) {
+  // forme Unicode unique : le même mot de passe accentué saisi sur deux claviers donne la même empreinte
+  const texte = typeof valeur === "string" ? valeur.normalize("NFC") : "";
+  const longueur = [...texte].length;
+  if (longueur < MDP_MIN || longueur > MDP_MAX) {
+    throw new Refus(400, "mot_de_passe_invalide", `Mot de passe : de ${MDP_MIN} à ${MDP_MAX} caractères.`);
+  }
+  return texte;
+}
+const empreinteMdp = (sel, mdp) => hacher(`${sel}:${mdp}`);
+
+const estClub = (v) => typeof v === "string" && FORMAT_CLUB.test(v);
+function lireFavoris(colonne) {
+  try {
+    const brut = JSON.parse(colonne);
+    return Array.isArray(brut) ? brut.filter(estClub).slice(0, FAVORIS_MAX) : [];
+  } catch {
+    return [];
+  }
+}
+const ecrireFavoris = (env, compteId, favoris) => env.DB.prepare("UPDATE comptes SET favoris = ?, maj_le = ? WHERE id = ?")
+  .bind(JSON.stringify(favoris), maintenantIso(), compteId).run();
+
+/* une session par appareil : les plus anciennes au-delà de la limite sont fermées */
+async function ouvrirSession(env, compteId) {
+  const { jeton, hash } = await nouveauJoueur();
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO sessions (jeton_hash, compte_id, cree_le) VALUES (?, ?, ?)").bind(hash, compteId, maintenantIso()),
+    env.DB.prepare(`DELETE FROM sessions WHERE compte_id = ? AND jeton_hash NOT IN
+      (SELECT jeton_hash FROM sessions WHERE compte_id = ? ORDER BY cree_le DESC, rowid DESC LIMIT ?)`)
+      .bind(compteId, compteId, SESSIONS_MAX),
+  ]);
+  return jeton;
+}
+
+/* les ligues rattachées au compte : le jeton de la session en cours est le jeton actif de chacun de ces joueurs */
+async function liguesDuCompte(env, compteId, jeton) {
+  const { results } = await env.DB.prepare(`SELECT l.code, l.nom, m.id AS membre_id, m.pseudo FROM membres m
+    JOIN ligues l ON l.code = m.ligue_code WHERE m.compte_id = ? ORDER BY m.cree_le, l.code`).bind(compteId).all();
+  return results.map(({ code, nom, membre_id, pseudo }) => ({ code, nom, membre_id, pseudo, jeton }));
+}
+
+async function inscription(req, env) {
+  const corps = await lireCorps(req);
+  const pseudo = saisie(corps.pseudo, PSEUDO_COMPTE), mdp = motDePasse(corps.mot_de_passe);
+  const pris = () => new Refus(409, "pseudo_pris", "Ce pseudo est déjà pris.");
+  if (clePseudo(pseudo) === clePseudo(BOT)) throw pris();
+  const id = crypto.randomUUID(), sel = hexa(crypto.getRandomValues(new Uint8Array(16))), quand = maintenantIso();
+  try {
+    await env.DB.prepare("INSERT INTO comptes (id, pseudo, pseudo_cle, mdp_hash, sel, cree_le, maj_le) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .bind(id, pseudo, clePseudo(pseudo), await empreinteMdp(sel, mdp), sel, quand, quand).run();
+  } catch (error) {
+    if (dejaPris(error, "pseudo_cle")) throw pris();
+    throw error;
+  }
+  return repondre({ compte_id: id, pseudo, jeton_compte: await ouvrirSession(env, id), favoris: [] }, 201);
+}
+
+/* chaque essai est compté avant que le mot de passe soit examiné, en une seule écriture : des demandes envoyées en même
+   temps ne passent pas toutes. Un essai refusé ne repousse pas la fin de la période. Les sessions ouvertes ne sont pas
+   concernées. Le compte porte sur le pseudo : qui le connaît peut donc retarder les connexions de son propriétaire. */
+async function compterEssai(env, cle) {
+  const maintenant = Date.now();
+  await env.DB.prepare("DELETE FROM essais WHERE depuis <= ?").bind(new Date(maintenant - ESSAIS_PERIODE_MS).toISOString()).run();
+  const { nombre, depuis } = await env.DB.prepare(`INSERT INTO essais (pseudo_cle, nombre, depuis) VALUES (?, 1, ?)
+    ON CONFLICT (pseudo_cle) DO UPDATE SET nombre = nombre + 1 RETURNING nombre, depuis`).bind(cle, maintenantIso()).first();
+  if (nombre > ESSAIS_MAX) {
+    const minutes = Math.max(1, Math.ceil((Date.parse(depuis) + ESSAIS_PERIODE_MS - maintenant) / 60000));
+    throw new Refus(429, "trop_d_essais", `Trop d'essais. Réessaie dans ${minutes} minute${minutes > 1 ? "s" : ""}.`);
+  }
+}
+const oublierEssais = (env, cle) => env.DB.prepare("DELETE FROM essais WHERE pseudo_cle = ?").bind(cle).run();
+
+async function connexion(req, env) {
+  const corps = await lireCorps(req);
+  const pseudo = typeof corps.pseudo === "string" ? corps.pseudo.normalize("NFKC").replace(/\s+/g, " ").trim() : "";
+  const mdp = typeof corps.mot_de_passe === "string" ? corps.mot_de_passe.normalize("NFC") : "";
+  // même réponse pour un pseudo inconnu et un mot de passe faux
+  const refus = () => new Refus(401, "identifiants_invalides", "Pseudo ou mot de passe incorrect.");
+  // aucune inscription ne permet ces longueurs : rien à examiner, ni à garder en base
+  if ([...pseudo].length < PSEUDO_COMPTE.min || [...pseudo].length > PSEUDO_COMPTE.max
+    || [...mdp].length < MDP_MIN || [...mdp].length > MDP_MAX) throw refus();
+  const cle = clePseudo(pseudo);
+  await compterEssai(env, cle);
+  const compte = await env.DB.prepare("SELECT id, pseudo, mdp_hash, sel, favoris FROM comptes WHERE pseudo_cle = ?")
+    .bind(cle).first();
+  if (!compte || await empreinteMdp(compte.sel, mdp) !== compte.mdp_hash) throw refus();
+  await oublierEssais(env, cle);
+  const jeton = await ouvrirSession(env, compte.id);
+  return repondre({ compte_id: compte.id, pseudo: compte.pseudo, jeton_compte: jeton, favoris: lireFavoris(compte.favoris),
+    ligues: await liguesDuCompte(env, compte.id, jeton) });
+}
+
+async function monCompte(req, env) {
+  const compte = await exigerCompte(req, env);
+  return repondre({ compte_id: compte.id, pseudo: compte.pseudo, favoris: lireFavoris(compte.favoris),
+    ligues: await liguesDuCompte(env, compte.id, compte.jeton) });
+}
+
+async function enregistrerFavoris(req, env) {
+  const compte = await exigerCompte(req, env);
+  const { favoris } = await lireCorps(req, CORPS_FAVORIS_MAX);
+  const uniques = Array.isArray(favoris) && favoris.every(estClub) ? [...new Set(favoris)] : null;
+  if (!uniques || uniques.length > FAVORIS_MAX) {
+    throw new Refus(400, "favoris_invalides", `« favoris » doit être une liste de ${FAVORIS_MAX} clubs au plus.`);
+  }
+  await ecrireFavoris(env, compte.id, uniques);
+  return repondre({ favoris: uniques });
+}
+
+/* ce que le navigateur gardait sans compte : ses joueurs (prouvés par leur jeton) et ses clubs favoris.
+   Un joueur déjà rattaché ailleurs, ou un second joueur dans la même ligue, reste comme il était. */
+async function rattacher(req, env) {
+  const compte = await exigerCompte(req, env);
+  const { ligues = [], favoris = [] } = await lireCorps(req, CORPS_RATTACHER_MAX);
+  if (!Array.isArray(ligues) || ligues.length > RATTACHER_MAX || !Array.isArray(favoris) || favoris.length > FAVORIS_LOCAUX_MAX) {
+    throw new Refus(400, "rattachement_invalide", `Au plus ${RATTACHER_MAX} ligues et ${FAVORIS_LOCAUX_MAX} favoris par demande.`);
+  }
+  const rattachees = [];
+  for (const entree of ligues) {
+    const code = typeof entree?.code === "string" ? entree.code.toUpperCase() : "";
+    const jeton = typeof entree?.jeton === "string" ? entree.jeton : "";
+    if (!FORMAT_CODE.test(code) || !/^[0-9a-f]{64}$/.test(jeton)) continue;
+    // une seule écriture : libre (ou déjà au compte) et aucun autre joueur de ce compte dans la ligue
+    const { meta } = await env.DB.prepare(`UPDATE membres SET compte_id = ? WHERE ligue_code = ? AND jeton_hash = ? AND est_bot = 0
+      AND (compte_id IS NULL OR compte_id = ?) AND NOT EXISTS (SELECT 1 FROM membres AS autre
+        WHERE autre.ligue_code = ? AND autre.compte_id = ? AND autre.jeton_hash <> ?)`)
+      .bind(compte.id, code, await hacher(jeton), compte.id, code, compte.id, await hacher(jeton)).run();
+    if (meta.changes) rattachees.push(code);
+  }
+  const fusion = [...new Set([...lireFavoris(compte.favoris), ...favoris.filter(estClub)])].slice(0, FAVORIS_MAX);
+  await ecrireFavoris(env, compte.id, fusion);
+  return repondre({ favoris: fusion, rattachees, ligues: await liguesDuCompte(env, compte.id, compte.jeton) });
+}
+
+/* « Quitter la ligue » avec un compte : le joueur reste dans la ligue mais n'appartient plus au compte */
+async function detacher(req, env) {
+  const compte = await exigerCompte(req, env);
+  const { code: brut } = await lireCorps(req);
+  const code = typeof brut === "string" ? brut.toUpperCase() : "";
+  if (!FORMAT_CODE.test(code)) throw new Refus(400, "code_invalide", "Code de ligue invalide.");
+  await env.DB.prepare("UPDATE membres SET compte_id = NULL WHERE ligue_code = ? AND compte_id = ?").bind(code, compte.id).run();
+  return repondre({ code, detachee: true });
+}
+
+async function deconnexion(req, env) {
+  const compte = await exigerCompte(req, env);
+  await env.DB.prepare("DELETE FROM sessions WHERE jeton_hash = ?").bind(compte.hash).run();
+  return repondre({ deconnecte: true });
+}
+
+const ROUTES_COMPTES = {
+  inscription: { POST: inscription }, connexion: { POST: connexion }, moi: { GET: monCompte },
+  favoris: { PUT: enregistrerFavoris }, rattacher: { POST: rattacher }, detacher: { POST: detacher },
+  deconnexion: { POST: deconnexion },
+};
+
+// ---------------------------------------------------------------- aiguillage
+
+/* la fonction de la route demandée, après les contrôles communs (adresse, méthode, base disponible) */
+function choisir(route, req, env, indisponible) {
+  if (!route) throw new Refus(404, "route_inconnue", "Adresse inconnue.");
+  if (!Object.hasOwn(route, req.method)) throw new Refus(405, "methode_non_permise", "Méthode non permise.");
+  if (!env.DB) throw new Refus(503, ...indisponible);
+  return route[req.method];
+}
+
+function routerComptes(req, env, chemin) {
+  const [, , action, reste] = chemin.split("/");
+  const route = reste === undefined && action !== undefined && Object.hasOwn(ROUTES_COMPTES, action) ? ROUTES_COMPTES[action] : null;
+  return choisir(route, req, env, ["comptes_indisponibles", "Les comptes ne sont pas disponibles."])(req, env);
+}
+
 function router(req, env, chemin) {
   const [, , code, action, reste] = chemin.split("/");
   const route = code === undefined ? { POST: () => creer(req, env) }
@@ -325,16 +548,13 @@ function router(req, env, chemin) {
     : reste === undefined && action === "rejoindre" ? { POST: () => rejoindre(req, env, code.toUpperCase()) }
     : reste === undefined && action === "pronos" ? { POST: () => pronostiquer(req, env, code.toUpperCase()) }
     : null;
-  if (!route) throw new Refus(404, "route_inconnue", "Adresse inconnue.");
-  if (!Object.hasOwn(route, req.method)) throw new Refus(405, "methode_non_permise", "Méthode non permise.");
-  if (!env.DB) throw new Refus(503, "ligues_indisponibles", "Les ligues ne sont pas disponibles.");
-  return route[req.method]();
+  return choisir(route, req, env, ["ligues_indisponibles", "Les ligues ne sont pas disponibles."])();
 }
 
 export async function servirLigues(req, env, url) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: PREVOL });
   try {
-    return await router(req, env, url.pathname);
+    return await (url.pathname.startsWith("/comptes") ? routerComptes : router)(req, env, url.pathname);
   } catch (error) {
     if (error instanceof Refus) return repondre({ erreur: { code: error.code, message: error.message } }, error.statut);
     console.error("ligues", error);         // le détail reste dans les journaux du Worker

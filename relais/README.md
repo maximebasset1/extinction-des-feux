@@ -1,16 +1,16 @@
-# Relais : direct et ligues de pronostics
+# Relais : direct, ligues de pronostics et comptes
 
 Le Worker `extinction-direct` a deux rôles indépendants : servir le direct (`GET /direct`, voir `docs/contrat-direct.md`)
-et gérer les ligues de pronostics entre amis (`/ligues`).
+et gérer les ligues de pronostics entre amis (`/ligues`), avec des comptes facultatifs (`/comptes`).
 
 | Fichier | Rôle |
 |---|---|
-| `relais.js` | direct (boucle et route `/direct`), aiguillage vers les ligues |
-| `ligues.js` | routes `/ligues` |
+| `relais.js` | direct (boucle et route `/direct`), aiguillage vers les ligues et les comptes |
+| `ligues.js` | routes `/ligues` et `/comptes` |
 | `points.js` | barème ; module ES sans dépendance, utilisable aussi par le site |
 | `programme.js`, `publier-programme.mjs` | programme des matchs rangé dans KV (clé `programme`) |
-| `schema.sql` | tables D1 `ligues`, `membres`, `pronos` |
-| `migrations.sql` | colonnes ajoutées après la création de la base |
+| `schema.sql` | tables D1 `ligues`, `membres`, `pronos`, `comptes`, `sessions`, `essais` |
+| `migrations.sql` | colonnes ajoutées après la création de la base, et leurs index |
 
 ## Programme des matchs
 
@@ -70,6 +70,51 @@ programme a plus de 48 h).
 
 Le `Bot IA` joue le score n° 1 publié par le site, **seulement sur les matchs qu'au moins un joueur de la ligue a pronostiqués**.
 Ses pronostics ne sont pas masqués (ce score est déjà public sur le site).
+
+## Comptes (ajoutés le 2026-11-25)
+
+Facultatifs : sans compte, les routes ci-dessus se comportent comme avant. `Authorization: Bearer <jeton_compte>` désigne
+une session (un appareil connecté, 10 au plus par compte).
+
+| Route | Corps | Réponse |
+|---|---|---|
+| `POST /comptes/inscription` | `{ pseudo, mot_de_passe }` | 201 `{ compte_id, pseudo, jeton_compte, favoris: [] }` |
+| `POST /comptes/connexion` | `{ pseudo, mot_de_passe }` | 200 `{ compte_id, pseudo, jeton_compte, favoris, ligues }` |
+| `GET /comptes/moi` | jeton de compte | 200 `{ compte_id, pseudo, favoris, ligues }` |
+| `PUT /comptes/favoris` | `{ favoris }` + jeton de compte | 200 `{ favoris }` (doublons retirés, 20 au plus) |
+| `POST /comptes/rattacher` | `{ ligues?: [{ code, jeton }], favoris? }` + jeton de compte | 200 `{ favoris, rattachees, ligues }` |
+| `POST /comptes/detacher` | `{ code }` + jeton de compte | 200 `{ code, detachee: true }` : le joueur reste dans la ligue, hors du compte |
+| `POST /comptes/deconnexion` | jeton de compte | 200 `{ deconnecte: true }` : cette session seulement est fermée |
+
+- `pseudo` : 2 à 24 caractères, unique sur le site sans tenir compte de la casse. `mot_de_passe` : 4 à 128 caractères.
+- `ligues[]` : `code`, `nom`, `membre_id`, `pseudo`, `jeton`. Ce `jeton` est le jeton de la session en cours : il ouvre ce
+  joueur comme son jeton d'origine, qui reste valable. La base ne gardant que des empreintes, les jetons d'origine ne peuvent
+  pas être rendus.
+- `favoris` : identifiants de club du site (`FRA:Paris SG`).
+- `rattacher` : 20 ligues et 100 favoris au plus par demande. Un joueur n'est rattaché que si son jeton est bon, s'il
+  n'appartient pas à un autre compte et si le compte n'a pas déjà un joueur dans la ligue ; sinon il est ignoré. Favoris :
+  ceux du compte d'abord, puis les nouveaux, coupés à 20.
+- Avec un jeton de compte, `POST /ligues` et `POST /ligues/:code/rejoindre` rattachent le joueur au compte. Si le compte
+  est déjà dans la ligue, `rejoindre` répond 200 `{ membre_id, jeton, pseudo, deja_membre: true }`. Un jeton de compte
+  inconnu est refusé (401) plutôt qu'ignoré.
+
+Codes d'erreur ajoutés : `mot_de_passe_invalide`, `favoris_invalides`, `rattachement_invalide`, `code_invalide` (400) ;
+`identifiants_invalides` (pseudo inconnu et mot de passe faux répondent pareil), `session_invalide` (401) ;
+`trop_d_essais` (429) ; `comptes_indisponibles` (503).
+
+Sécurité : mot de passe gardé en SHA-256 de `sel:mot de passe`, sessions en SHA-256 du jeton.
+
+Essais de mot de passe : **cinq par pseudo et par quart d'heure** (table `essais`). Au-delà, `POST /comptes/connexion`
+répond 429 sans examiner le mot de passe, même s'il est bon, avec le temps restant dans le message. Le quart d'heure part
+du premier essai et les essais refusés ne le repoussent pas ; une réussite remet le compteur à zéro. Un pseudo inconnu est
+compté comme un autre. Les essais simultanés sont comptés un à un.
+
+**Limites connues** :
+- le compte porte sur le pseudo : quelqu'un qui le connaît peut empêcher son propriétaire de se connecter sur un nouvel
+  appareil, tant qu'il recommence à chaque période (les appareils déjà connectés ne sont pas touchés) ;
+- il reste 480 essais possibles par jour et par pseudo, assez pour trouver un mot de passe très courant ; rien ne limite un
+  même mot de passe essayé sur beaucoup de pseudos ;
+- SHA-256 se calcule vite : un mot de passe court se retrouve si la base fuit.
 
 ## Déploiement
 

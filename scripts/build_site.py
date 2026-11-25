@@ -18,6 +18,71 @@ COMPETITIONS = [("E0", "premier-league", "Premier League"), ("D1", "bundesliga",
                 ("I1", "serie-a", "Serie A"), ("F1", "ligue-1", "Ligue 1"),
                 ("LDC", "ligue-des-champions", "Ligue des champions"), ("LEC", "ligue-europa", "Ligue Europa")]
 LIGHTS = '<span class="feux" aria-hidden="true">' + '<i></i>' * 5 + "</span>"
+# ordre et libellés courts de la ligne de filtres du football (le nom complet reste en info-bulle quand il est abrégé)
+FILTRES = [("F1", "Ligue 1"), ("LDC", "LDC"), ("LEC", "LEC"), ("E0", "Premier League"), ("SP1", "Liga"), ("I1", "Serie A"),
+           ("D1", "Bundesliga")]
+SLUGS = {code: slug for code, slug, _ in COMPETITIONS}
+NOMS = {code: nom for code, _, nom in COMPETITIONS}
+
+
+def infobulle(code: str, libelle: str) -> str:
+    return f' title="{NOMS[code]}"' if libelle != NOMS[code] else ""
+
+
+def boutons_filtres() -> str:
+    """Page Football : les filtres de la liste des matchs. « Mes favoris » n'apparaît qu'avec un club suivi (foot.js)."""
+    boutons = ['<button type="button" data-comp="FAV" aria-pressed="false" hidden>Mes favoris</button>',
+               '<button type="button" data-comp="" aria-pressed="true">Tout</button>']
+    boutons += [f'<button type="button" data-comp="{c}" aria-pressed="false"{infobulle(c, n)}>{n}</button>' for c, n in FILTRES]
+    return "\n        ".join(boutons)
+
+
+def selecteur_competitions(courante: str) -> str:
+    """Pages de compétition : la même ligne, en liens d'une page à l'autre."""
+    liens = ['<a href="../foot.html">Tout</a>']
+    for c, n in FILTRES:
+        marque = ' aria-current="page"' if SLUGS[c] == courante else ""
+        liens.append(f'<a href="../foot/{SLUGS[c]}.html"{infobulle(c, n)}{marque}>{n}</a>')
+    return "\n        ".join(liens)
+
+
+def compte(r: str) -> tuple[str, str]:
+    """Bouton de la barre principale avec son menu, puis la fenêtre « Connexion / Créer un compte » (compte.js)."""
+    zone = f"""
+    <div class="compte-zone">
+      <button type="button" class="btn-compte" id="btn-compte" hidden>Connexion</button>
+      <ul class="compte-menu" id="menu-compte" hidden>
+        <li><a href="{r}foot.html#favoris">Mes favoris</a></li>
+        <li><a href="{r}foot/ligues.html">Mes ligues</a></li>
+        <li><button type="button" id="btn-deconnexion">Déconnexion</button></li>
+      </ul>
+    </div>"""
+    fenetre = """
+<dialog class="compte-dlg" id="dlg-compte" aria-labelledby="dlg-compte-titre">
+  <form id="form-compte" method="dialog" novalidate>
+    <div class="compte-dlg-tete">
+      <h2 id="dlg-compte-titre">Connexion</h2>
+      <button type="button" class="compte-fermer" aria-label="Fermer"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="compte-modes" role="group" aria-label="Connexion ou nouveau compte">
+      <button type="button" data-mode="connexion" aria-pressed="true">Connexion</button>
+      <button type="button" data-mode="inscription" aria-pressed="false">Créer un compte</button>
+    </div>
+    <div class="champ">
+      <label for="compte-pseudo">Pseudo</label>
+      <input id="compte-pseudo" name="username" type="text" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    </div>
+    <div class="champ">
+      <label for="compte-mdp">Mot de passe</label>
+      <input id="compte-mdp" name="password" type="password" maxlength="128" autocomplete="current-password" required>
+    </div>
+    <p class="note" id="compte-aide" hidden></p>
+    <p class="form-msg" id="compte-msg" aria-live="polite"></p>
+    <button type="submit" class="btn-primaire" id="btn-compte-valider">Se connecter</button>
+  </form>
+</dialog>
+<p class="avis" id="avis-compte" role="status"></p>"""
+    return zone, fenetre
 
 
 def empreinte(nom: str) -> str:
@@ -31,31 +96,28 @@ def empreinte(nom: str) -> str:
 
 def page(path: str, title: str, description: str, body: str, scripts: list[str], section: str, sub: str = "",
          styles: tuple[str, ...] = (), common: bool = True, name: str = "", modules: tuple[str, ...] = ()) -> str:
-    """`common=False` : page d'un module autonome (F1), sans les scripts communs du site."""
+    """`common=False` : page d'un module autonome (F1), sans les scripts communs du site, ni favoris ni compte."""
     depth = path.count("/")
     r = "../" * depth or ""
-    def link(href: str, label: str, key: str) -> str:
-        cur = ' aria-current="page"' if key == section else ""
-        return f'<a href="{r}{href}"{cur}>{label}</a>'
-    nav = "\n    ".join([link("f1.html", "Formule 1", "f1"), link("foot.html", "Football", "foot"),
-                         link("methode.html", "Méthode", "methode")])
-    strip = ""
-    if section == "foot":
-        items = "\n      ".join(
-            f'<a href="{r}foot/{slug}.html"{" aria-current=\"page\"" if slug == sub else ""}>{nom}</a>' for _, slug, nom in COMPETITIONS)
-        strip = f'''
-  <nav class="bande" aria-label="Compétitions">
-    <div class="bande-in">
-      <a href="{r}foot.html"{' aria-current="page"' if sub == "hub" else ""}>Tous les matchs</a>
-      <a href="{r}foot/en-direct.html" data-direct{' aria-current="page"' if sub == "en-direct" else ""}>En direct<span class="bande-live" hidden><i class="pastille" aria-hidden="true"></i><b></b><span class="cache"> matchs en cours</span></span></a>
-      <a href="{r}foot/ligues.html"{' aria-current="page"' if sub == "ligues" else ""}>Ligues</a>
-      {items}
-    </div>
-  </nav>'''
-    # le compteur de l'onglet « En direct » (onglet-direct.js) est sur toutes les pages Football
-    if section == "foot":
-        scripts = [*scripts, "onglet-direct.js"]
-    js_lines = [f'<script src="{r}assets/{s}?v={empreinte(s)}" defer></script>' for s in (["commun.js"] if common else []) + scripts]
+    ici = {"en-direct": "direct", "ligues": "ligues"}.get(sub, section)
+    def link(href: str, label: str, key: str, attr: str = "", suite: str = "") -> str:
+        cur = ' aria-current="page"' if key == ici else ""
+        return f'<a href="{r}{href}"{attr}{cur}>{label}{suite}</a>'
+    live = ('<span class="menu-live" hidden><i class="pastille" aria-hidden="true"></i><b></b>'
+            '<span class="cache"> matchs en cours</span></span>') if common else ""
+    nav = "\n      ".join([link("f1.html", "F1", "f1"), link("foot.html", "Football", "foot"),
+                           link("foot/en-direct.html", "En direct", "direct", " data-direct", live),
+                           link("foot/ligues.html", "Ligues", "ligues"), link("methode.html", "Méthode", "methode")])
+    zone_compte = fenetre_compte = ""
+    if common:
+        zone_compte, fenetre_compte = compte(r)
+        # favoris et compte partout où la barre principale propose le compte ; l'indicateur « En direct » vient en dernier
+        socle = ["commun.js", "favoris.js", "compte.js"]
+        scripts = socle + [s for s in scripts if s not in socle]
+        if "direct.js" not in scripts:
+            scripts.append("direct.js")
+        scripts.append("onglet-direct.js")
+    js_lines = [f'<script src="{r}assets/{s}?v={empreinte(s)}" defer></script>' for s in scripts]
     js_lines += [f'<script type="module" src="{r}assets/{m}?v={empreinte(m)}"></script>' for m in modules]
     js = "\n".join(js_lines)
     css = "".join(f'\n<link rel="stylesheet" href="{r}assets/{c}?v={empreinte(c)}">' for c in styles)
@@ -81,9 +143,9 @@ def page(path: str, title: str, description: str, body: str, scripts: list[str],
   <div class="tete-in">
     <a class="marque" href="{r}index.html">{LIGHTS}<span>Extinction des feux</span></a>
     <nav class="menu" aria-label="Sections">
-    {nav}
-    </nav>
-  </div>{strip}
+      {nav}
+    </nav>{zone_compte}
+  </div>
 </header>
 <main id="contenu">
 {body}
@@ -94,7 +156,7 @@ def page(path: str, title: str, description: str, body: str, scripts: list[str],
     <p>Ce n'est pas un outil de paris. Les jeux d'argent et de hasard peuvent être dangereux : pertes d'argent, conflits familiaux, addiction. Retrouvez nos conseils sur joueurs-info-service.fr (09 74 75 13 13, appel non surtaxé).</p>
     <p><a href="https://github.com/maximebasset1/extinction-des-feux">Code source</a></p>
   </div>
-</footer>
+</footer>{fenetre_compte}
 </body>
 </html>
 """
@@ -222,15 +284,20 @@ FOOT = """  <section class="titre-page">
 
   <div class="page">
     <section class="bloc" id="favoris" aria-labelledby="h-favoris" hidden>
-      <div class="bloc-tete"><h2 id="h-favoris">Mes clubs favoris</h2></div>
-      <p class="note">Leurs matchs sont mis en valeur partout sur le site, et passent en tête de la section « En direct » de l'accueil. Ta liste reste dans ce navigateur : pas de compte, rien n'est envoyé.</p>
+      <div class="bloc-tete"><h2 id="h-favoris">Mes favoris</h2></div>
       <ul class="mes-favoris" id="favoris-liste"></ul>
+      <p class="note" id="favoris-note"></p>
+      <div id="favoris-matchs" class="avec-comp"></div>
+      <p class="plus"><button type="button" id="favoris-tous" hidden>Voir tous leurs matchs</button></p>
     </section>
 
     <section class="bloc" aria-labelledby="h-matchs">
       <div class="bloc-tete"><h2 id="h-matchs">Prochains matchs</h2></div>
-      <div class="pastilles" id="chips" role="group" aria-label="Compétition"></div>
+      <div class="filtres" id="chips" role="group" aria-label="Filtrer les matchs">
+        {filtres}
+      </div>
       <p class="note" id="note" aria-live="polite"></p>
+      <p class="note" id="lien-comp" hidden></p>
       <div id="results" class="avec-comp"></div>
       <p class="plus"><button type="button" id="more" hidden>Voir plus de matchs</button></p>
     </section>
@@ -271,7 +338,7 @@ LIVE = """  <section class="titre-page">
 LIGUES = """  <section class="titre-page">
     <div class="titre-in">
       <h1>Ligues de pronostics</h1>
-      <p class="chapeau">Des pronostics de scores entre amis. Sans compte : l'accès est enregistré dans ce navigateur.</p>
+      <p class="chapeau">Des pronostics de scores entre amis. Sans compte, l'accès reste dans ce navigateur. Avec un compte, tes ligues te suivent sur tous tes appareils.</p>
       <div class="ligue-barre" id="ligue-barre" hidden>
         <label for="ligue-select">Ligue active</label>
         <select id="ligue-select"></select>
@@ -387,6 +454,9 @@ LIGUES = """  <section class="titre-page">
 
 COMP = """  <section class="titre-page">
     <div class="titre-in">
+      <nav class="filtres filtres-page" aria-label="Compétitions">
+        {selecteur}
+      </nav>
       <h1 id="c-titre">{nom}</h1>
       <p class="chapeau" id="c-chapeau"></p>
       <nav class="sommaire" aria-label="Dans cette page">
@@ -581,7 +651,7 @@ def pages() -> dict[str, str]:
                                 F1_METHODE, ["f1.js"], "f1", styles=("f1.css",), common=False, name="f1-methode"),
         "foot.html": page("foot.html", "Football : probabilités des prochains matchs - Extinction des feux",
                           "Chercher un club et voir les chances de ses prochains matchs : Premier League, Bundesliga, Liga, Serie A, Ligue 1, Ligue des champions, Ligue Europa.",
-                          FOOT, ["favoris.js", "direct.js", "foot.js"], "foot", "hub"),
+                          FOOT.replace("{filtres}", boutons_filtres()), ["favoris.js", "direct.js", "foot.js"], "foot", "hub"),
         "foot/en-direct.html": page("foot/en-direct.html", "Football en direct : scores et chances des matchs en cours - Extinction des feux",
                                     "Les matchs du jour de la Premier League, de la Bundesliga, de la Liga, de la Serie A, de la Ligue 1, de la Ligue des champions et de la Ligue Europa : score, minute et chances recalculées à chaque but.",
                                     LIVE, ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "en-direct.js"], "foot", "en-direct"),
@@ -595,7 +665,8 @@ def pages() -> dict[str, str]:
     for _, slug, nom in COMPETITIONS:
         out[f"foot/{slug}.html"] = page(f"foot/{slug}.html", f"{nom} : pronostics, classement et fin de saison - Extinction des feux",
                                         f"{nom} : probabilités de chaque match, classement, fin de saison simulée, face-à-face et fiabilité du modèle.",
-                                        COMP.replace("{nom}", nom), ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "competition.js"], "foot", slug).replace(
+                                        COMP.replace("{nom}", nom).replace("{selecteur}", selecteur_competitions(slug)),
+                                        ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "competition.js"], "foot", slug).replace(
             '<body data-root="../">', f'<body data-root="../" data-competition="{slug}">')
     out["ligue1.html"] = REDIRECT.format(csp=CSP, target="foot/ligue-1.html", label="Ligue 1", version=empreinte("redirection.js"))
     out["recherche.html"] = REDIRECT.format(csp=CSP, target="foot.html", label="Football", version=empreinte("redirection.js"))

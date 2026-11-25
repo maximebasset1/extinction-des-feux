@@ -674,3 +674,16 @@ def test_recovered_cup_absentees_leave_scorers_and_appear_without_touching_lambd
 ])
 def test_press_reads_plural_injury_words(titre):
     assert {n for _, n, _ in _signales(titre)} == {"Harry Kane", "Michael Olise"}, titre
+
+
+@pytest.mark.parametrize("titre", [
+    "Bayern report no injuries to Kane and Olise",
+    "Bayern: no new injuries, Kane says",
+    "Bayern : pas de blessures pour Kane et Olise",
+    "Bayern : Kane et Olise sortent sans blessures",
+    "El Bayern, sin lesiones para Kane y Olise",
+    "Bayern, nessun infortunio per Kane",
+    "Bayern, senza infortuni Kane e Olise",
+])
+def test_press_ignores_plural_denials(titre):
+    assert _signales(titre) == set(), titre

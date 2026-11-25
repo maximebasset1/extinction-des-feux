@@ -367,6 +367,8 @@ MOTS_RETOUR = _phrases(
     "de retour", "retour de", "son retour", "revient", "retrouve", "apte", "retabli", "pas blesse", "pas forfait",
     "pas absent", "pas suspendu", "sans blessure", "return", "returns", "returned", "returning", "back from", "is back",
     "back in", "back after", "fit again", "recovered", "recovers", "not injured", "no injury", "not ruled out",
+    "no injuries", "no new injury", "no new injuries", "pas de blessure", "pas de blessures", "sans blessures",
+    "sin lesiones", "nessun infortunio", "senza infortuni",
     "zuruck", "comeback", "wieder fit", "entwarnung", "vuelve", "regresa", "regreso", "recuperado", "alta",
     "reaparece", "rientra", "rientro", "recuperato", "torna")
 LIAISONS = {"et", "and", "und", "y", "e"}

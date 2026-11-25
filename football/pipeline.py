@@ -702,7 +702,7 @@ def build_match_context(allm: pd.DataFrame, cal: dict[str, pd.DataFrame], names:
         lineups = {}
     scorers_map = CTX.mark_regular_starters(scorers_map, CTX.team_match_counts(cal), lineups)
 
-    # Absents signalés par la presse (RSS publics des 72 dernières heures) : jamais bloquant
+    # Absents signalés par la presse (RSS publics des 7 derniers jours) : jamais bloquant
     try:
         articles = [a for a in CTX.fetch_press(ODDS_STATE, now, offline) if CTX.has_absence_word(a)]
         aliases = {t: CTX.club_aliases(names.get(t, t.split(":", 1)[-1]), teams.get(t, {}).get("name") or "",

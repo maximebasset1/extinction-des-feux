@@ -1,38 +1,90 @@
-/* Page Football : recherche d'un club ou d'un match dans les sept compétitions, prochains matchs, compétitions, fiabilité. */
+/* Page Football : recherche d'un club ou d'un match dans les sept compétitions, clubs favoris en tête, prochains matchs
+   filtrés par une seule ligne de boutons (posée dans la page par build_site.py), compétitions, fiabilité. */
 "use strict";
 
 const PAGE = 30;
+const MATCHS_FAVORIS = 6;        // dans la section du haut ; les suivants par le filtre « Mes favoris »
 const F = { r: null, i: null, idx: {}, comp: "", q: "", club: null, montres: PAGE };
 const lienMatch = (m) => `${ROOT}foot/${F.r.competitions[m.c].slug}.html#match=${encodeURIComponent(m.id)}`;
 
 const etoile = (k, n, texte = false) => (typeof Favoris === "undefined" ? "" : Favoris.bouton(k, n, { texte }));
+const mesClubs = () => (typeof Favoris === "undefined" ? [] : Favoris.liste());
+/* un club suivi absent des données de la saison reste listé, pour pouvoir le retirer (un compte en garde vingt au plus) */
+const clubSuivi = (k) => F.r.clubs[k] || { nom: String(k).split(":").pop(), sigle: String(k).split(":").pop().slice(0, 3).toUpperCase() };
+const ligne = (m) => ligneMatch(m, F.r.clubs, { lien: lienMatch(m), comp: F.r.competitions[m.c].nom });
 
-function filtre() {
+function aVenir() {
   const now = new Date(), today = aujourdhui();
+  return F.r.matchs.filter((m) => (m.kickoff ? new Date(m.kickoff) > now : (m.jour || "9999") >= today));
+}
+const matchsDe = (clubs) => { const s = new Set(clubs); return (m) => s.has(m.home) || s.has(m.away); };
+function filtre() {
   const req = F.club ? { un: new Set([F.club]) } : lireRequete(F.idx, F.q);
-  return F.r.matchs.filter((m) => (m.kickoff ? new Date(m.kickoff) > now : (m.jour || "9999") >= today)
-    && (!F.comp || m.c === F.comp) && correspond(req, m));
+  const garde = F.comp === "FAV" ? matchsDe(mesClubs()) : (m) => !F.comp || m.c === F.comp;
+  return aVenir().filter((m) => garde(m) && correspond(req, m));
 }
 function rendre() {
   const liste = filtre(), montres = liste.slice(0, F.montres), cherche = F.club || F.q.trim();
   $("#note").textContent = !liste.length
     ? (cherche ? "Aucun match à venir pour cette recherche. Vérifie l'orthographe, ou essaie un seul club." : "Aucun match à venir.")
     : cherche ? `${liste.length} match${liste.length > 1 ? "s" : ""} à venir. Clique sur un match pour le détail.`
-      : "Les prochains matchs des sept compétitions, à l'heure de ton appareil. Clique sur un match pour le détail.";
+      : "Heures à l'heure de ton appareil. Clique sur un match pour le détail.";
+  // la page d'une compétition (classement, calendrier, face-à-face) reste à un clic quand son filtre est choisi
+  const comp = F.r.competitions[F.comp], lien = $("#lien-comp");
+  lien.hidden = !comp;
+  if (comp) lien.innerHTML = `<a href="${esc(`${ROOT}foot/${comp.slug}.html`)}">${esc(comp.nom)} : classement, calendrier et face-à-face</a>`;
   const cf = $("#club-favori");
   cf.hidden = !F.club;
   if (F.club) cf.innerHTML = etoile(F.club, F.r.clubs[F.club].nom, true);
-  $("#results").innerHTML = parJour(montres, (m) => ligneMatch(m, F.r.clubs, { lien: lienMatch(m), comp: F.r.competitions[m.c].nom }));
+  $("#results").innerHTML = parJour(montres, ligne);
   $("#more").hidden = liste.length <= F.montres;
 }
-/* « Mes clubs favoris » : ceux de ce navigateur, avec de quoi les retirer et chercher leurs matchs */
+/* le bouton « Mes favoris » apparaît avec le premier club suivi ; une compétition sans match à venir est grisée */
+function rendreFiltres() {
+  const present = new Set(F.r.matchs.map((m) => m.c));
+  if (F.comp === "FAV" && !mesClubs().length) F.comp = "";
+  for (const b of document.querySelectorAll("#chips button")) {
+    const c = b.dataset.comp;
+    if (c === "FAV") b.hidden = !mesClubs().length;
+    else b.disabled = Boolean(c) && !present.has(c);
+    b.setAttribute("aria-pressed", String(c === F.comp));
+  }
+}
+function choisirFiltre(comp) {
+  F.comp = comp; F.montres = PAGE;
+  rendreFiltres(); rendreFavoris(); rendre();
+}
+/* section du haut : les clubs suivis, de quoi les retirer ou chercher leurs matchs, et leurs prochains matchs.
+   Demandée par l'adresse (menu du compte, « Mes favoris ») elle s'affiche même vide. */
 function rendreFavoris() {
   if (typeof Favoris === "undefined") return;
-  const liste = Favoris.liste().filter((k) => F.r.clubs[k]);
-  $("#favoris").hidden = !liste.length;
-  $("#favoris-liste").innerHTML = liste.map((k) => `<li><button type="button" class="puce" data-club="${esc(k)}">${ecusson(F.r.clubs[k])}${esc(F.r.clubs[k].nom)}</button>${etoile(k, F.r.clubs[k].nom)}</li>`).join("");
+  const clubs = mesClubs();
+  $("#favoris").hidden = !clubs.length && location.hash !== "#favoris";
+  $("#favoris-liste").innerHTML = clubs.map((k) => `<li><button type="button" class="puce" data-club="${esc(k)}">${ecusson(clubSuivi(k))}${esc(clubSuivi(k).nom)}</button>${etoile(k, clubSuivi(k).nom)}</li>`).join("");
+  // avec le filtre « Mes favoris », la liste du dessous montre déjà ces matchs
+  const matchs = F.comp === "FAV" ? [] : aVenir().filter(matchsDe(clubs));
+  const connecte = typeof Compte !== "undefined" && Compte.lire();
+  const garde = connecte ? "Enregistrés sur ton compte." : "Gardés dans ce navigateur. Avec un compte, tu les retrouves sur tous tes appareils.";
+  $("#favoris-note").textContent = !clubs.length ? "Aucun club suivi. L'étoile à côté d'une équipe l'ajoute ici."
+    : F.comp !== "FAV" && !matchs.length ? `Aucun match à venir pour ces clubs. ${garde}` : garde;
+  $("#favoris-matchs").innerHTML = parJour(matchs.slice(0, MATCHS_FAVORIS), ligne);
+  $("#favoris-tous").hidden = matchs.length <= MATCHS_FAVORIS;
+}
+function surFavoris() {
+  const actif = document.activeElement?.closest?.("#favoris button[data-favori]")?.dataset.favori;
+  const filtreFavoris = F.comp === "FAV";
+  rendreFiltres(); rendreFavoris();
+  // la liste principale n'est refaite que si son contenu change : les étoiles sont mises à jour par favoris.js
+  if (filtreFavoris) rendre();
+  if (actif) $(`#favoris button[data-favori="${CSS.escape(actif)}"]`)?.focus();
+}
+function montrerSectionDemandee() {
+  if (location.hash !== "#favoris") return;
+  rendreFavoris();
+  $("#favoris").scrollIntoView({ block: "start" });
 }
 function chercherClub(k) {
+  if (!F.r.clubs[k]) return;
   const q = $("#q");
   q.value = F.r.clubs[k].nom; F.q = q.value; F.club = k; F.montres = PAGE;
   $("#suggest").hidden = true; q.setAttribute("aria-expanded", "false"); rendre();
@@ -77,15 +129,14 @@ async function main() {
     } catch { /* lien abîmé : on reste sur la page */ }
   }
   F.idx = indexClubs(F.r.clubs);
-  const present = new Set(F.r.matchs.map((m) => m.c));
-  $("#chips").innerHTML = [["", "Toutes"], ...Object.entries(F.r.competitions).map(([c, v]) => [c, v.nom])].map(([c, l]) => {
-    const on = !c || present.has(c);
-    return `<button type="button" data-comp="${esc(c)}" aria-pressed="${c === "" ? "true" : "false"}"${on ? "" : " disabled"}>${esc(l)}</button>`;
-  }).join("");
   listeCompetitions($("#competitions"), F.i.competitions);
-  rendre(); rendreFiabilite(); rendreFavoris();
-  document.addEventListener("favoris", rendreFavoris);
+  rendreFiltres(); rendre(); rendreFiabilite(); rendreFavoris();
+  montrerSectionDemandee();
+  window.addEventListener("hashchange", montrerSectionDemandee);
+  document.addEventListener("favoris", surFavoris);
+  document.addEventListener("compte", rendreFavoris);
   $("#favoris-liste").addEventListener("click", (e) => { const b = e.target.closest("button.puce"); if (b) { chercherClub(b.dataset.club); $("#q").focus(); } });
+  $("#favoris-tous").addEventListener("click", () => { choisirFiltre("FAV"); $("#h-matchs").scrollIntoView({ block: "start" }); });
   const q = $("#q");
   q.addEventListener("input", () => { F.q = q.value; F.club = null; F.montres = PAGE; rendre(); suggerer(); });
   q.addEventListener("keydown", (e) => {
@@ -109,10 +160,7 @@ async function main() {
   document.addEventListener("click", (e) => { if (!e.target.closest(".recherche")) { $("#suggest").hidden = true; q.setAttribute("aria-expanded", "false"); } });
   $("#chips").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-comp]");
-    if (!b || b.disabled) return;
-    F.comp = b.dataset.comp; F.montres = PAGE;
-    document.querySelectorAll("#chips button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-    rendre();
+    if (b && !b.disabled) choisirFiltre(b.dataset.comp);
   });
   $("#more").addEventListener("click", () => { F.montres += PAGE; rendre(); });
 }

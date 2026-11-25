@@ -11,12 +11,13 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="../assets/fonts/titillium-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/titillium-900.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../assets/style.css?v=644f55aa">
-<script src="../assets/commun.js?v=28d276ea" defer></script>
-<script src="../assets/favoris.js?v=7a1dc4c6" defer></script>
+<link rel="stylesheet" href="../assets/style.css?v=6422aed4">
+<script src="../assets/commun.js?v=96287dee" defer></script>
+<script src="../assets/favoris.js?v=19849e09" defer></script>
+<script src="../assets/compte.js?v=d05480e2" defer></script>
 <script src="../assets/direct.js?v=fd2ecc31" defer></script>
-<script src="../assets/onglet-direct.js?v=0b0da193" defer></script>
-<script type="module" src="../assets/ligues.js?v=31755b54"></script>
+<script src="../assets/onglet-direct.js?v=74af7850" defer></script>
+<script type="module" src="../assets/ligues.js?v=7a6b31a5"></script>
 </head>
 <body data-root="../">
 <a class="evitement" href="#contenu">Aller au contenu</a>
@@ -24,31 +25,27 @@
   <div class="tete-in">
     <a class="marque" href="../index.html"><span class="feux" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>Extinction des feux</span></a>
     <nav class="menu" aria-label="Sections">
-    <a href="../f1.html">Formule 1</a>
-    <a href="../foot.html" aria-current="page">Football</a>
-    <a href="../methode.html">Méthode</a>
-    </nav>
-  </div>
-  <nav class="bande" aria-label="Compétitions">
-    <div class="bande-in">
-      <a href="../foot.html">Tous les matchs</a>
-      <a href="../foot/en-direct.html" data-direct>En direct<span class="bande-live" hidden><i class="pastille" aria-hidden="true"></i><b></b><span class="cache"> matchs en cours</span></span></a>
+      <a href="../f1.html">F1</a>
+      <a href="../foot.html">Football</a>
+      <a href="../foot/en-direct.html" data-direct>En direct<span class="menu-live" hidden><i class="pastille" aria-hidden="true"></i><b></b><span class="cache"> matchs en cours</span></span></a>
       <a href="../foot/ligues.html" aria-current="page">Ligues</a>
-      <a href="../foot/premier-league.html">Premier League</a>
-      <a href="../foot/bundesliga.html">Bundesliga</a>
-      <a href="../foot/liga.html">Liga</a>
-      <a href="../foot/serie-a.html">Serie A</a>
-      <a href="../foot/ligue-1.html">Ligue 1</a>
-      <a href="../foot/ligue-des-champions.html">Ligue des champions</a>
-      <a href="../foot/ligue-europa.html">Ligue Europa</a>
+      <a href="../methode.html">Méthode</a>
+    </nav>
+    <div class="compte-zone">
+      <button type="button" class="btn-compte" id="btn-compte" hidden>Connexion</button>
+      <ul class="compte-menu" id="menu-compte" hidden>
+        <li><a href="../foot.html#favoris">Mes favoris</a></li>
+        <li><a href="../foot/ligues.html">Mes ligues</a></li>
+        <li><button type="button" id="btn-deconnexion">Déconnexion</button></li>
+      </ul>
     </div>
-  </nav>
+  </div>
 </header>
 <main id="contenu">
   <section class="titre-page">
     <div class="titre-in">
       <h1>Ligues de pronostics</h1>
-      <p class="chapeau">Des pronostics de scores entre amis. Sans compte : l'accès est enregistré dans ce navigateur.</p>
+      <p class="chapeau">Des pronostics de scores entre amis. Sans compte, l'accès reste dans ce navigateur. Avec un compte, tes ligues te suivent sur tous tes appareils.</p>
       <div class="ligue-barre" id="ligue-barre" hidden>
         <label for="ligue-select">Ligue active</label>
         <select id="ligue-select"></select>
@@ -169,5 +166,29 @@
     <p><a href="https://github.com/maximebasset1/extinction-des-feux">Code source</a></p>
   </div>
 </footer>
+<dialog class="compte-dlg" id="dlg-compte" aria-labelledby="dlg-compte-titre">
+  <form id="form-compte" method="dialog" novalidate>
+    <div class="compte-dlg-tete">
+      <h2 id="dlg-compte-titre">Connexion</h2>
+      <button type="button" class="compte-fermer" aria-label="Fermer"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="compte-modes" role="group" aria-label="Connexion ou nouveau compte">
+      <button type="button" data-mode="connexion" aria-pressed="true">Connexion</button>
+      <button type="button" data-mode="inscription" aria-pressed="false">Créer un compte</button>
+    </div>
+    <div class="champ">
+      <label for="compte-pseudo">Pseudo</label>
+      <input id="compte-pseudo" name="username" type="text" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    </div>
+    <div class="champ">
+      <label for="compte-mdp">Mot de passe</label>
+      <input id="compte-mdp" name="password" type="password" maxlength="128" autocomplete="current-password" required>
+    </div>
+    <p class="note" id="compte-aide" hidden></p>
+    <p class="form-msg" id="compte-msg" aria-live="polite"></p>
+    <button type="submit" class="btn-primaire" id="btn-compte-valider">Se connecter</button>
+  </form>
+</dialog>
+<p class="avis" id="avis-compte" role="status"></p>
 </body>
 </html>

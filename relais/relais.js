@@ -1,7 +1,7 @@
 /* Relais du direct. `tour` (lancé chaque minute par relais/boucle.mjs dans GitHub Actions) interroge API-Football
    seulement pendant nos matchs et range les scores dans le stockage KV ; le Worker sert ces scores au site.
    API-Football limite les appels venus de Cloudflare (adresses partagées) : la clé ne sert donc que dans GitHub.
-   Le Worker sert aussi les ligues de pronostics (routes /ligues, ligues.js), indépendantes du direct. */
+   Le Worker sert aussi les ligues de pronostics et les comptes (routes /ligues et /comptes, ligues.js), indépendants du direct. */
 import { servirLigues } from "./ligues.js";
 
 const API = "https://v3.football.api-sports.io";
@@ -184,7 +184,7 @@ async function servir(env) {
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
-    if (url.pathname === "/ligues" || url.pathname.startsWith("/ligues/")) return servirLigues(req, env, url);
+    if (/^\/(ligues|comptes)(\/|$)/.test(url.pathname)) return servirLigues(req, env, url);
     if (req.method === "OPTIONS") return new Response(null, { headers: { ...ENTETES, "access-control-allow-methods": "GET" } });
     if (req.method !== "GET") return new Response("Méthode non permise", { status: 405 });
     if (url.pathname === "/direct") return servir(env);

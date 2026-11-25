@@ -164,6 +164,13 @@ test("publication du programme : si aucun fichier n'est lisible, rien n'est ré�
 // ---------------------------------------------------------------- API : base D1 simulée par SQLite, avec le vrai schema.sql
 
 const SCHEMA = readFileSync(new URL("../relais/schema.sql", import.meta.url), "utf8");
+const MIGRATIONS = readFileSync(new URL("../relais/migrations.sql", import.meta.url), "utf8")
+  .split(/\r?\n/).filter((l) => l.trim() && !l.startsWith("--"));
+const migrer = (base) => {
+  for (const ordre of MIGRATIONS) {
+    try { base.exec(ordre); } catch (error) { assert.match(error.message, /duplicate column name/); }
+  }
+};
 
 /* ce que le Worker utilise de D1 : prepare/bind/first/all/run et batch (une transaction) */
 function fausseD1() {
@@ -171,6 +178,7 @@ function fausseD1() {
   base.exec("PRAGMA foreign_keys = ON");
   base.exec(SCHEMA);
   base.exec(SCHEMA);                     // le déploiement le rejoue à chaque fois
+  migrer(base);                          // puis les migrations, comme relais.yml
   const preparer = (sql, valeurs = []) => ({
     bind: (...v) => preparer(sql, v),
     first: async () => base.prepare(sql).get(...valeurs) ?? null,
@@ -514,11 +522,11 @@ test("consulter : ligue inconnue, jeton invalide, programme absent", async (t) =
 
 test("routes : pré-requête CORS, méthodes et chemins non prévus", async (t) => {
   const w = ligueMonde(t);
-  for (const chemin of ["/ligues", "/ligues/EDF-742/pronos"]) {
+  for (const chemin of ["/ligues", "/ligues/EDF-742/pronos", "/comptes/favoris"]) {
     const r = await w.appel("OPTIONS", chemin);
     assert.ok(r.statut === 200 || r.statut === 204);
     assert.equal(r.entetes.get("access-control-allow-origin"), "*");
-    assert.equal(r.entetes.get("access-control-allow-methods"), "GET, POST, DELETE, OPTIONS");
+    assert.equal(r.entetes.get("access-control-allow-methods"), "GET, POST, PUT, DELETE, OPTIONS");
     assert.equal(r.entetes.get("access-control-allow-headers"), "authorization, content-type");
   }
   assert.equal((await w.appel("OPTIONS", "/direct")).entetes.get("access-control-allow-methods"), "GET");
@@ -561,6 +569,7 @@ function memStorage() {
   return {
     getItem: (k) => (m.has(k) ? m.get(k) : null),
     setItem: (k, v) => { m.set(k, String(v)); },
+    removeItem: (k) => { m.delete(k); },
   };
 }
 
@@ -802,13 +811,7 @@ test("migration : une base d'avant reçoit les colonnes, le créateur est retrou
     INSERT INTO membres VALUES ('bot', 'ABC-123', 'Bot IA', 'bot ia', '', 1, '2026-11-20T10:00:00.000Z');
     INSERT INTO membres VALUES ('invite', 'ABC-123', 'Ben', 'ben', 'h2', 0, '2026-11-21T09:00:00.000Z');
     INSERT INTO membres VALUES ('fondatrice', 'ABC-123', 'Ana', 'ana', 'h1', 0, '2026-11-20T10:00:00.000Z');`);
-  const migrations = readFileSync(new URL("../relais/migrations.sql", import.meta.url), "utf8")
-    .split(/\r?\n/).filter((l) => l.trim() && !l.startsWith("--"));
-  for (let passage = 0; passage < 2; passage++) {
-    for (const ordre of migrations) {
-      try { base.exec(ordre); } catch (error) { assert.match(error.message, /duplicate column name/); }
-    }
-  }
+  for (let passage = 0; passage < 2; passage++) migrer(base);
   assert.deepEqual({ ...base.prepare("SELECT competitions, createur_id FROM ligues").get() },
     { competitions: null, createur_id: "fondatrice" });
 });
@@ -818,4 +821,555 @@ test("frontend ligues : le bouton de suppression est réservé au créateur", ()
   assert.equal(estCreateur({ moi: "b", createur_id: "a" }), false);
   assert.equal(estCreateur({ moi: null, createur_id: null }), false);
   assert.equal(estCreateur(null), false);
+});
+
+// ---------------------------------------------------------------- comptes personnels
+
+const MDP = "motdepasse-1";
+const compter = (w, table) => w.DB.base.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
+const compteDe = (w, membreId) => w.DB.base.prepare("SELECT compte_id FROM membres WHERE id = ?").get(membreId).compte_id;
+const inscrire = (w, pseudo, mot_de_passe = MDP) => w.appel("POST", "/comptes/inscription", { corps: { pseudo, mot_de_passe } });
+const connecter = (w, pseudo, mot_de_passe = MDP) => w.appel("POST", "/comptes/connexion", { corps: { pseudo, mot_de_passe } });
+const moi = (w, jeton) => w.appel("GET", "/comptes/moi", { jeton });
+const mettreFavoris = (w, jeton, favoris) => w.appel("PUT", "/comptes/favoris", { jeton, corps: { favoris } });
+const rattacherA = (w, jeton, corps) => w.appel("POST", "/comptes/rattacher", { jeton, corps });
+const creerAvec = (w, jeton, pseudo = "Ana", nom = "Les experts") => w.appel("POST", "/ligues", { jeton, corps: { nom, pseudo } });
+const rejoindreAvec = (w, jeton, code, pseudo) => w.appel("POST", `/ligues/${code}/rejoindre`, { jeton, corps: pseudo === undefined ? {} : { pseudo } });
+const clubsN = (n) => Array.from({ length: n }, (_, i) => `FRA:Club ${i + 1}`);
+
+test("inscription : compte créé, mot de passe jamais enregistré en clair, empreinte salée différente pour chacun", async (t) => {
+  const w = ligueMonde(t);
+  const r = await inscrire(w, "  Maxime   B ");
+  assert.equal(r.statut, 201);
+  assert.deepEqual(Object.keys(r.json).sort(), ["compte_id", "favoris", "jeton_compte", "pseudo"]);
+  assert.equal(r.json.pseudo, "Maxime B");
+  assert.deepEqual(r.json.favoris, []);
+  assert.match(r.json.jeton_compte, /^[0-9a-f]{64}$/);
+  assert.equal(r.entetes.get("cache-control"), "no-store");
+  await inscrire(w, "Zoé");
+  const lignes = w.DB.base.prepare("SELECT * FROM comptes ORDER BY pseudo_cle").all();
+  assert.deepEqual(lignes.map((l) => l.pseudo_cle), ["maxime b", "zoé"]);
+  assert.equal(lignes[0].id, r.json.compte_id);
+  assert.equal(lignes[0].favoris, "[]");
+  assert.equal(lignes[0].cree_le, "2026-11-24T12:00:00.000Z");
+  assert.equal(lignes[0].maj_le, lignes[0].cree_le);
+  for (const l of lignes) {
+    assert.match(l.sel, /^[0-9a-f]{32}$/);
+    assert.match(l.mdp_hash, /^[0-9a-f]{64}$/);
+    assert.ok(!JSON.stringify(l).includes(MDP), "mot de passe en clair");
+  }
+  assert.notEqual(lignes[0].sel, lignes[1].sel);
+  assert.notEqual(lignes[0].mdp_hash, lignes[1].mdp_hash);   // même mot de passe, empreintes différentes
+  const attendu = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${lignes[0].sel}:${MDP}`));
+  assert.equal(lignes[0].mdp_hash, Buffer.from(attendu).toString("hex"));
+  // la base ne garde que l'empreinte du jeton de session
+  const sessions = w.DB.base.prepare("SELECT jeton_hash FROM sessions").all();
+  assert.equal(sessions.length, 2);
+  assert.ok(sessions.every((x) => x.jeton_hash !== r.json.jeton_compte));
+});
+
+test("inscription : pseudo de 2 à 24 caractères, mot de passe de 4 au moins, saisies refusées sans rien écrire", async (t) => {
+  const w = ligueMonde(t);
+  for (const [corps, code] of [
+    [{ pseudo: "A", mot_de_passe: MDP }, "pseudo_invalide"],
+    [{ pseudo: "x".repeat(25), mot_de_passe: MDP }, "pseudo_invalide"],
+    [{ pseudo: "<img>", mot_de_passe: MDP }, "pseudo_invalide"],
+    [{ mot_de_passe: MDP }, "pseudo_invalide"],
+    [{ pseudo: "Ana", mot_de_passe: "abc" }, "mot_de_passe_invalide"],
+    [{ pseudo: "Ana", mot_de_passe: "x".repeat(129) }, "mot_de_passe_invalide"],
+    [{ pseudo: "Ana", mot_de_passe: 123456 }, "mot_de_passe_invalide"],
+    [{ pseudo: "Ana" }, "mot_de_passe_invalide"],
+  ]) {
+    const r = await w.appel("POST", "/comptes/inscription", { corps });
+    assert.deepEqual([r.statut, r.json.erreur.code], [400, code], JSON.stringify(corps).slice(0, 60));
+  }
+  assert.equal((await inscrire(w, "bot  ia")).statut, 409);
+  assert.equal((await w.appel("POST", "/comptes/inscription", { brut: "{non" })).statut, 400);
+  assert.equal(compter(w, "comptes"), 0);
+  assert.equal(compter(w, "sessions"), 0);
+  assert.equal((await inscrire(w, "x".repeat(24), "abcd")).statut, 201);
+});
+
+test("inscription : un pseudo déjà pris est refusé sans tenir compte de la casse", async (t) => {
+  const w = ligueMonde(t);
+  assert.equal((await inscrire(w, "Élodie")).statut, 201);
+  for (const pseudo of ["élodie", "  ÉLODIE ", "Élodie"]) {
+    const r = await inscrire(w, pseudo, "autre-mot-de-passe");
+    assert.deepEqual([r.statut, r.json.erreur.code], [409, "pseudo_pris"], pseudo);
+  }
+  assert.equal(compter(w, "comptes"), 1);
+  assert.equal(compter(w, "sessions"), 1);
+});
+
+test("connexion : bon mot de passe accepté ; mot de passe faux et pseudo inconnu donnent la même réponse", async (t) => {
+  const w = ligueMonde(t);
+  const a = (await inscrire(w, "Maxime", "motdepassé")).json;
+  const ok = await connecter(w, "  MAXIME ", "motdepassé".normalize("NFD"));   // même mot de passe, saisi sur un autre clavier
+  assert.equal(ok.statut, 200);
+  assert.deepEqual(Object.keys(ok.json).sort(), ["compte_id", "favoris", "jeton_compte", "ligues", "pseudo"]);
+  assert.deepEqual([ok.json.compte_id, ok.json.pseudo, ok.json.favoris, ok.json.ligues], [a.compte_id, "Maxime", [], []]);
+  assert.notEqual(ok.json.jeton_compte, a.jeton_compte);
+  // plusieurs appareils : les deux sessions restent ouvertes
+  assert.equal((await moi(w, a.jeton_compte)).statut, 200);
+  assert.equal((await moi(w, ok.json.jeton_compte)).statut, 200);
+  const faux = await connecter(w, "Maxime", "pas-le-bon");
+  const inconnu = await connecter(w, "Personne", "pas-le-bon");
+  assert.equal(faux.statut, 401);
+  assert.equal(faux.json.erreur.code, "identifiants_invalides");
+  assert.deepEqual([inconnu.statut, inconnu.json], [faux.statut, faux.json]);
+  assert.equal((await connecter(w, "Maxime", "Motdepassé")).statut, 401);
+});
+
+test("connexion : dix sessions au plus par compte, la plus ancienne est fermée", async (t) => {
+  const w = ligueMonde(t);
+  const premiere = (await inscrire(w, "Maxime")).json.jeton_compte;
+  let derniere = null;
+  for (let i = 0; i < 10; i++) {
+    w.horloge.t += 1000;
+    derniere = (await connecter(w, "Maxime")).json.jeton_compte;
+  }
+  assert.equal(compter(w, "sessions"), 10);
+  assert.equal((await moi(w, premiere)).statut, 401);
+  assert.equal((await moi(w, derniere)).statut, 200);
+});
+
+test("routes du compte : sans jeton ou avec un jeton inconnu, rien n'est lu ni écrit", async (t) => {
+  const w = ligueMonde(t);
+  await inscrire(w, "Maxime");
+  for (const [methode, chemin] of [["GET", "/comptes/moi"], ["PUT", "/comptes/favoris"], ["POST", "/comptes/rattacher"],
+    ["POST", "/comptes/detacher"], ["POST", "/comptes/deconnexion"]]) {
+    const corps = methode === "GET" ? undefined : { favoris: ["FRA:Brest"], code: "ABC-123" };
+    const sans = await w.appel(methode, chemin, { corps });
+    assert.deepEqual([sans.statut, sans.json.erreur.code], [401, "jeton_manquant"], chemin);
+    for (const jeton of ["abc", "0".repeat(64)]) {
+      const r = await w.appel(methode, chemin, { corps, jeton });
+      assert.deepEqual([r.statut, r.json.erreur.code], [401, "session_invalide"], `${chemin} ${jeton}`);
+    }
+  }
+  assert.equal(w.DB.base.prepare("SELECT favoris FROM comptes").get().favoris, "[]");
+});
+
+test("favoris : enregistrés sur le compte, sans doublon, relus depuis un autre appareil", async (t) => {
+  const w = ligueMonde(t);
+  const { jeton_compte, compte_id } = (await inscrire(w, "Maxime")).json;
+  w.horloge.t += heure;
+  const r = await mettreFavoris(w, jeton_compte, ["FRA:Paris SG", "CZE:Viktoria Plzeň", "FRA:Paris SG"]);
+  assert.equal(r.statut, 200);
+  assert.deepEqual(r.json, { favoris: ["FRA:Paris SG", "CZE:Viktoria Plzeň"] });
+  assert.equal(w.DB.base.prepare("SELECT maj_le FROM comptes").get().maj_le, "2026-11-24T13:00:00.000Z");
+  assert.deepEqual((await moi(w, jeton_compte)).json,
+    { compte_id, pseudo: "Maxime", favoris: ["FRA:Paris SG", "CZE:Viktoria Plzeň"], ligues: [] });
+  assert.deepEqual((await connecter(w, "Maxime")).json.favoris, ["FRA:Paris SG", "CZE:Viktoria Plzeň"]);
+  assert.deepEqual((await mettreFavoris(w, jeton_compte, [])).json, { favoris: [] });
+});
+
+test("favoris : vingt clubs au plus et seulement des identifiants de club", async (t) => {
+  const w = ligueMonde(t);
+  const { jeton_compte } = (await inscrire(w, "Maxime")).json;
+  assert.equal((await mettreFavoris(w, jeton_compte, clubsN(20))).statut, 200);
+  for (const favoris of [clubsN(21), "FRA:Brest", null, [42], ["Brest"], ["FRA:<script>"], [`FRA:${"x".repeat(80)}`], ["FRA:a\u0000b"]]) {
+    const r = await mettreFavoris(w, jeton_compte, favoris);
+    assert.deepEqual([r.statut, r.json.erreur.code], [400, "favoris_invalides"], JSON.stringify(favoris).slice(0, 50));
+  }
+  assert.deepEqual((await moi(w, jeton_compte)).json.favoris, clubsN(20));
+});
+
+test("déconnexion : seule la session utilisée est fermée", async (t) => {
+  const w = ligueMonde(t);
+  const a = (await inscrire(w, "Maxime")).json.jeton_compte;
+  const b = (await connecter(w, "Maxime")).json.jeton_compte;
+  const r = await w.appel("POST", "/comptes/deconnexion", { jeton: a, corps: {} });
+  assert.deepEqual([r.statut, r.json], [200, { deconnecte: true }]);
+  assert.equal((await moi(w, a)).statut, 401);
+  assert.equal((await moi(w, b)).statut, 200);
+});
+
+test("créer et rejoindre avec un compte : le joueur est rattaché ; un second passage rend le joueur existant", async (t) => {
+  const w = ligueMonde(t);
+  await w.publierProgramme();
+  const ana = (await inscrire(w, "Ana")).json, ben = (await inscrire(w, "Ben")).json;
+  const ligue = await creerAvec(w, ana.jeton_compte, "Ana la boss");
+  assert.equal(ligue.statut, 201);
+  assert.deepEqual(Object.keys(ligue.json).sort(), ["code", "competitions", "jeton", "membre_id"]);
+  assert.equal(compteDe(w, ligue.json.membre_id), ana.compte_id);
+  assert.equal(w.DB.base.prepare("SELECT compte_id FROM membres WHERE est_bot = 1").get().compte_id, null);
+
+  const entree = await rejoindreAvec(w, ben.jeton_compte, ligue.json.code, "Benji");
+  assert.equal(entree.statut, 201);
+  assert.equal(compteDe(w, entree.json.membre_id), ben.compte_id);
+
+  // depuis un autre appareil, avec ou sans pseudo, même différent : on retrouve son joueur, sans en créer
+  const autreAppareil = (await connecter(w, "Ben")).json.jeton_compte;
+  for (const pseudo of [undefined, "Un autre", "Ana la boss"]) {
+    const r = await rejoindreAvec(w, autreAppareil, ligue.json.code, pseudo);
+    assert.equal(r.statut, 200, String(pseudo));
+    assert.deepEqual(r.json, { membre_id: entree.json.membre_id, jeton: autreAppareil, pseudo: "Benji", deja_membre: true });
+  }
+  assert.equal(compter(w, "membres"), 3);
+});
+
+test("rejoindre : deux demandes simultanées du même compte ne créent qu'un joueur", async (t) => {
+  const w = ligueMonde(t);
+  const { code } = await w.creer("Ana");
+  const ben = (await inscrire(w, "Ben")).json;
+  const reponses = await Promise.all(["Benji", "Benji"].map((p) => rejoindreAvec(w, ben.jeton_compte, code, p)));
+  assert.deepEqual(reponses.map((r) => r.statut).sort(), [200, 201], reponses.map((r) => r.texte).join(" "));
+  assert.equal(new Set(reponses.map((r) => r.json.membre_id)).size, 1);
+  assert.equal(compter(w, "membres"), 3);
+});
+
+test("créer et rejoindre avec une session fermée : refusé, rien n'est écrit", async (t) => {
+  const w = ligueMonde(t);
+  const { code } = await w.creer("Ana");
+  for (const jeton of ["abc", "0".repeat(64)]) {
+    for (const r of [await creerAvec(w, jeton), await rejoindreAvec(w, jeton, code, "Ben")]) {
+      assert.deepEqual([r.statut, r.json.erreur.code], [401, "session_invalide"]);
+    }
+  }
+  assert.deepEqual([compter(w, "ligues"), compter(w, "membres")], [1, 2]);
+});
+
+test("le jeton du compte ouvre ses ligues rattachées, et seulement elles", async (t) => {
+  const w = ligueMonde(t);
+  await w.publierProgramme();
+  const ana = (await inscrire(w, "Ana")).json;
+  const ligue = (await creerAvec(w, ana.jeton_compte)).json;
+  const ailleurs = await w.creer("Zoé");
+  const connexion = (await connecter(w, "Ana")).json;
+  assert.deepEqual(connexion.ligues,
+    [{ code: ligue.code, nom: "Les experts", membre_id: ligue.membre_id, pseudo: "Ana", jeton: connexion.jeton_compte }]);
+  assert.deepEqual((await moi(w, connexion.jeton_compte)).json.ligues, connexion.ligues);
+
+  assert.equal((await w.pronostiquer(ligue.code, connexion.jeton_compte, M1, 2, 1)).statut, 200);
+  const vue = (await w.appel("GET", `/ligues/${ligue.code}`, { jeton: connexion.jeton_compte })).json;
+  assert.equal(vue.moi, ligue.membre_id);
+  assert.equal(prono(vue, "Ana", M1).buts_dom, 2);
+  assert.ok(!/compte_id|jeton|hash/.test(JSON.stringify(vue)), "identifiant de compte ou secret dans la réponse");
+  // le jeton de joueur remis à la création reste valable
+  assert.equal((await w.pronostiquer(ligue.code, ligue.jeton, M1, 3, 1)).statut, 200);
+  assert.equal((await w.pronostiquer(ailleurs.code, connexion.jeton_compte, M1, 1, 0)).statut, 401);
+  assert.equal((await w.appel("DELETE", `/ligues/${ligue.code}`, { jeton: connexion.jeton_compte })).statut, 200);
+  assert.deepEqual((await moi(w, ana.jeton_compte)).json.ligues, []);
+});
+
+test("rattacher : les ligues du navigateur et les favoris locaux rejoignent le compte, les jetons de joueur restent valables", async (t) => {
+  const w = ligueMonde(t);
+  await w.publierProgramme();
+  const l1 = await w.creer("Max au bureau"), l2 = await w.creer("Zoé");
+  const entree = await w.rejoindre(l2.code, "Max");
+  const compte = (await inscrire(w, "Maxime")).json;
+  await mettreFavoris(w, compte.jeton_compte, ["FRA:Brest"]);
+  const corps = { ligues: [{ code: l1.code, jeton: l1.jeton }, { code: l2.code.toLowerCase(), jeton: entree.jeton }],
+    favoris: ["ENG:Arsenal", "FRA:Brest", "pas un club"] };
+  for (let passage = 0; passage < 2; passage++) {          // rejouable sans effet de bord
+    const r = await rattacherA(w, compte.jeton_compte, corps);
+    assert.equal(r.statut, 200, r.texte);
+    assert.deepEqual(r.json.favoris, ["FRA:Brest", "ENG:Arsenal"]);
+    assert.deepEqual(r.json.rattachees.sort(), [l1.code, l2.code].sort());
+    assert.deepEqual(r.json.ligues.map((l) => [l.code, l.membre_id, l.jeton]).sort(),
+      [[l1.code, l1.membre_id, compte.jeton_compte], [l2.code, entree.membre_id, compte.jeton_compte]].sort());
+  }
+  assert.equal(compteDe(w, l1.membre_id), compte.compte_id);
+  assert.equal(compteDe(w, entree.membre_id), compte.compte_id);
+  assert.equal(compteDe(w, l2.membre_id), null);           // la créatrice de la seconde ligue n'est pas concernée
+  assert.equal((await w.pronostiquer(l1.code, l1.jeton, M1, 1, 0)).statut, 200);
+});
+
+test("rattacher : jeton faux, joueur d'un autre compte, second joueur dans la même ligue et Bot IA sont ignorés", async (t) => {
+  const w = ligueMonde(t);
+  const l1 = await w.creer("Ana"), second = await w.rejoindre(l1.code, "Ana bis");
+  const ana = (await inscrire(w, "Ana")).json, ben = (await inscrire(w, "Ben")).json;
+  const essai = async (jeton, ligues) => (await rattacherA(w, jeton, { ligues })).json;
+  assert.deepEqual((await essai(ana.jeton_compte, [{ code: l1.code, jeton: "0".repeat(64) }])).rattachees, []);
+  assert.deepEqual((await essai(ana.jeton_compte, [{ code: l1.code, jeton: "" }, { code: "nimporte", jeton: l1.jeton }, null, 3])).rattachees, []);
+  assert.deepEqual((await essai(ana.jeton_compte, [{ code: l1.code, jeton: l1.jeton }])).rattachees, [l1.code]);
+  assert.deepEqual((await essai(ben.jeton_compte, [{ code: l1.code, jeton: l1.jeton }])).rattachees, []);   // déjà à Ana
+  assert.deepEqual((await essai(ana.jeton_compte, [{ code: l1.code, jeton: second.jeton }])).rattachees, []);   // un joueur par ligue
+  assert.equal(compteDe(w, l1.membre_id), ana.compte_id);
+  assert.equal(compteDe(w, second.membre_id), null);
+  assert.equal(compter(w, "membres"), 3);
+});
+
+test("rattacher : saisies bornées, favoris coupés à vingt, ceux du compte d'abord", async (t) => {
+  const w = ligueMonde(t);
+  const { jeton_compte } = (await inscrire(w, "Ana")).json;
+  await mettreFavoris(w, jeton_compte, ["ENG:Arsenal"]);
+  const r = await rattacherA(w, jeton_compte, { favoris: clubsN(100) });
+  assert.equal(r.statut, 200, r.texte);
+  assert.deepEqual(r.json.favoris, ["ENG:Arsenal", ...clubsN(19)]);
+  assert.equal((await rattacherA(w, jeton_compte, {})).statut, 200);
+  for (const corps of [{ ligues: "ABC-123" }, { favoris: {} }, { ligues: Array(21).fill({ code: "ABC-123", jeton: "x" }) }, { favoris: clubsN(101) }]) {
+    assert.equal((await rattacherA(w, jeton_compte, corps)).statut, 400, JSON.stringify(corps).slice(0, 40));
+  }
+  assert.equal((await rattacherA(w, jeton_compte, { bourrage: "x".repeat(20000) })).statut, 413);
+});
+
+test("détacher : la ligue quitte le compte, le joueur reste dans la ligue", async (t) => {
+  const w = ligueMonde(t);
+  await w.publierProgramme();
+  const { jeton_compte } = (await inscrire(w, "Ana")).json;
+  const ligue = (await creerAvec(w, jeton_compte)).json;
+  const r = await w.appel("POST", "/comptes/detacher", { jeton: jeton_compte, corps: { code: ligue.code.toLowerCase() } });
+  assert.deepEqual([r.statut, r.json], [200, { code: ligue.code, detachee: true }]);
+  assert.deepEqual((await moi(w, jeton_compte)).json.ligues, []);
+  assert.equal(compteDe(w, ligue.membre_id), null);
+  assert.equal((await w.appel("GET", `/ligues/${ligue.code}`, { jeton: jeton_compte })).statut, 401);
+  assert.equal((await w.appel("GET", `/ligues/${ligue.code}`, { jeton: ligue.jeton })).statut, 200);
+  assert.equal((await w.appel("POST", "/comptes/detacher", { jeton: jeton_compte, corps: {} })).statut, 400);
+});
+
+test("sans compte : créer, rejoindre et pronostiquer répondent comme avant", async (t) => {
+  const w = await ligueADeux(t);
+  assert.deepEqual(Object.keys(w.ana).sort(), ["code", "competitions", "jeton", "membre_id"]);
+  assert.deepEqual(Object.keys(w.ben).sort(), ["jeton", "membre_id"]);
+  assert.equal((await w.pronostiquer(w.code, w.ben.jeton, M1, 1, 1)).statut, 200);
+  assert.deepEqual(w.DB.base.prepare("SELECT DISTINCT compte_id FROM membres").all().map((l) => l.compte_id), [null]);
+  assert.deepEqual([compter(w, "comptes"), compter(w, "sessions")], [0, 0]);
+});
+
+test("routes des comptes : chemins et méthodes non prévus, base absente", async (t) => {
+  const w = ligueMonde(t);
+  for (const chemin of ["/comptes", "/comptes/autre", "/comptes/constructor", "/comptes/moi/x"]) {
+    assert.equal((await w.appel("GET", chemin)).statut, 404, chemin);
+  }
+  assert.equal((await w.appel("GET", "/comptes/connexion")).statut, 405);
+  assert.equal((await w.appel("POST", "/comptes/moi", { corps: {} })).statut, 405);
+  assert.equal((await w.appel("POST", "/comptes/favoris", { corps: {} })).statut, 405);
+  delete w.env.DB;
+  const r = await w.appel("GET", "/comptes/moi");
+  assert.deepEqual([r.statut, r.json.erreur.code], [503, "comptes_indisponibles"]);
+});
+
+test("migration : une base en ligne reçoit compte_id et son index sans perdre de joueur", () => {
+  const base = new DatabaseSync(":memory:");
+  base.exec(`CREATE TABLE ligues (code TEXT PRIMARY KEY, nom TEXT NOT NULL, cree_le TEXT NOT NULL, competitions TEXT, createur_id TEXT);
+    CREATE TABLE membres (id TEXT PRIMARY KEY, ligue_code TEXT NOT NULL, pseudo TEXT NOT NULL, pseudo_cle TEXT NOT NULL,
+      jeton_hash TEXT NOT NULL, est_bot INTEGER NOT NULL DEFAULT 0, cree_le TEXT NOT NULL, UNIQUE (ligue_code, pseudo_cle));
+    INSERT INTO ligues VALUES ('ABC-123', 'Ancienne', '2026-11-20T10:00:00.000Z', NULL, 'a');
+    INSERT INTO membres VALUES ('a', 'ABC-123', 'Ana', 'ana', 'h1', 0, '2026-11-20T10:00:00.000Z');`);
+  for (let deploiement = 0; deploiement < 2; deploiement++) {   // même ordre que relais.yml : schéma, puis migrations
+    base.exec(SCHEMA);
+    migrer(base);
+  }
+  assert.deepEqual({ ...base.prepare("SELECT pseudo, compte_id FROM membres").get() }, { pseudo: "Ana", compte_id: null });
+  assert.equal(base.prepare("SELECT COUNT(*) AS n FROM comptes").get().n, 0);
+  base.exec("UPDATE membres SET compte_id = 'c1'");
+  assert.throws(() => base.exec("INSERT INTO membres VALUES ('b', 'ABC-123', 'Ben', 'ben', 'h2', 0, 'x', 'c1')"), /UNIQUE/);
+});
+
+// ---------------------------------------------------------------- compte côté navigateur (site/assets/compte.js)
+
+import Compte from "../site/assets/compte.js";
+import { CLE_STOCKAGE, memeEntree } from "../site/assets/ligues.js";
+
+function fauxFavoris(initial = []) {
+  let liste = [...initial];
+  return {
+    liste: () => [...liste],
+    remplacer: (neuve) => { liste = [...neuve]; },
+    basculer(club) { liste = liste.includes(club) ? liste.filter((k) => k !== club) : [club, ...liste]; },
+  };
+}
+
+/* un navigateur : son stockage, ses favoris, et le vrai Worker au bout du réseau */
+function appareil(w, { favoris = [] } = {}) {
+  const stockage = memStorage(), fav = fauxFavoris(favoris), signaux = [], appels = [];
+  const reseau = { coupe: false, panne: null, pendant: null };
+  const requete = async (url, init) => {
+    assert.ok(url.startsWith(Compte.API), url);
+    const chemin = url.slice(Compte.API.length);
+    appels.push(`${init.method} ${chemin}`);
+    if (reseau.coupe || reseau.panne === chemin) throw new TypeError("réseau coupé");
+    const r = await relais.fetch(new Request(`https://relais.test/comptes${chemin}`, init), w.env);
+    if (reseau.pendant) { const action = reseau.pendant; reseau.pendant = null; await action(); }
+    return r;
+  };
+  const client = Compte.creerClientCompte({ stockage, requete, favoris: fav, signaler: (s) => signaux.push(s) });
+  const ligues = () => chargerStockage(stockage).ligues;
+  const toucher = (club) => { fav.basculer(club); return client.favorisModifies(); };
+  return { stockage, fav, client, signaux, appels, reseau, ligues, toucher };
+}
+const surLeCompte = (w) => JSON.parse(w.DB.base.prepare("SELECT favoris FROM comptes").get().favoris);
+
+/* A joue sans compte : une ligue créée dans ce navigateur et un favori */
+async function appareilAvecLigue(w) {
+  const A = appareil(w, { favoris: ["FRA:Brest"] });
+  const ligue = await w.creer("Max");
+  enregistrerLigue(A.stockage, { code: ligue.code, nom: "Les experts", membre_id: ligue.membre_id, jeton: ligue.jeton, pseudo: "Max" });
+  return { A, ligue };
+}
+
+test("compte navigateur : une réponse de ligue n'est gardée que si la même ligue est ouverte avec le même jeton", () => {
+  const demandee = { code: "ABC-123", jeton: "j1" };
+  assert.equal(memeEntree(demandee, { code: "ABC-123", jeton: "j1", nom: "Bureau" }), true);
+  assert.equal(memeEntree(demandee, null), false);                              // déconnexion pendant la requête
+  assert.equal(memeEntree(demandee, { code: "ABC-123", jeton: "j2" }), false);   // autre session
+  assert.equal(memeEntree(demandee, { code: "ZZZ-999", jeton: "j1" }), false);   // autre ligue choisie
+});
+
+test("compte navigateur : mêmes clés que les ligues, et une ligue gardée retient son compte", () => {
+  assert.equal(Compte.CLE_LIGUES, CLE_STOCKAGE);
+  assert.equal(Compte.MAX_FAVORIS, 20);
+  const st = memStorage();
+  enregistrerLigue(st, { code: "ABC-123", membre_id: "m1", jeton: "j1", pseudo: "Max", compte: "c1" });
+  enregistrerLigue(st, { ...chargerStockage(st).ligues[0], nom: "Bureau" });
+  assert.equal(chargerStockage(st).ligues[0].compte, "c1");
+});
+
+test("compte navigateur : créé sur un appareil, favoris et ligues retrouvés sur un autre", async (t) => {
+  const w = ligueMonde(t);
+  await w.publierProgramme();
+  const { A, ligue } = await appareilAvecLigue(w);
+  await A.client.inscrire("Maxime", MDP);
+  assert.equal(A.client.lire().pseudo, "Maxime");
+  assert.deepEqual(surLeCompte(w), ["FRA:Brest"]);
+  assert.deepEqual(A.ligues().map((l) => [l.code, l.membre_id, l.compte]), [[ligue.code, ligue.membre_id, A.client.lire().compte_id]]);
+
+  const B = appareil(w, { favoris: ["ENG:Arsenal"] });
+  await B.client.connecter("maxime", MDP);
+  assert.deepEqual(B.fav.liste(), ["FRA:Brest", "ENG:Arsenal"]);
+  assert.deepEqual(B.ligues().map((l) => [l.code, l.nom, l.pseudo]), [[ligue.code, "Les experts", "Max"]]);
+  assert.equal(chargerStockage(B.stockage).active, ligue.code);
+  assert.equal((await w.pronostiquer(ligue.code, B.ligues()[0].jeton, M1, 2, 0)).statut, 200);
+
+  await B.toucher("FRA:Brest");
+  await A.client.synchroniser();
+  assert.deepEqual(A.fav.liste(), ["ENG:Arsenal"]);
+  assert.ok(B.signaux.includes("compte") && B.signaux.includes("ligues"));
+});
+
+test("compte navigateur : une ligue quittée ailleurs disparaît à la synchronisation, sans rechargement inutile ensuite", async (t) => {
+  const w = ligueMonde(t);
+  const { A, ligue } = await appareilAvecLigue(w);
+  await A.client.inscrire("Maxime", MDP);
+  const B = appareil(w);
+  await B.client.connecter("Maxime", MDP);
+  await B.client.detacher(ligue.code);
+  await A.client.synchroniser();
+  assert.deepEqual(A.ligues(), []);
+  A.signaux.length = 0;
+  await A.client.synchroniser();
+  assert.ok(!A.signaux.includes("ligues"), "rien n'a changé : la page des ligues n'est pas rechargée");
+});
+
+test("compte navigateur : la déconnexion ne laisse rien du compte et laisse l'autre appareil connecté", async (t) => {
+  const w = ligueMonde(t);
+  const { A, ligue } = await appareilAvecLigue(w);
+  await A.client.inscrire("Maxime", MDP);
+  const B = appareil(w);
+  await B.client.connecter("Maxime", MDP);
+  const jetonB = B.client.lire().jeton;
+  await B.client.deconnecter();
+  assert.equal(B.client.lire(), null);
+  assert.deepEqual([B.fav.liste(), B.ligues()], [[], []]);
+  assert.equal((await moi(w, jetonB)).statut, 401);
+  await A.client.synchroniser();
+  assert.deepEqual(A.ligues().map((l) => l.code), [ligue.code]);
+  assert.deepEqual(surLeCompte(w), ["FRA:Brest"]);
+});
+
+test("compte navigateur : hors ligne, un favori attend puis part à la synchronisation suivante", async (t) => {
+  const w = ligueMonde(t);
+  const A = appareil(w);
+  await A.client.inscrire("Maxime", MDP);
+  A.reseau.coupe = true;
+  await A.toucher("FRA:Lens");
+  await A.client.synchroniser();
+  assert.deepEqual([A.fav.liste(), surLeCompte(w)], [["FRA:Lens"], []]);
+  A.reseau.coupe = false;
+  await A.client.synchroniser();
+  assert.deepEqual([A.fav.liste(), surLeCompte(w)], [["FRA:Lens"], ["FRA:Lens"]]);
+});
+
+test("compte navigateur : déconnecté hors ligne, les favoris jamais envoyés restent dans le navigateur", async (t) => {
+  const w = ligueMonde(t);
+  const A = appareil(w);
+  await A.client.inscrire("Maxime", MDP);
+  A.reseau.coupe = true;
+  await A.toucher("FRA:Lens");
+  await A.client.deconnecter();
+  assert.deepEqual([A.client.lire(), A.fav.liste()], [null, ["FRA:Lens"]]);
+});
+
+test("compte navigateur : un favori touché pendant une synchronisation n'est pas écrasé par la réponse plus ancienne", async (t) => {
+  const w = ligueMonde(t);
+  const A = appareil(w, { favoris: ["FRA:Brest"] });
+  await A.client.inscrire("Maxime", MDP);
+  let envoi;
+  A.reseau.pendant = () => { envoi = A.toucher("FRA:Lens"); };
+  await A.client.synchroniser();
+  await envoi;
+  assert.deepEqual(A.fav.liste(), ["FRA:Lens", "FRA:Brest"]);
+  assert.deepEqual(surLeCompte(w), ["FRA:Lens", "FRA:Brest"]);
+});
+
+test("compte navigateur : un rattachement interrompu est repris, sans perdre les favoris locaux", async (t) => {
+  const w = ligueMonde(t);
+  const { A, ligue } = await appareilAvecLigue(w);
+  A.reseau.panne = "/rattacher";
+  await A.client.inscrire("Maxime", MDP);
+  assert.equal(A.client.lire().pseudo, "Maxime");
+  assert.deepEqual([A.fav.liste(), surLeCompte(w), compteDe(w, ligue.membre_id)], [["FRA:Brest"], [], null]);
+  await A.toucher("FRA:Lens");                               // pas d'envoi qui écraserait le compte avant la fusion
+  assert.ok(!A.appels.includes("PUT /favoris"));
+  A.reseau.panne = null;
+  await A.client.synchroniser();
+  assert.deepEqual(surLeCompte(w), ["FRA:Lens", "FRA:Brest"]);
+  assert.equal(compteDe(w, ligue.membre_id), A.client.lire().compte_id);
+});
+
+test("compte navigateur : plus de vingt ligues locales rattachées en plusieurs demandes, favoris coupés signalés", async (t) => {
+  const w = ligueMonde(t);
+  const A = appareil(w, { favoris: clubsN(25) });
+  for (let i = 0; i < 23; i++) {
+    const l = await w.creer(`Joueur ${i}`);
+    enregistrerLigue(A.stockage, { code: l.code, nom: l.code, membre_id: l.membre_id, jeton: l.jeton, pseudo: `Joueur ${i}` });
+  }
+  await A.client.inscrire("Maxime", MDP);
+  assert.equal(A.appels.filter((a) => a === "POST /rattacher").length, 2);
+  assert.equal(A.ligues().filter((l) => l.compte).length, 23);
+  assert.deepEqual(A.fav.liste(), clubsN(20));
+  assert.ok(A.signaux.includes("favoris_coupes"));
+});
+
+test("compte navigateur : session fermée côté serveur, retour sans compte en gardant les favoris", async (t) => {
+  const w = ligueMonde(t);
+  const { A } = await appareilAvecLigue(w);
+  await A.client.inscrire("Maxime", MDP);
+  w.DB.base.exec("DELETE FROM sessions");
+  await A.client.synchroniser();
+  assert.deepEqual([A.client.lire(), A.fav.liste(), A.ligues()], [null, ["FRA:Brest"], []]);
+  assert.ok(A.signaux.includes("session_expiree"));
+});
+
+test("compte navigateur : erreurs de connexion rendues avec leur message, rien n'est gardé", async (t) => {
+  const w = ligueMonde(t);
+  const A = appareil(w);
+  await assert.rejects(A.client.connecter("Personne", MDP), /Pseudo ou mot de passe incorrect/);
+  A.reseau.coupe = true;
+  await assert.rejects(A.client.inscrire("Maxime", MDP), /Connexion impossible/);
+  assert.equal(A.client.lire(), null);
+});
+
+test("compte navigateur : sans compte, aucune requête ne part", async (t) => {
+  const w = ligueMonde(t);
+  const { A, ligue } = await appareilAvecLigue(w);
+  await A.toucher("FRA:Lens");
+  await A.client.synchroniser();
+  await A.client.deconnecter();
+  assert.deepEqual(A.appels, []);
+  assert.deepEqual([A.fav.liste(), A.ligues().map((l) => l.code)], [["FRA:Lens", "FRA:Brest"], [ligue.code]]);
+});
+
+test("compte navigateur : un autre joueur de ce navigateur dans la même ligue est mis de côté puis rendu", () => {
+  const local = { active: "ABC-123", ligues: [
+    { code: "ABC-123", nom: "Bureau", membre_id: "anonyme", jeton: "j-anonyme", pseudo: "Invité" },
+    { code: "ZZZ-999", nom: "Famille", membre_id: "x", jeton: "j-x", pseudo: "X" },
+  ] };
+  const duCompte = [{ code: "ABC-123", nom: "Bureau", membre_id: "moi", pseudo: "Max", jeton: "session" }];
+  const connecte = Compte.fusionnerLigues(local, duCompte, "c1");
+  assert.deepEqual(connecte.ligues.map((l) => [l.code, l.membre_id, l.jeton, l.compte ?? null]),
+    [["ABC-123", "moi", "session", "c1"], ["ZZZ-999", "x", "j-x", null]]);
+  assert.deepEqual(Compte.fusionnerLigues(connecte, duCompte, "c1"), connecte);
+  assert.deepEqual(Compte.retirerLiguesDuCompte(connecte, "c1"), local);
 });

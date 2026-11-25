@@ -32,27 +32,67 @@ button, select, input { font: inherit; color: inherit; }
 .evitement { position: absolute; left: -999px; top: .5rem; background: var(--accent); color: #fff; padding: .5rem .8rem; z-index: 10; }
 .evitement:focus { left: .5rem; }
 
-/* ---------- en-tête : marque et changement F1 / Football */
+/* ---------- en-tête : marque, barre principale et compte, sur une rangée (deux sur mobile) */
 .tete { background: var(--fond); border-bottom: 1px solid var(--ligne); }
-.tete-in { max-width: var(--large); margin: 0 auto; padding: .7rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.tete-in { max-width: var(--large); margin: 0 auto; padding: .7rem 1.25rem; display: flex; align-items: center; gap: .6rem 1rem; flex-wrap: wrap; }
 .marque { display: inline-flex; align-items: center; gap: .65rem; text-decoration: none; font-weight: 700; font-size: 1.35rem; letter-spacing: -.01em; }
 .feux { display: inline-flex; gap: .2rem; }
 .feux i { width: .55rem; height: .55rem; border-radius: 50%; background: var(--feu); }
-.menu { display: flex; gap: .2rem; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--ligne); border-radius: 99px; padding: .2rem; }
-.menu a { font-weight: 700; text-decoration: none; padding: .3rem .95rem; border-radius: 99px; color: var(--texte-doux); }
+.menu { display: flex; gap: .2rem; margin-left: auto; max-width: 100%; overflow-x: auto; scrollbar-width: none;
+  background: var(--surface); border: 1px solid var(--ligne); border-radius: 99px; padding: .2rem; }
+.menu a { flex: none; white-space: nowrap; font-weight: 700; font-size: .98rem; text-decoration: none; padding: .3rem .85rem; border-radius: 99px; color: var(--texte-doux); }
 .menu a:hover { color: var(--texte); }
 .menu a[aria-current="page"] { background: var(--accent); color: #fff; }
-.bande { background: var(--surface); border-bottom: 1px solid var(--ligne); }
-.bande-in { max-width: var(--large); margin: 0 auto; padding: 0 1.25rem; display: flex; gap: .2rem; overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
-.bande a { flex: none; color: var(--texte-doux); text-decoration: none; white-space: nowrap; font-weight: 700; font-size: .95rem; padding: .7rem .75rem .6rem;
-  border-bottom: 3px solid transparent; }
-.bande a:hover { color: var(--texte); }
-.bande a[aria-current="page"] { color: var(--texte); border-bottom-color: var(--accent-clair); }
-/* onglet « En direct » : pastille rouge qui bat (comme celle des lignes de match) et nombre de matchs en cours */
-.bande-live { display: inline-flex; align-items: center; gap: .35rem; margin-left: .45rem; padding: .05rem .5rem .05rem .4rem; border-radius: 99px;
-  background: var(--feu-eteint); color: var(--texte); font-size: .8rem; line-height: 1.4; }
-.bande-live .pastille { margin-right: 0; vertical-align: 0; }
-.bande-live b { font-weight: 900; }
+.menu a:focus-visible { outline-offset: -3px; border-radius: 99px; }
+/* « En direct » : pastille rouge qui bat (comme celle des lignes de match) et nombre de matchs en cours */
+.menu-live { display: inline-flex; align-items: center; gap: .22rem; margin-left: .35rem; font-size: .78rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.menu-live .pastille { margin-right: 0; vertical-align: 0; width: .46rem; height: .46rem; box-shadow: 0 0 0 2px var(--fond); }
+.menu-live b { font-weight: 700; color: var(--texte); }
+
+/* ---------- compte : bouton de la barre, menu, fenêtre de connexion, messages (compte.js) */
+.compte-zone { position: relative; flex: none; }
+.btn-compte { display: block; max-width: 11rem; min-height: 2.35rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: .3rem .9rem;
+  background: transparent; border: 1px solid var(--ligne-forte); border-radius: 99px; font-weight: 700; font-size: .95rem; cursor: pointer; }
+.btn-compte:hover { border-color: var(--accent-clair); background-color: var(--surface-2); }
+.btn-compte.connecte { border-color: var(--accent); padding-right: 1.9rem; background-repeat: no-repeat; background-size: 5px 5px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--accent-clair) 50%), linear-gradient(-45deg, transparent 50%, var(--accent-clair) 50%);
+  background-position: right 1.05rem center, right .75rem center; }
+.compte-menu { position: absolute; z-index: 20; right: 0; top: calc(100% + .4rem); min-width: 11.5rem; list-style: none; margin: 0; padding: .35rem;
+  background: var(--surface-2); border: 1px solid var(--ligne-forte); border-radius: var(--rayon); box-shadow: 0 16px 36px rgba(0, 0, 0, .5); }
+.compte-menu a, .compte-menu button { display: block; width: 100%; text-align: left; padding: .5rem .7rem; background: transparent; border: 0;
+  border-radius: .55rem; font-weight: 700; text-decoration: none; cursor: pointer; }
+.compte-menu a:hover, .compte-menu button:hover { background: var(--surface-3); }
+.compte-menu li:last-child { border-top: 1px solid var(--ligne-forte); margin-top: .3rem; padding-top: .3rem; }
+dialog.compte-dlg { width: min(23rem, calc(100vw - 1.5rem)); max-height: calc(100dvh - 1rem); margin: auto; padding: 1.1rem 1.3rem 1.35rem; overflow: auto;
+  color: var(--texte); background: var(--surface); border: 1px solid var(--ligne-forte); border-radius: var(--rayon); box-shadow: 0 24px 60px rgba(0, 0, 0, .6); }
+dialog.compte-dlg::backdrop { background: rgba(8, 9, 12, .72); }
+body:has(dialog.compte-dlg[open]) { overflow: hidden; }
+.compte-dlg form { display: grid; gap: .8rem; }
+.compte-dlg-tete { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.compte-dlg h2 { font-size: 1.45rem; }
+.compte-fermer { flex: none; width: 2.35rem; height: 2.35rem; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--ligne-forte);
+  font-size: 1.4rem; line-height: 1; cursor: pointer; }
+.compte-fermer:hover { border-color: var(--accent-clair); }
+.compte-modes { display: flex; gap: .2rem; padding: .2rem; background: var(--fond); border: 1px solid var(--ligne); border-radius: 99px; }
+.compte-modes button { flex: 1; padding: .35rem .5rem; background: transparent; border: 0; border-radius: 99px; font-weight: 700; font-size: .95rem;
+  color: var(--texte-doux); cursor: pointer; }
+.compte-modes button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.compte-dlg .note { margin: 0; font-size: .88rem; }
+.avis { position: fixed; z-index: 30; left: 50%; bottom: 1rem; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 2rem); margin: 0;
+  padding: .6rem 1rem; background: var(--surface-3); border: 1px solid var(--accent-clair); border-radius: var(--rayon); font-weight: 700; font-size: .95rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .5); opacity: 0; pointer-events: none; }
+.avis.visible { opacity: 1; }
+@media (max-width: 860px) {
+  .tete-in { padding-inline: .8rem; }
+  .compte-zone { margin-left: auto; }
+  .menu { order: 3; flex: 1 0 100%; justify-content: space-between; margin-left: 0; }
+}
+@media (max-width: 460px) {
+  .marque { font-size: 1.15rem; gap: .5rem; }
+  .menu a { font-size: .9rem; padding: .3rem .5rem; }
+  .menu-live { margin-left: .22rem; }
+  .btn-compte { max-width: 8.5rem; }
+}
 
 /* ---------- bandeaux : départ (accueil, F1) et titres de page */
 .depart, .titre-page { background: var(--surface); border-bottom: 1px solid var(--ligne); }
@@ -113,6 +153,15 @@ select { background: var(--surface-2); border: 1px solid var(--ligne-forte); bor
 .pastilles button { background: transparent; border: 1px solid var(--ligne-forte); border-radius: 99px; padding: .3rem .85rem; font-weight: 700; font-size: .92rem; cursor: pointer; color: var(--texte-doux); }
 .pastilles button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .pastilles button:disabled { opacity: .4; cursor: default; }
+/* une seule ligne de filtres (page Football) ou de liens (pages de compétition), qui défile sur les petits écrans */
+.filtres { display: flex; gap: .35rem; overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch; margin: .4rem 0 .8rem; padding-bottom: .25rem; }
+.filtres > * { flex: none; white-space: nowrap; background: transparent; border: 1px solid var(--ligne-forte); border-radius: 99px; padding: .3rem .85rem;
+  font-weight: 700; font-size: .92rem; line-height: 1.5; color: var(--texte-doux); text-decoration: none; cursor: pointer; }
+.filtres > *:hover:not(:disabled) { border-color: var(--accent-clair); color: var(--texte); }
+.filtres > [aria-pressed="true"], .filtres > [aria-current="page"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.filtres > button:disabled { opacity: .4; cursor: default; }
+.filtres > :focus-visible { outline-offset: -3px; border-radius: 99px; }
+.filtres-page { margin: -.9rem 0 1.5rem; }
 
 /* ---------- écussons */
 .ecusson { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 2rem; height: 2rem; border-radius: 50%;
@@ -140,7 +189,11 @@ img.ecusson { background: transparent; object-fit: contain; }
   align-items: center; gap: .9rem; padding: .7rem .4rem; border-radius: var(--rayon); color: inherit; text-decoration: none; }
 .match summary { list-style: none; cursor: pointer; }
 .match summary::-webkit-details-marker { display: none; }
-.match summary:hover, .match a.m-ligne:hover { background: var(--surface); }
+.match summary:hover, .match .m-cliquable:hover { background: var(--surface); }
+/* le lien recouvre toute la ligne ; les étoiles passent au-dessus de lui */
+.m-cliquable { position: relative; }
+.m-lien { position: absolute; inset: 0; z-index: 1; border-radius: var(--rayon); }
+.m-lien:focus-visible { outline-offset: -3px; }
 .match details[open] > summary { background: var(--surface); }
 .m-heure { font-weight: 700; font-size: 1.05rem; line-height: 1.1; color: var(--texte-doux); }
 .m-heure small { display: block; font-weight: 600; font-size: .78rem; }
@@ -258,9 +311,19 @@ img.ecusson { background: transparent; object-fit: contain; }
 .etoile-texte[aria-pressed="true"] { border-color: var(--accent); background: rgba(5, 135, 133, .16); color: var(--texte); }
 .etoile-texte[aria-pressed="true"] svg { color: var(--accent-clair); }
 .club .etoile { margin-left: .1rem; }
+/* à côté d'un nom d'équipe : discrète, mais une cible de 32 px qui ne grandit pas la ligne */
+.etoile-mini { flex: none; position: relative; z-index: 2; min-width: 2rem; min-height: 2rem; margin: -.35rem -.3rem; padding: 0; color: var(--texte-faible); }
+.etoile-mini svg { width: 15px; height: 15px; }
+@media (max-width: 720px) {
+  /* sur mobile, l'étoile passe sous l'écusson : le nom du club garde toute la largeur */
+  .match .m-club, .prono-grille .m-club { display: grid; grid-template-areas: "ecu nom" "etoile nom"; grid-template-columns: 2rem minmax(0, 1fr);
+    grid-template-rows: auto 1fr; align-items: start; column-gap: .55rem; }
+  .match .m-ext, .prono-grille .m-ext { grid-template-areas: "nom ecu" "nom etoile"; grid-template-columns: minmax(0, 1fr) 2rem; }
+  .m-club .ecusson { grid-area: ecu; }
+  .m-club b { grid-area: nom; display: flex; flex-direction: column; justify-content: center; min-height: 2rem; }
+  .m-club .etoile-mini { grid-area: etoile; justify-self: center; min-height: 1.75rem; margin: -.1rem 0 -.5rem; }
+}
 .match.fav > .m-ligne, .match.fav > details > summary { box-shadow: inset 4px 0 0 var(--accent-clair); background: rgba(5, 135, 133, .08); }
-.m-club--fav b::after { content: ""; display: inline-block; width: .7em; height: .7em; margin-left: .35em; background: var(--accent-clair);
-  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
 .mes-favoris { list-style: none; margin: .4rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
 .mes-favoris li { display: inline-flex; align-items: center; background: var(--surface); border: 1px solid var(--ligne-forte); border-radius: 99px; padding: .1rem .2rem .1rem .55rem; }
 .mes-favoris .puce { display: inline-flex; align-items: center; gap: .5rem; background: none; border: 0; font-weight: 700; cursor: pointer; padding: .2rem .3rem; border-radius: 99px; }

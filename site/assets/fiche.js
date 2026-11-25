@@ -139,6 +139,6 @@ document.addEventListener("click", (e) => {
   const s = D.suivis.find((x) => cleId(x.m.id) === li.dataset.match);
   if (!s || DIRECT_REPORTE[s.f.st]) return;
   e.preventDefault();
-  const a = li.querySelector("a.m-ligne"), det = li.querySelector("details");
+  const a = li.querySelector("a.m-lien"), det = li.querySelector("details");
   ouvrirFiche(li.dataset.match, a ? a.getAttribute("href") : null, det ? det.id : null);
 });

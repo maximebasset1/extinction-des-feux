@@ -204,7 +204,6 @@ img.ecusson { background: transparent; object-fit: contain; }
 .recherche { position: relative; margin-top: 1.6rem; max-width: 44rem; }
 .recherche label { display: block; font-weight: 700; margin-bottom: .45rem; }
 .recherche input { width: 100%; font-size: 1.15rem; padding: .8rem 1.1rem; border-radius: var(--rayon); border: 1px solid var(--ligne-forte); background: var(--fond); color: var(--texte); }
-.recherche input::placeholder { color: var(--texte-faible); }
 .recherche input:focus-visible { outline: 3px solid var(--accent-clair); outline-offset: 2px; }
 .suggest { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + .35rem); list-style: none; margin: 0; padding: .35rem; background: var(--surface-2);
   border: 1px solid var(--ligne-forte); border-radius: var(--rayon); box-shadow: 0 16px 36px rgba(0, 0, 0, .5); }
@@ -374,7 +373,6 @@ dialog.fiche .facteurs-cles { background: var(--surface-2); }
 .champ label { font-weight: 700; font-size: .92rem; color: var(--texte-doux); }
 .champ input { width: 100%; padding: .6rem .85rem; border-radius: .55rem; border: 1px solid var(--ligne-forte);
   background: var(--fond); color: var(--texte); }
-.champ input::placeholder { color: var(--texte-faible); }
 .champ-comps { border: 0; margin: 0; padding: 0; }
 .champ-comps-tete { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .4rem .8rem; }
 .champ-comps legend { font-weight: 700; font-size: .92rem; color: var(--texte-doux); padding: 0; }
@@ -400,6 +398,7 @@ dialog.fiche .facteurs-cles { background: var(--surface-2); }
 .btn-secondaire:hover:not(:disabled) { border-color: var(--accent-clair); background: var(--surface-2); }
 .btn-discret { background: transparent; border-color: transparent; color: var(--texte-doux); font-size: .9rem; padding: .4rem .7rem; }
 .btn-discret:hover { color: var(--texte); text-decoration: underline; }
+.btn-danger:hover { color: var(--feu); }
 .btn-primaire:disabled, .btn-secondaire:disabled { opacity: .45; cursor: default; }
 .form-msg { margin: 0; font-size: .92rem; min-height: 1.2em; color: var(--accent-clair); font-weight: 600; }
 .form-msg.err { color: var(--feu); }

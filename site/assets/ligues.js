@@ -71,6 +71,8 @@ export function competitionsActives(ligue) {
   return liste.length ? liste : [...TOUTES_COMP];
 }
 
+export const estCreateur = (ligue) => Boolean(ligue?.moi) && ligue.moi === ligue.createur_id;
+
 // ---------------------------------------------------------------- stockage multi-ligues (localStorage)
 
 export function chargerStockage(storage) {
@@ -250,7 +252,8 @@ function rendreEnteteLigue() {
   const comps = competitionsActives(d || loc);
   el("l-comps").innerHTML = comps.map((c) => `<li>${esc(COMP_NOMS[c] || c)}</li>`).join("");
   el("l-code").textContent = loc.code;
-  el("l-moi").textContent = `Connecté en tant que ${loc.pseudo} (accès enregistré dans ce navigateur).`;
+  el("l-moi").textContent = `Pseudo : ${loc.pseudo}`;
+  el("btn-supprimer").hidden = !estCreateur(d) || d.code !== loc.code;
   el("l-maj").textContent = d?.programme_maj_utc ? `Programme mis à jour : ${quand(d.programme_maj_utc)}` : "";
 }
 
@@ -387,7 +390,7 @@ function rendrePronos() {
     more.hidden = true;
     return;
   }
-  note.textContent = `${liste.length} match${liste.length > 1 ? "s" : ""} ouvert${liste.length > 1 ? "s" : ""} aux pronostics. Sauvegarde automatique dès que les deux scores sont saisis ; verrouillage au coup d'envoi.`;
+  note.textContent = `${liste.length} match${liste.length > 1 ? "s" : ""} ouvert${liste.length > 1 ? "s" : ""}. Enregistrement automatique, verrouillage au coup d'envoi.`;
   const mes = mesPronosMap(), montres = liste.slice(0, S.montres), now = Date.now();
   let html = "", jourCourant = null, ouvert = false;
   for (const m of montres) {
@@ -502,7 +505,10 @@ async function chargerDirect() {
 async function chargerLigueActive({ silencieux = false } = {}) {
   const loc = ligueCourante();
   if (!loc) { S.ligue = null; basculerVues(); return; }
-  if (!silencieux) el("l-statut").textContent = "Chargement de la ligue…";
+  if (!silencieux) {
+    el("l-statut").textContent = "Chargement de la ligue…";
+    el("btn-supprimer").hidden = true;
+  }
   try {
     const data = await apiJson(`/${encodeURIComponent(loc.code)}`, { jeton: loc.jeton });
     S.ligue = data;
@@ -517,6 +523,17 @@ async function chargerLigueActive({ silencieux = false } = {}) {
     rendreSuivi();
     if (!silencieux) { rendreChips(); rendrePronos(); }
   } catch (err) {
+    // ligue supprimée par son créateur (ou jeton refusé) : rien d'une autre ligue ne doit rester affiché
+    if (err.statut === 404 || err.statut === 401) {
+      S.ligue = null;
+      rendreEnteteLigue();
+      rendreClassement();
+      rendreSuivi();
+      rendrePronos();
+      el("l-comps").innerHTML = "";
+      el("l-chips").innerHTML = "";
+      el("l-pronos-note").textContent = "";
+    }
     el("l-statut").textContent = err.message;
   }
 }
@@ -612,14 +629,35 @@ function attacherEvenements() {
     }
   });
 
+  const oublier = async (code) => {
+    S.stock = retirerLigue(localStorage, code);
+    S.ligue = null; S.montrerEntree = !S.stock.active; S.filtre = ""; S.montres = PAGE_MATCHS; S.etatsSave.clear();
+    el("l-statut").textContent = "";
+    basculerVues();
+    if (S.stock.active) await chargerLigueActive();
+  };
+
   el("btn-oublier").addEventListener("click", async () => {
     const loc = ligueCourante();
     if (!loc) return;
-    if (!confirm(`Retirer « ${loc.nom} » (${loc.code}) de ce navigateur ? Sans ce jeton, tu ne pourras plus modifier tes pronostics avec ce pseudo.`)) return;
-    S.stock = retirerLigue(localStorage, loc.code);
-    S.ligue = null; S.montrerEntree = !S.stock.active; S.etatsSave.clear();
-    basculerVues();
-    if (S.stock.active) await chargerLigueActive();
+    const createur = estCreateur(S.ligue) ? " Tu l'as créée : après l'avoir quittée, tu ne pourras plus la supprimer." : "";
+    if (!confirm(`Quitter « ${loc.nom} » (${loc.code}) ? Tu ne pourras plus modifier tes pronostics avec ce pseudo.${createur}`)) return;
+    await oublier(loc.code);
+  });
+
+  el("btn-supprimer").addEventListener("click", async () => {
+    const loc = ligueCourante(), btn = el("btn-supprimer");
+    if (!loc) return;
+    if (!confirm(`Supprimer « ${loc.nom} » (${loc.code}) pour tous les joueurs ? Les pronostics et le classement seront effacés définitivement.`)) return;
+    btn.disabled = true;
+    try {
+      await apiJson(`/${encodeURIComponent(loc.code)}`, { method: "DELETE", jeton: loc.jeton });
+      await oublier(loc.code);
+    } catch (err) {
+      el("l-statut").textContent = err.message;
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   el("l-chips").addEventListener("click", (e) => {

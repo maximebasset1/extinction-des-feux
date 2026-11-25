@@ -285,3 +285,309 @@ def test_predict_includes_btts_and_confidence():
     pr = P.predict(fit, r, bt)
     assert 0.0 < pr["btts"] < 1.0 and 0.0 < pr["plus25"] < 1.0
     assert pr["confiance"] in ("elevee", "indecis", "imprevisible")
+
+
+# ---------------------------------------------------------------- buteurs : titulaires réguliers
+
+def _buteur(nom, buts, matchs, comp="LDC"):
+    return {"nom": nom, "buts": buts, "matchs": matchs, "penalties": 0, "comp": comp}
+
+
+def test_scorer_who_misses_too_many_matches_is_not_a_probable_scorer():
+    from football import context as CTX
+    scorers = {"FRA:Lille": [_buteur("Remplaçant Rare", 5, 2), _buteur("Titulaire Habituel", 4, 5),
+                             _buteur("Sans Compteur", 3, 0)]}
+    marque = CTX.mark_regular_starters(scorers, {("FRA:Lille", "LDC"): 5}, {})
+    buts = CTX.probable_scorers("FRA:Lille", 2.0, marque, {"FRA:Lille": 20}, top=3)
+    # 2 matchs sur 5 : écarté ; compteur absent : pas de jugement
+    assert [b["nom"] for b in buts] == ["Titulaire Habituel", "Sans Compteur"]
+
+
+def test_too_few_team_matches_means_no_judgement():
+    from football import context as CTX
+    scorers = {"FRA:Lille": [_buteur("Début De Saison", 3, 1)]}
+    marque = CTX.mark_regular_starters(scorers, {("FRA:Lille", "LDC"): 2}, {})
+    assert CTX.probable_scorers("FRA:Lille", 2.0, marque, {"FRA:Lille": 10})
+
+
+def test_lineups_override_appearances_and_drop_a_regular_substitute():
+    from football import context as CTX
+    scorers = {"FRA:Lille": [_buteur("Olivier Giroud", 5, 5), _buteur("Jonathan David", 4, 5)]}
+    compos = {"FRA:Lille": [["J. David", "X Un"], ["Jonathan David"], ["Jonathan David"],
+                            ["Jonathan David", "Olivier Giroud"], ["Jonathan David"]]}
+    marque = CTX.mark_regular_starters(scorers, {("FRA:Lille", "LDC"): 5}, compos)
+    assert [b["nom"] for b in CTX.probable_scorers("FRA:Lille", 2.0, marque, {"FRA:Lille": 20})] == ["Jonathan David"]
+
+
+def test_scorers_keep_their_competition_and_team_matches_ignore_qualifiers():
+    from football import context as CTX
+    from football import sources as SRC
+    js = {"LDC": {"scorers": [{"player": {"name": "A Buteur"}, "team": {"name": "Lille", "area": {"code": "FRA"}},
+                               "goals": 3, "playedMatches": 4}]}}
+    assert CTX.scorers_by_team(js, SRC.TeamIndex(["FRA:Lille"]))["FRA:Lille"][0]["comp"] == "LDC"
+    cal = {"LDC": pd.DataFrame([
+        {"home": "FRA:Lille", "away": "GER:Bayern", "played": True, "stage": "LEAGUE_STAGE"},
+        {"home": "FRA:Lille", "away": "AUT:LASK", "played": True, "stage": "QUALIFICATION_ROUND_3"},
+        {"home": "ITA:Inter", "away": "FRA:Lille", "played": False, "stage": "LEAGUE_STAGE"},
+    ]), "LEC": pd.DataFrame()}
+    assert CTX.team_match_counts(cal)[("FRA:Lille", "LDC")] == 1
+
+
+def test_lineups_are_read_when_the_plan_returns_them(tmp_path, monkeypatch):
+    from football import context as CTX
+    from football import sources as SRC
+    monkeypatch.setattr(CTX.time, "sleep", lambda s: None)
+    appels = []
+
+    def faux(url, headers=None, tries=3):
+        appels.append((url, headers))
+        m = {"utcDate": "2026-11-20T20:00:00Z", "homeTeam": {"id": 5, "lineup": [{"name": "Harry Kane"}]},
+             "awayTeam": {"id": 9, "lineup": [{"name": "Autre"}]}}
+        return {"matches": [m]}, {}
+
+    monkeypatch.setattr(SRC, "_get_json", faux)
+    now = datetime(2026, 11, 25, 12, tzinfo=timezone.utc)
+    assert CTX.fetch_lineups({"GER:Bayern": 5}, "jeton", tmp_path, now) == {"GER:Bayern": [["Harry Kane"]]}
+    assert appels[0][1]["X-Unfold-Lineups"] == "true"
+    CTX.fetch_lineups({"GER:Bayern": 5}, "jeton", tmp_path, now + timedelta(hours=1))
+    assert len(appels) == 1                       # cache
+
+
+def test_lineups_absent_from_the_free_plan_stop_after_one_call(tmp_path, monkeypatch):
+    from football import context as CTX
+    from football import sources as SRC
+    monkeypatch.setattr(CTX.time, "sleep", lambda s: None)
+    appels = []
+
+    def faux(url, headers=None, tries=3):
+        appels.append(url)
+        return {"matches": [{"utcDate": "2026-11-20T20:00:00Z", "homeTeam": {"id": 5}, "awayTeam": {"id": 9}}]}, {}
+
+    monkeypatch.setattr(SRC, "_get_json", faux)
+    now = datetime(2026, 11, 25, 12, tzinfo=timezone.utc)
+    clubs = {"GER:Bayern": 5, "FRA:Lille": 9}
+    assert CTX.fetch_lineups(clubs, "jeton", tmp_path, now) == {}
+    assert CTX.fetch_lineups(clubs, "jeton", tmp_path, now + timedelta(days=2)) == {}
+    assert len(appels) == 1
+
+
+# ---------------------------------------------------------------- presse : flux RSS
+
+def _rss(*items):
+    corps = "".join(f"<item><title>{t}</title><description><![CDATA[{d}]]></description><pubDate>{p}</pubDate></item>"
+                    for t, d, p in items)
+    return f'<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>{corps}</channel></rss>'.encode("utf-8")
+
+
+SQUADS = {"GER:Bayern Munich": ["Harry Kane", "Michael Olise", "Jamal Musiala", "Manuel Neuer"],
+          "FRA:Lille": ["Olivier Giroud", "Hákon Haraldsson"],
+          "ENG:Man United": ["Rasmus Højlund", "Leny Yoro"]}
+
+
+def _alias():
+    from football import context as CTX
+    return {"GER:Bayern Munich": CTX.club_aliases("Bayern Munich", "FC Bayern München"),
+            "FRA:Lille": CTX.club_aliases("Lille", "Lille OSC"),
+            "ENG:Man United": CTX.club_aliases("Manchester United", "Man United")}
+
+
+def _signales(titre, resume=""):
+    from football import context as CTX
+    trouve = CTX.detect_press_absences([{"titre": titre, "resume": resume, "date": 0}], SQUADS, _alias())
+    return {(t, x["nom"], x["statut"]) for t, xs in trouve.items() for x in xs}
+
+
+def test_rss_parser_reads_titles_summaries_and_dates_and_strips_html():
+    from football import context as CTX
+    items = CTX.parse_rss(_rss(("Kane forfait", "<p>Le <b>Bayern</b> sans son buteur&nbsp;</p>", "Tue, 24 Nov 2026 20:00:00 +0100"),
+                               ("Sans date", "x", "")))
+    assert len(items) == 1                                    # sans date : impossible de dire si c'est récent
+    assert items[0]["titre"] == "Kane forfait"
+    assert items[0]["resume"] == "Le Bayern sans son buteur"
+    assert items[0]["date"] == datetime(2026, 11, 24, 19, tzinfo=timezone.utc).timestamp()
+
+
+@pytest.mark.parametrize("mauvais", [b"", b"<html>404</html", b"pas du xml",
+                                     b'<!DOCTYPE r [<!ENTITY a "aaaa">]><rss><channel/></rss>'])
+def test_rss_parser_returns_nothing_for_broken_or_unsafe_documents(mauvais):
+    from football import context as CTX
+    assert CTX.parse_rss(mauvais) == []
+
+
+@pytest.mark.parametrize("titre,nom", [
+    ("Bayern : Harry Kane forfait contre Lille", "Harry Kane"),
+    ("Blessé, Kane manquera le déplacement du Bayern", "Harry Kane"),
+    ("Bayern's Kane ruled out of Lille trip", "Harry Kane"),
+    ("Kane is out for Bayern", "Harry Kane"),
+    ("FC Bayern: Kane verletzt", "Harry Kane"),
+    ("El Bayern pierde a Kane: baja ante el Lille", "Harry Kane"),
+    ("Bayern, infortunio per Kane", "Harry Kane"),
+    ("Hojlund injured as Man United count the cost", "Rasmus Højlund"),
+])
+def test_press_absence_in_each_language(titre, nom):
+    assert any(n == nom for _, n, _ in _signales(titre)), titre
+
+
+def test_press_lists_several_absentees_and_flags_doubts():
+    assert _signales("Bayern : Kane et Olise forfaits à Lille") == {
+        ("GER:Bayern Munich", "Harry Kane", "absent"), ("GER:Bayern Munich", "Michael Olise", "absent")}
+    assert _signales("Lille : Giroud incertain face au Bayern") == {("FRA:Lille", "Olivier Giroud", "incertain")}
+
+
+@pytest.mark.parametrize("titre", [
+    "Bayern : Kane de retour après sa blessure",
+    "Kane is back from injury for Bayern",
+    "Bayern: Kane nach Verletzung zurück",
+    "Kane scores in injury time for Bayern",
+    "Bayern knocked out despite Kane double",
+    "Bayern: Kane n'est pas blessé",
+    "Harry Kane forfait",                                     # aucun club cité
+    "Bayern : un supporter blessé avant le match, Kane marque un triplé magnifique et offre la victoire",
+    "Bayern: Tuchel injured",                                 # hors effectif
+    "Bayern forfait pour le kane",                            # nom sans majuscule
+    "El Bayern, en baja forma sin Kane",
+])
+def test_press_ignores_returns_unrelated_keywords_and_unknown_people(titre):
+    assert _signales(titre) == set(), titre
+
+
+def test_press_attaches_the_keyword_to_the_nearest_player_only():
+    assert {n for _, n, _ in _signales("Bayern: Kane scores twice past injured Neuer")} == {"Manuel Neuer"}
+    assert {n for _, n, _ in _signales("Bayern: Kane scores as Olise ruled out")} == {"Michael Olise"}
+
+
+def test_press_reads_the_summary_with_the_club_named_in_the_title():
+    assert _signales("Le Bayern inquiet", "Jamal Musiala, blessé à la cheville, ne fera pas le voyage.") == {
+        ("GER:Bayern Munich", "Jamal Musiala", "absent")}
+
+
+def test_shared_surname_needs_the_first_name_or_initial():
+    from football import context as CTX
+    squads = {"ESP:Barcelona": ["Eric Garcia", "Joan Garcia"]}
+    alias = {"ESP:Barcelona": CTX.club_aliases("Barcelona")}
+
+    def item(t):
+        return [{"titre": t, "resume": "", "date": 0}]
+
+    assert CTX.detect_press_absences(item("Barcelona: Garcia injured"), squads, alias) == {}
+    got = CTX.detect_press_absences(item("Barcelona: Joan Garcia injured"), squads, alias)
+    assert [x["nom"] for x in got["ESP:Barcelona"]] == ["Joan Garcia"]
+
+
+def test_press_fetch_keeps_72_hours_caches_6_hours_and_fails_silently(tmp_path):
+    from football import context as CTX
+    now = datetime(2026, 11, 25, 12, tzinfo=timezone.utc)
+    appels = []
+
+    def flux(url, timeout):
+        appels.append((url, timeout))
+        if "bbc" in url:
+            raise TimeoutError("trop long")
+        return _rss(("Kane forfait Bayern", "", "Tue, 24 Nov 2026 20:00:00 +0100"),
+                    ("Vieille nouvelle", "", "Wed, 18 Nov 2026 20:00:00 +0100"))
+
+    items = CTX.fetch_press(tmp_path, now, fetch=flux)
+    assert {i["titre"] for i in items} == {"Kane forfait Bayern"}
+    assert CTX.RSS_TIMEOUT_S == 5 and all(t == 5 for _, t in appels)
+    n = len(appels)
+    CTX.fetch_press(tmp_path, now + timedelta(hours=5), fetch=flux)
+    assert len(appels) == n + 1                  # seul le flux en panne est réessayé
+
+    def panne(url, timeout):
+        raise OSError("réseau coupé")
+
+    assert CTX.fetch_press(tmp_path, now + timedelta(hours=7), fetch=panne)      # le cache reste servi
+    assert CTX.fetch_press(tmp_path, now + timedelta(days=5), fetch=panne) == []   # puis il vieillit
+    assert CTX.fetch_press(tmp_path / "vide", now, fetch=panne) == []
+
+
+def test_offline_press_uses_the_cache_only(tmp_path):
+    from football import context as CTX
+
+    def interdit(url, timeout):
+        raise AssertionError("aucun réseau hors ligne")
+
+    assert CTX.fetch_press(tmp_path, datetime(2026, 11, 25, tzinfo=timezone.utc), offline=True, fetch=interdit) == []
+
+
+def test_squads_come_from_the_teams_file_or_the_team_endpoint(tmp_path, monkeypatch):
+    from football import context as CTX
+    from football import sources as SRC
+    monkeypatch.setattr(CTX.time, "sleep", lambda s: None)
+    appels = []
+
+    def faux(url, headers=None, tries=3):
+        appels.append(url)
+        return {"squad": [{"name": "Harry Kane"}]}, {}
+
+    monkeypatch.setattr(SRC, "_get_json", faux)
+    now = datetime(2026, 11, 25, tzinfo=timezone.utc)
+    teams = {"FRA:Lille": {"id": 521, "squad": [{"name": "Olivier Giroud"}]}, "GER:Bayern Munich": {"id": 5}}
+    scorers = {"ITA:Inter": [_buteur("Lautaro Martínez", 4, 5)]}
+    got = CTX.squad_names(["FRA:Lille", "GER:Bayern Munich", "ITA:Inter"], teams, scorers, "jeton", tmp_path, now)
+    assert got == {"FRA:Lille": ["Olivier Giroud"], "GER:Bayern Munich": ["Harry Kane"], "ITA:Inter": ["Lautaro Martínez"]}
+    assert appels == ["https://api.football-data.org/v4/teams/5"]
+    CTX.squad_names(["GER:Bayern Munich"], teams, scorers, "jeton", tmp_path, now + timedelta(days=1))
+    assert len(appels) == 1
+
+
+def test_press_absentee_leaves_scorers_and_appears_in_factors_without_touching_lambda():
+    from football import context as CTX
+    scorers = {"GER:Bayern": [_buteur("Harry Kane", 12, 5), _buteur("Michael Olise", 5, 5), _buteur("Luis Díaz", 4, 5)]}
+    base = dict(lh=1.0, la=2.0, home_id="FRA:Lille", away_id="GER:Bayern", home_nom="Lille", away_nom="Bayern Munich",
+                injuries_h=[], injuries_a=[], coach_h=None, coach_a=None, scorers_map=scorers, team_goals={"GER:Bayern": 25})
+    presse = [{"nom": "Harry Kane", "statut": "absent"}, {"nom": "Michael Olise", "statut": "incertain"}]
+    adj = CTX.apply_context_adjustments(**base, presse_a=presse)
+    assert "Absents signalés (presse, Bayern Munich) : Harry Kane, Michael Olise (incertain)" in adj["facteurs"]
+    assert [b["nom"] for b in adj["buteurs"]["ext"]] == ["Luis Díaz"]
+    assert adj["exclus"]["ext"] == ["Harry Kane", "Michael Olise"]
+    # variable non validable par backtest (CLAUDE.md) : elle ne modifie aucun nombre du modèle
+    for injuries in ([], [{"nom": "H. Kane", "statut": "absent"}]):
+        sans = CTX.apply_context_adjustments(**{**base, "injuries_a": injuries})
+        avec = CTX.apply_context_adjustments(**{**base, "injuries_a": injuries}, presse_a=presse, presse_h=presse)
+        assert (avec["lh"], avec["la"], avec["variance_temp"]) == (sans["lh"], sans["la"], sans["variance_temp"])
+
+
+def test_predict_drops_press_absentees_from_the_final_scorers():
+    from football import pipeline as P
+    fit = {"teams": {"FRA:A": 0, "FRA:B": 1}, "att": np.array([0.3, 0.2]), "def": np.array([0.0, 0.0]),
+           "league": {"FRA:A": "F1", "FRA:B": "F1"}, "league_level": {"F1": (0.0, 0.0)},
+           "mu": 0.2, "home": 0.25, "home_cup": 0.2, "converged": True}
+    bt = {"a": 0.3, "b": 0.8, "volatility": {}, "vol_thresh": 1.237}
+    r = {"competition": "F1", "home": "FRA:A", "away": "FRA:B", "neutral": False,
+         "oh": 2.0, "od": 3.4, "oa": 3.8, "jour": "2026-11-26"}     # avec cotes : les buteurs sont recalculés
+    ctx = {"rest_for": lambda t, j: (None, None), "injuries": {}, "coaches": {}, "team_goals": {},
+           "scorers": {"FRA:A": [_buteur("Premier Buteur", 8, 5, "F1"), _buteur("Second Buteur", 5, 5, "F1")]},
+           "presse": {"FRA:A": [{"nom": "Premier Buteur", "statut": "incertain"}]}, "nom": lambda t: t[4:]}
+    pr = P.predict(fit, r, bt, ctx)
+    assert [b["nom"] for b in pr["buteurs"]["dom"]] == ["Second Buteur"]
+    # mêmes probabilités publiées (celles du journal) avec ou sans la presse, avec ou sans cotes
+    for match in (r, {**r, "oh": np.nan, "od": np.nan, "oa": np.nan}):
+        avec, sans = P.predict(fit, match, bt, ctx), P.predict(fit, match, bt, {**ctx, "presse": {}})
+        for cle in ("p", "lam", "xg", "scores", "plus25", "btts", "confiance"):
+            assert np.array_equal(avec[cle], sans[cle]), cle
+
+
+@pytest.mark.parametrize("titre", [
+    "Bayern: Kane is without a doubt the best striker",
+    "Bayern: Kane is out to prove his critics wrong",
+    "Bayern's Kane out for revenge against Lille",
+    "El Bayern: Kane puso en duda el arbitraje",
+])
+def test_press_ignores_common_idioms(titre):
+    assert _signales(titre) == set(), titre
+
+
+def test_press_comma_after_the_absentee_does_not_catch_the_next_subject():
+    assert {n for _, n, _ in _signales("Bayern : en l'absence de Kane, Olise a brillé")} == {"Harry Kane"}
+    assert {n for _, n, _ in _signales("Bayern, les forfaits : Kane, Olise")} == {"Harry Kane", "Michael Olise"}
+    assert {n for _, n, _ in _signales("Bayern, forfaits de Kane, Olise et Musiala")} == {
+        "Harry Kane", "Michael Olise", "Jamal Musiala"}
+
+
+def test_barcelona_nicknames_do_not_designate_espanyol():
+    from football import context as CTX
+    squads = {"ESP:Espanol": ["Pere Garcia"]}
+    alias = {"ESP:Espanol": CTX.club_aliases("RCD Espanyol de Barcelona", "Espanyol")}
+    item = [{"titre": "Barça : Garcia forfait", "resume": "", "date": 0}]
+    assert CTX.detect_press_absences(item, squads, alias) == {}

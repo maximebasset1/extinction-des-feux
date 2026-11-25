@@ -531,7 +531,7 @@ def test_squads_come_from_the_teams_file_or_the_team_endpoint(tmp_path, monkeypa
     assert len(appels) == 1
 
 
-def test_press_absentee_leaves_scorers_appears_in_factors_and_lowers_lambda_within_bounds():
+def test_press_absentee_leaves_scorers_and_appears_in_factors_without_touching_lambda():
     from football import context as CTX
     scorers = {"GER:Bayern": [_buteur("Harry Kane", 12, 5), _buteur("Michael Olise", 5, 5), _buteur("Luis Díaz", 4, 5)]}
     base = dict(lh=1.0, la=2.0, home_id="FRA:Lille", away_id="GER:Bayern", home_nom="Lille", away_nom="Bayern Munich",
@@ -541,16 +541,11 @@ def test_press_absentee_leaves_scorers_appears_in_factors_and_lowers_lambda_with
     assert "Absents signalés (presse, Bayern Munich) : Harry Kane, Michael Olise (incertain)" in adj["facteurs"]
     assert [b["nom"] for b in adj["buteurs"]["ext"]] == ["Luis Díaz"]
     assert adj["exclus"]["ext"] == ["Harry Kane", "Michael Olise"]
-    assert 2.0 * (1 + CTX.MAX_PRESS_MALUS) - 1e-9 <= adj["la"] < 2.0 and adj["lh"] == 1.0
-    # déjà compté par API-Football : le même absent ne pèse pas deux fois
-    api = [{"nom": "H. Kane", "statut": "absent"}]
-    seul = CTX.apply_context_adjustments(**{**base, "injuries_a": api})
-    double = CTX.apply_context_adjustments(**{**base, "injuries_a": api}, presse_a=presse[:1])
-    assert double["la"] == pytest.approx(seul["la"])
-    # cumul presse + API-Football toujours borné
-    foule = [{"nom": n, "statut": "absent"} for n in ("A Un", "B Deux", "C Trois", "D Quatre", "E Cinq", "Luis Díaz")]
-    tout = CTX.apply_context_adjustments(**{**base, "injuries_a": foule}, presse_a=presse)
-    assert tout["la"] >= 2.0 * (1 + CTX.MAX_LAM_MALUS) - 1e-9
+    # variable non validable par backtest (CLAUDE.md) : elle ne modifie aucun nombre du modèle
+    for injuries in ([], [{"nom": "H. Kane", "statut": "absent"}]):
+        sans = CTX.apply_context_adjustments(**{**base, "injuries_a": injuries})
+        avec = CTX.apply_context_adjustments(**{**base, "injuries_a": injuries}, presse_a=presse, presse_h=presse)
+        assert (avec["lh"], avec["la"], avec["variance_temp"]) == (sans["lh"], sans["la"], sans["variance_temp"])
 
 
 def test_predict_drops_press_absentees_from_the_final_scorers():
@@ -566,6 +561,11 @@ def test_predict_drops_press_absentees_from_the_final_scorers():
            "presse": {"FRA:A": [{"nom": "Premier Buteur", "statut": "incertain"}]}, "nom": lambda t: t[4:]}
     pr = P.predict(fit, r, bt, ctx)
     assert [b["nom"] for b in pr["buteurs"]["dom"]] == ["Second Buteur"]
+    # mêmes probabilités publiées (celles du journal) avec ou sans la presse, avec ou sans cotes
+    for match in (r, {**r, "oh": np.nan, "od": np.nan, "oa": np.nan}):
+        avec, sans = P.predict(fit, match, bt, ctx), P.predict(fit, match, bt, {**ctx, "presse": {}})
+        for cle in ("p", "lam", "xg", "scores", "plus25", "btts", "confiance"):
+            assert np.array_equal(avec[cle], sans[cle]), cle
 
 
 @pytest.mark.parametrize("titre", [

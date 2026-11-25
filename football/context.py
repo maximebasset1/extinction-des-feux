@@ -7,6 +7,8 @@
 - Absents signalés par la presse : flux RSS sportifs publics des 72 dernières heures (sans clé, cache 6 h).
   Un joueur n'est retenu que s'il figure dans l'effectif d'un club cité et qu'un mot d'absence le désigne.
   Aucun texte de presse n'est publié : le site n'affiche que des noms tirés de l'effectif.
+  Affichage et buteurs seulement : la presse ne modifie ni les buts attendus ni les probabilités, faute d'archive
+  pour la valider par backtest.
 - Blessures / suspensions et changements d'entraîneur : API-Football (`/injuries`, `/coachs`),
   strictement bornés à 15 requêtes/jour au total dans `mise-a-jour.yml` et stoppés si le quota
   global du compte descend sous 25 requêtes restantes (réserve prioritaire pour le direct live).
@@ -81,9 +83,6 @@ RSS_TIMEOUT_S = 5
 RSS_WINDOW_H = 72
 RSS_MAX_OCTETS = 2_000_000
 PRESS_MAX_ECART = 6            # mots au plus entre le mot d'absence et le nom du joueur
-PRESS_MALUS_JOUEUR = 0.015     # malus offensif par absent signalé
-PRESS_MALUS_BUTEUR_MAX = 0.05  # supplément au plus pour l'un des trois meilleurs buteurs du club
-MAX_PRESS_MALUS = -0.08        # la presse seule ne retire jamais plus de 8 %
 
 
 # lettres que la décomposition Unicode ne ramène pas à une lettre simple (Højlund, Groß...)
@@ -733,18 +732,6 @@ def _injury_delta(injuries: list[dict], top_scorers: list[dict], g_team: int) ->
     return delta_att, delta_def, notables
 
 
-def _press_delta(presse: list[dict], injuries: list[dict], top_scorers: list[dict], g_team: int) -> float:
-    """Malus offensif des absents signalés par la presse, hors ceux qu'API-Football compte déjà."""
-    delta = 0.0
-    for x in presse:
-        if any(same_player(x["nom"], a["nom"]) and a.get("statut") != "incertain" for a in injuries):
-            continue
-        sc = next((s for s in top_scorers[:3] if s["buts"] >= 3 and same_player(s["nom"], x["nom"])), None)
-        part = min(PRESS_MALUS_BUTEUR_MAX, 0.2 * sc["buts"] / max(g_team, 10)) if sc else 0.0
-        delta -= (0.5 if x.get("statut") == "incertain" else 1.0) * (PRESS_MALUS_JOUEUR + part)
-    return max(MAX_PRESS_MALUS, delta)
-
-
 def apply_context_adjustments(
     lh: float, la: float, home_id: str, away_id: str, home_nom: str, away_nom: str,
     injuries_h: list[dict], injuries_a: list[dict],
@@ -754,13 +741,12 @@ def apply_context_adjustments(
     rest_comp_h: str | None = None, rest_comp_a: str | None = None,
     presse_h: list[dict] | None = None, presse_a: list[dict] | None = None,
 ) -> dict:
-    """Ajuste (lh, la) de façon bornée avant le mélange avec les cotes, et prépare facteurs clés & buteurs."""
+    """Ajuste (lh, la) de façon bornée avant le mélange avec les cotes, et prépare facteurs clés & buteurs.
+    Les absents signalés par la presse (`presse_h`, `presse_a`) ne servent qu'aux facteurs clés et aux buteurs."""
     da_h, dd_h, abs_h = _injury_delta(injuries_h, scorers_map.get(home_id) or [], team_goals.get(home_id, 0))
     da_a, dd_a, abs_a = _injury_delta(injuries_a, scorers_map.get(away_id) or [], team_goals.get(away_id, 0))
 
     presse_h, presse_a = presse_h or [], presse_a or []
-    da_h += _press_delta(presse_h, injuries_h, scorers_map.get(home_id) or [], team_goals.get(home_id, 0))
-    da_a += _press_delta(presse_a, injuries_a, scorers_map.get(away_id) or [], team_goals.get(away_id, 0))
 
     # Ajustement borné sur les taux de buts attendus
     mult_h = float(np.clip(1.0 + da_h + dd_a, 1.0 + MAX_LAM_MALUS, 1.0 + MAX_LAM_BONUS))

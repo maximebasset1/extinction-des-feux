@@ -22,6 +22,8 @@ const FAVORIS_MAX = 20;                    // par compte
 const FAVORIS_LOCAUX_MAX = 100;            // ce qu'un navigateur peut apporter au rattachement (favoris.js)
 const FORMAT_CLUB = /^[A-Z]{2,4}:[^\p{C}<>]{1,60}$/u;      // identifiant de club du site : « FRA:Paris SG »
 const SESSIONS_MAX = 10;                   // appareils connectés par compte
+const ESSAIS_MAX = 5;                      // mots de passe examinés par pseudo et par période
+const ESSAIS_PERIODE_MS = 15 * 60000;
 const RATTACHER_MAX = 20;                  // ligues par requête : une écriture chacune, D1 limite les requêtes par appel
 const CORPS_RATTACHER_MAX = 16384;
 const CORPS_FAVORIS_MAX = 4096;
@@ -423,16 +425,36 @@ async function inscription(req, env) {
   return repondre({ compte_id: id, pseudo, jeton_compte: await ouvrirSession(env, id), favoris: [] }, 201);
 }
 
+/* chaque essai est compté avant que le mot de passe soit examiné, en une seule écriture : des demandes envoyées en même
+   temps ne passent pas toutes. Un essai refusé ne repousse pas la fin de la période. Les sessions ouvertes ne sont pas
+   concernées. Le compte porte sur le pseudo : qui le connaît peut donc retarder les connexions de son propriétaire. */
+async function compterEssai(env, cle) {
+  const maintenant = Date.now();
+  await env.DB.prepare("DELETE FROM essais WHERE depuis <= ?").bind(new Date(maintenant - ESSAIS_PERIODE_MS).toISOString()).run();
+  const { nombre, depuis } = await env.DB.prepare(`INSERT INTO essais (pseudo_cle, nombre, depuis) VALUES (?, 1, ?)
+    ON CONFLICT (pseudo_cle) DO UPDATE SET nombre = nombre + 1 RETURNING nombre, depuis`).bind(cle, maintenantIso()).first();
+  if (nombre > ESSAIS_MAX) {
+    const minutes = Math.max(1, Math.ceil((Date.parse(depuis) + ESSAIS_PERIODE_MS - maintenant) / 60000));
+    throw new Refus(429, "trop_d_essais", `Trop d'essais. Réessaie dans ${minutes} minute${minutes > 1 ? "s" : ""}.`);
+  }
+}
+const oublierEssais = (env, cle) => env.DB.prepare("DELETE FROM essais WHERE pseudo_cle = ?").bind(cle).run();
+
 async function connexion(req, env) {
   const corps = await lireCorps(req);
   const pseudo = typeof corps.pseudo === "string" ? corps.pseudo.normalize("NFKC").replace(/\s+/g, " ").trim() : "";
   const mdp = typeof corps.mot_de_passe === "string" ? corps.mot_de_passe.normalize("NFC") : "";
-  const compte = await env.DB.prepare("SELECT id, pseudo, mdp_hash, sel, favoris FROM comptes WHERE pseudo_cle = ?")
-    .bind(clePseudo(pseudo)).first();
   // même réponse pour un pseudo inconnu et un mot de passe faux
-  if (!compte || await empreinteMdp(compte.sel, mdp) !== compte.mdp_hash) {
-    throw new Refus(401, "identifiants_invalides", "Pseudo ou mot de passe incorrect.");
-  }
+  const refus = () => new Refus(401, "identifiants_invalides", "Pseudo ou mot de passe incorrect.");
+  // aucune inscription ne permet ces longueurs : rien à examiner, ni à garder en base
+  if ([...pseudo].length < PSEUDO_COMPTE.min || [...pseudo].length > PSEUDO_COMPTE.max
+    || [...mdp].length < MDP_MIN || [...mdp].length > MDP_MAX) throw refus();
+  const cle = clePseudo(pseudo);
+  await compterEssai(env, cle);
+  const compte = await env.DB.prepare("SELECT id, pseudo, mdp_hash, sel, favoris FROM comptes WHERE pseudo_cle = ?")
+    .bind(cle).first();
+  if (!compte || await empreinteMdp(compte.sel, mdp) !== compte.mdp_hash) throw refus();
+  await oublierEssais(env, cle);
   const jeton = await ouvrirSession(env, compte.id);
   return repondre({ compte_id: compte.id, pseudo: compte.pseudo, jeton_compte: jeton, favoris: lireFavoris(compte.favoris),
     ligues: await liguesDuCompte(env, compte.id, jeton) });

@@ -37,9 +37,10 @@ Carte du dépôt :
 ## Comptes et favoris (Football)
 
 - **Tout doit marcher sans compte.** Créer, rejoindre et pronostiquer sans en-tête de compte répondent comme avant (test « sans compte »). Les comptes ne font qu'ajouter.
-- Base D1 : tables `comptes` et `sessions`, colonne `membres.compte_id`. `schema.sql` passe avant `migrations.sql` au déploiement : **un index sur une colonne ajoutée va dans `migrations.sql`**, sinon le déploiement échoue sur la base en ligne. Un ordre par ligne.
+- Base D1 : tables `comptes`, `sessions` et `essais`, colonne `membres.compte_id`. `schema.sql` passe avant `migrations.sql` au déploiement : **un index sur une colonne ajoutée va dans `migrations.sql`**, sinon le déploiement échoue sur la base en ligne. Un ordre par ligne.
 - Aucun secret en clair : mot de passe en SHA-256 salé (sel propre à chaque compte), jetons gardés en empreinte seulement. `compte_id` ne sort jamais de `GET /ligues/:code`.
-- Limites connues : SHA-256 est rapide (faible si la base fuit) et **les essais de mot de passe ne sont pas limités**. Pas d'adresse e-mail, donc pas de récupération de mot de passe.
+- **Cinq essais de mot de passe par pseudo et par quart d'heure**, comptés avant l'examen du mot de passe en une seule écriture (ne pas les compter après coup : des demandes simultanées passeraient toutes). Toute nouvelle route qui vérifie un mot de passe doit passer par `compterEssai`.
+- Limites connues : qui connaît un pseudo peut retarder les connexions de son propriétaire ; rien ne limite un même mot de passe essayé sur beaucoup de pseudos ; SHA-256 est rapide (faible si la base fuit). Pas d'adresse e-mail, donc pas de récupération de mot de passe.
 - Une ligne de `sessions` par appareil connecté (10 au plus par compte). Le jeton de compte ouvre aussi les joueurs rattachés au compte ; les jetons de joueur d'origine restent valables. Vingt clubs favoris au plus par compte.
 - Navigateur : `localStorage` `extinction.compte.v1` (compte), `extinction.favoris.v1` (favoris : source de vérité sans compte, copie avec compte), `extinction_ligues_v1` (ligues ; `compte` marque celles du compte). La déconnexion retire du navigateur ce qui est sur le compte.
 - `compte.js` et `favoris.js` sont chargés par `build_site.py` sur toutes les pages **sauf F1** (découplage). Partout où une étoile peut être touchée, `compte.js` doit être là, sinon le favori n'est pas envoyé au compte.

@@ -933,6 +933,85 @@ test("connexion : dix sessions au plus par compte, la plus ancienne est fermée"
   assert.equal((await moi(w, derniere)).statut, 200);
 });
 
+// ---------------------------------------------------------------- limite des essais de mot de passe
+
+const MINUTE = 60000;
+const rater = async (w, pseudo, fois) => {
+  const statuts = [];
+  for (let i = 0; i < fois; i++) statuts.push((await connecter(w, pseudo, "pas-le-bon")).statut);
+  return statuts;
+};
+
+test("essais : après cinq échecs, le pseudo attend la fin du quart d'heure, même avec le bon mot de passe", async (t) => {
+  const w = ligueMonde(t);
+  await inscrire(w, "Maxime");
+  assert.deepEqual(await rater(w, "Maxime", 5), [401, 401, 401, 401, 401]);
+  const bloque = await connecter(w, "Maxime");
+  assert.deepEqual([bloque.statut, bloque.json.erreur.code], [429, "trop_d_essais"]);
+  assert.equal(bloque.json.erreur.message, "Trop d'essais. Réessaie dans 15 minutes.");
+  assert.equal(bloque.entetes.get("access-control-allow-origin"), "*");
+  assert.equal(compter(w, "sessions"), 1);                      // aucune session ouverte pendant le blocage
+  w.horloge.t += 10 * MINUTE;
+  assert.equal((await connecter(w, "Maxime")).json.erreur.message, "Trop d'essais. Réessaie dans 5 minutes.");
+  w.horloge.t += 5 * MINUTE - 1000;
+  assert.equal((await connecter(w, "Maxime")).json.erreur.message, "Trop d'essais. Réessaie dans 1 minute.");
+  w.horloge.t += 1000;                                           // les essais refusés n'ont pas prolongé l'attente
+  assert.equal((await connecter(w, "Maxime")).statut, 200);
+});
+
+test("essais : une connexion réussie remet le compteur à zéro", async (t) => {
+  const w = ligueMonde(t);
+  await inscrire(w, "Maxime");
+  for (let tour = 0; tour < 3; tour++) {
+    assert.deepEqual(await rater(w, "Maxime", 4), [401, 401, 401, 401]);
+    assert.equal((await connecter(w, "Maxime")).statut, 200);
+  }
+  assert.equal(compter(w, "essais"), 0);
+});
+
+test("essais : comptés par pseudo quelle que soit son écriture, et un pseudo inconnu répond pareil", async (t) => {
+  const w = ligueMonde(t);
+  await inscrire(w, "Maxime");
+  await inscrire(w, "Zoé");
+  for (const pseudo of ["maxime", "MAXIME", "  Maxime ", "ＭＡＸＩＭＥ", "mAxImE"]) assert.deepEqual(await rater(w, pseudo, 1), [401], pseudo);
+  const connu = await connecter(w, "Maxime", "pas-le-bon");
+  assert.equal(connu.statut, 429);
+  assert.equal((await connecter(w, "Zoé")).statut, 200);          // les autres pseudos ne sont pas touchés
+  assert.deepEqual(await rater(w, "Personne", 5), [401, 401, 401, 401, 401]);
+  const inconnu = await connecter(w, "Personne", "pas-le-bon");
+  assert.deepEqual([inconnu.statut, inconnu.json], [connu.statut, connu.json]);
+});
+
+test("essais : envoyés tous en même temps, cinq seulement sont examinés", async (t) => {
+  const w = ligueMonde(t);
+  await inscrire(w, "Maxime");
+  const reponses = await Promise.all(Array.from({ length: 20 }, () => connecter(w, "Maxime", "pas-le-bon")));
+  assert.deepEqual([401, 429].map((s) => reponses.filter((r) => r.statut === s).length), [5, 15]);
+});
+
+test("essais : un blocage ne ferme pas les appareils déjà connectés", async (t) => {
+  const w = ligueMonde(t);
+  const { jeton_compte } = (await inscrire(w, "Maxime")).json;
+  await rater(w, "Maxime", 6);
+  assert.equal((await moi(w, jeton_compte)).statut, 200);
+  assert.equal((await mettreFavoris(w, jeton_compte, ["FRA:Brest"])).statut, 200);
+});
+
+test("essais : les saisies impossibles ne sont pas gardées, les périodes finies sont effacées", async (t) => {
+  const w = ligueMonde(t);
+  for (const corps of [{ pseudo: "x".repeat(500), mot_de_passe: MDP }, { pseudo: "A", mot_de_passe: MDP }, { mot_de_passe: MDP },
+    { pseudo: "Maxime", mot_de_passe: "abc" }, { pseudo: "Maxime", mot_de_passe: "x".repeat(129) }, { pseudo: "Maxime" }]) {
+    const r = await w.appel("POST", "/comptes/connexion", { corps });
+    assert.deepEqual([r.statut, r.json.erreur.code], [401, "identifiants_invalides"], JSON.stringify(corps).slice(0, 50));
+  }
+  assert.equal(compter(w, "essais"), 0);
+  await rater(w, "Ancien", 2);
+  w.horloge.t += 15 * MINUTE;
+  await rater(w, "Récent", 1);
+  assert.deepEqual(w.DB.base.prepare("SELECT pseudo_cle, nombre FROM essais").all().map((l) => ({ ...l })),
+    [{ pseudo_cle: "récent", nombre: 1 }]);
+});
+
 test("routes du compte : sans jeton ou avec un jeton inconnu, rien n'est lu ni écrit", async (t) => {
   const w = ligueMonde(t);
   await inscrire(w, "Maxime");

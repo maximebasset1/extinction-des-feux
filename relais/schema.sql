@@ -34,6 +34,14 @@ CREATE TABLE IF NOT EXISTS comptes (
   maj_le     TEXT NOT NULL
 );
 
+-- essais de connexion de la période en cours, par pseudo (qu'un compte le porte ou non) : au-delà de cinq par quart
+-- d'heure, le mot de passe n'est plus examiné. Ligne effacée après une réussite ou à la fin de la période.
+CREATE TABLE IF NOT EXISTS essais (
+  pseudo_cle TEXT PRIMARY KEY,
+  nombre     INTEGER NOT NULL,
+  depuis     TEXT NOT NULL                     -- premier essai de la période
+);
+
 -- une ligne par appareil connecté : le jeton de compte n'est jamais gardé, seulement son empreinte
 CREATE TABLE IF NOT EXISTS sessions (
   jeton_hash TEXT PRIMARY KEY,

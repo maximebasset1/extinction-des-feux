@@ -9,7 +9,7 @@ et gérer les ligues de pronostics entre amis (`/ligues`), avec des comptes facu
 | `ligues.js` | routes `/ligues` et `/comptes` |
 | `points.js` | barème ; module ES sans dépendance, utilisable aussi par le site |
 | `programme.js`, `publier-programme.mjs` | programme des matchs rangé dans KV (clé `programme`) |
-| `schema.sql` | tables D1 `ligues`, `membres`, `pronos`, `comptes`, `sessions` |
+| `schema.sql` | tables D1 `ligues`, `membres`, `pronos`, `comptes`, `sessions`, `essais` |
 | `migrations.sql` | colonnes ajoutées après la création de la base, et leurs index |
 
 ## Programme des matchs
@@ -100,10 +100,21 @@ une session (un appareil connecté, 10 au plus par compte).
 
 Codes d'erreur ajoutés : `mot_de_passe_invalide`, `favoris_invalides`, `rattachement_invalide`, `code_invalide` (400) ;
 `identifiants_invalides` (pseudo inconnu et mot de passe faux répondent pareil), `session_invalide` (401) ;
-`comptes_indisponibles` (503).
+`trop_d_essais` (429) ; `comptes_indisponibles` (503).
 
-Sécurité : mot de passe gardé en SHA-256 de `sel:mot de passe`, sessions en SHA-256 du jeton. **Limites connues** :
-SHA-256 se calcule vite (un mot de passe court se retrouve si la base fuit) et le nombre d'essais de connexion n'est pas limité.
+Sécurité : mot de passe gardé en SHA-256 de `sel:mot de passe`, sessions en SHA-256 du jeton.
+
+Essais de mot de passe : **cinq par pseudo et par quart d'heure** (table `essais`). Au-delà, `POST /comptes/connexion`
+répond 429 sans examiner le mot de passe, même s'il est bon, avec le temps restant dans le message. Le quart d'heure part
+du premier essai et les essais refusés ne le repoussent pas ; une réussite remet le compteur à zéro. Un pseudo inconnu est
+compté comme un autre. Les essais simultanés sont comptés un à un.
+
+**Limites connues** :
+- le compte porte sur le pseudo : quelqu'un qui le connaît peut empêcher son propriétaire de se connecter sur un nouvel
+  appareil, tant qu'il recommence à chaque période (les appareils déjà connectés ne sont pas touchés) ;
+- il reste 480 essais possibles par jour et par pseudo, assez pour trouver un mot de passe très courant ; rien ne limite un
+  même mot de passe essayé sur beaucoup de pseudos ;
+- SHA-256 se calcule vite : un mot de passe court se retrouve si la base fuit.
 
 ## Déploiement
 

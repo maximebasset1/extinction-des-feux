@@ -4,7 +4,8 @@
   titulaires réguliers sont proposés : d'après les compositions des derniers matchs quand football-data.org
   les fournit, sinon d'après le nombre de matchs joués (entrées en jeu comprises : un remplaçant qui joue
   à chaque match n'est alors pas repéré). L'offre gratuite ne donne en principe pas les compositions.
-- Absents signalés par la presse : flux RSS sportifs publics des 72 dernières heures (sans clé, cache 6 h).
+- Absents signalés par la presse : flux RSS sportifs publics des 7 derniers jours (sans clé, cache 6 h).
+  Les articles sortis d'un flux restent en mémoire tant qu'ils ont moins de 7 jours.
   Un joueur n'est retenu que s'il figure dans l'effectif d'un club cité et qu'un mot d'absence le désigne.
   Aucun texte de presse n'est publié : le site n'affiche que des noms tirés de l'effectif.
   Affichage et buteurs seulement : la presse ne modifie ni les buts attendus ni les probabilités, faute d'archive
@@ -12,6 +13,8 @@
 - Blessures / suspensions et changements d'entraîneur : API-Football (`/injuries`, `/coachs`),
   strictement bornés à 15 requêtes/jour au total dans `mise-a-jour.yml` et stoppés si le quota
   global du compte descend sous 25 requêtes restantes (réserve prioritaire pour le direct live).
+  En coupe d'Europe, la compétition ne dit pas le pays du club : les absents d'un club reconnu seulement par
+  son nom local (« Bayern München ») sont affichés et retirés des buteurs, sans entrer dans les buts attendus.
 - Tout appel réseau est isolé : en cas d'indisponibilité ou d'absence de clé, repli silencieux
   sur le cache existant ou sur des données vides.
 """
@@ -77,10 +80,14 @@ RSS_FEEDS = {
     "marca": "https://e00-marca.uecdn.es/rss/portada.xml",
     "as": "https://feeds.as.com/mrss-s/pages/as/site/as.com/section/futbol/portada/",
     "gazzetta": "https://www.gazzetta.it/dynamic-feed/rss/section/Calcio.xml",
+    "guardian": "https://www.theguardian.com/football/rss",
+    "guardian_ldc": "https://www.theguardian.com/football/championsleague/rss",
+    "espn": "https://www.espn.com/espn/rss/soccer/news",
 }
 RSS_CACHE_H = 6
 RSS_TIMEOUT_S = 5
-RSS_WINDOW_H = 72
+RSS_WINDOW_H = 168             # 7 jours : couvre les blessures de la journée de championnat précédente
+RSS_MAX_ARTICLES = 600         # gardés en mémoire par flux, les plus récents d'abord
 RSS_MAX_OCTETS = 2_000_000
 PRESS_MAX_ECART = 6            # mots au plus entre le mot d'absence et le nom du joueur
 
@@ -303,8 +310,9 @@ def _get_bytes(url: str, timeout: float) -> bytes:
 
 
 def fetch_press(state: Path, now: datetime, offline: bool = False, fetch=None) -> list[dict]:
-    """Articles des 72 dernières heures. Chaque flux est relu au plus toutes les 6 h ; un flux en panne
-    garde ses articles en cache (qui vieillissent et disparaissent) et sera réessayé au lancement suivant."""
+    """Articles des 7 derniers jours. Chaque flux est relu au plus toutes les 6 h et ses nouveaux articles
+    s'ajoutent à ceux déjà vus ; un flux en panne garde ses articles en cache (qui vieillissent et
+    disparaissent) et sera réessayé au lancement suivant."""
     f = state / "presse_rss.json"
     cache = SRC.read_json(f, {})
     t = now.timestamp()
@@ -318,7 +326,11 @@ def fetch_press(state: Path, now: datetime, offline: bool = False, fetch=None) -
         except Exception:  # noqa: BLE001
             items = []
         if items:
-            cache[nom] = {"fetched": t, "items": [i for i in items if recent(i)]}
+            connus = {}
+            for i in [*items, *((cache.get(nom) or {}).get("items") or [])]:    # la version la plus fraîche prime
+                if recent(i):
+                    connus.setdefault(i["titre"], i)
+            cache[nom] = {"fetched": t, "items": sorted(connus.values(), key=lambda i: -i["date"])[:RSS_MAX_ARTICLES]}
             change = True
         else:
             pannes.append(nom)
@@ -341,10 +353,10 @@ def _phrases(*mots: str) -> list[tuple[str, ...]]:
 
 # formes repliées (minuscules, sans accents). « out » seul est trop courant (« knocked out ») : expressions seulement.
 MOTS_ABSENCE = _phrases(
-    "blesse", "blessee", "blesses", "blessure", "forfait", "forfaits", "absent", "absents", "absence", "indisponible",
-    "suspendu", "suspendus", "injured", "injury", "ruled out", "out for", "out with", "out injured", "is out",
+    "blesse", "blessee", "blesses", "blessure", "blessures", "forfait", "forfaits", "absent", "absents", "absence", "indisponible",
+    "suspendu", "suspendus", "injured", "injury", "injuries", "ruled out", "out for", "out with", "out injured", "is out",
     "are out", "sidelined", "suspended", "verletzt", "verletzung", "gesperrt", "ausfall", "fallt aus", "baja", "bajas",
-    "lesionado", "lesion", "sancionado", "infortunio", "infortunato", "squalificato", "indisponibile")
+    "lesionado", "lesionados", "lesion", "lesiones", "sancionado", "infortunio", "infortuni", "infortunato", "squalificato", "indisponibile")
 MOTS_DOUTE = _phrases("incertain", "incertains", "doubtful", "a doubt", "injury doubt", "in doubt", "fraglich",
                       "es duda", "en duda", "in dubbio", "in forse")
 FAUX_AMIS = _phrases("injury time", "baja forma", "without a doubt", "is out to", "are out to", "out for revenge",
@@ -610,14 +622,22 @@ def _apifoot_get(path: str, key: str, state: Path, jour: str) -> list | None:
     return data.get("response") or []
 
 
+def _club_nom_local(nom: str) -> str | None:
+    """Club désigné par un nom connu de la table des noms, quel que soit le pays ; None si inconnu ou ambigu."""
+    trouves = {f"{cc}:{club}" for (cc, source), club in N.MANUAL.items() if source == nom}
+    return trouves.pop() if len(trouves) == 1 else None
+
+
 def fetch_injuries(dates_iso: list[str], key: str | None, state: Path, now: datetime,
                    idx: SRC.TeamIndex) -> tuple[dict[tuple[str, str], list[dict]], dict[str, int]]:
     """Récupère les blessures/suspensions pour les dates demandées (cache 12 h par date, 1 appel/date).
-    Renvoie (`(date, club_id) -> liste d'absents`, `club_id -> team_api_id`)."""
+    Renvoie (`(date, club_id) -> liste d'absents`, `club_id -> team_api_id`). Un absent marqué `hors_modele`
+    (club de coupe reconnu seulement par son nom local) ne sert qu'à l'affichage et aux buteurs."""
     jour = now.strftime("%Y-%m-%d")
     t = now.timestamp()
     team_ids = SRC.read_json(state / "apifoot_teams.json", {})
     injuries: dict[tuple[str, str], list[dict]] = {}
+    inconnus: set[str] = set()
 
     for d_iso in sorted(set(dates_iso))[:HORIZON_DAYS]:
         f = state / f"injuries_{d_iso}.json"
@@ -641,9 +661,14 @@ def fetch_injuries(dates_iso: list[str], key: str | None, state: Path, now: date
             if not comp or not team.get("name") or not player:
                 continue
             tid = idx.resolve(team["name"], LEAGUE_CC.get(comp))
-            if tid.startswith("?:"):
-                continue
-            if team.get("id"):
+            hors_modele = tid.startswith("?:")
+            if hors_modele:
+                tid = _club_nom_local(team["name"])
+                if tid is None:
+                    inconnus.add(team["name"])
+                    continue
+            # un club récupéré n'est pas ajouté au suivi des entraîneurs, qui peut modifier les probabilités
+            if team.get("id") and not hors_modele:
                 team_ids[tid] = int(team["id"])
             dedup = (d_iso, tid, _fold(player))
             if dedup in seen_player:
@@ -652,8 +677,13 @@ def fetch_injuries(dates_iso: list[str], key: str | None, state: Path, now: date
             ptype = str((item.get("player") or {}).get("type") or "")
             reason = str((item.get("player") or {}).get("reason") or "")
             statut = "incertain" if "question" in ptype.lower() or "doubt" in reason.lower() else "absent"
-            injuries.setdefault((d_iso, tid), []).append({"nom": player, "raison": reason, "statut": statut})
+            entree = {"nom": player, "raison": reason, "statut": statut}
+            if hors_modele:
+                entree["hors_modele"] = True
+            injuries.setdefault((d_iso, tid), []).append(entree)
 
+    if inconnus:
+        print(f"   API-Football : clubs non reconnus, absents ignorés : {', '.join(sorted(inconnus))}")
     if team_ids:
         SRC.write_json(state / "apifoot_teams.json", team_ids)
     return injuries, team_ids
@@ -742,9 +772,15 @@ def apply_context_adjustments(
     presse_h: list[dict] | None = None, presse_a: list[dict] | None = None,
 ) -> dict:
     """Ajuste (lh, la) de façon bornée avant le mélange avec les cotes, et prépare facteurs clés & buteurs.
-    Les absents signalés par la presse (`presse_h`, `presse_a`) ne servent qu'aux facteurs clés et aux buteurs."""
-    da_h, dd_h, abs_h = _injury_delta(injuries_h, scorers_map.get(home_id) or [], team_goals.get(home_id, 0))
-    da_a, dd_a, abs_a = _injury_delta(injuries_a, scorers_map.get(away_id) or [], team_goals.get(away_id, 0))
+    Les absents signalés par la presse (`presse_h`, `presse_a`) et ceux marqués `hors_modele` ne servent
+    qu'aux facteurs clés et aux buteurs."""
+    deltas, notables = [], []
+    for tid, liste in ((home_id, injuries_h), (away_id, injuries_a)):
+        buteurs, buts = scorers_map.get(tid) or [], team_goals.get(tid, 0)
+        deltas.append(_injury_delta([x for x in liste if not x.get("hors_modele")], buteurs, buts)[:2])
+        notables.append(_injury_delta(liste, buteurs, buts)[2])
+    (da_h, dd_h), (da_a, dd_a) = deltas
+    abs_h, abs_a = notables
 
     presse_h, presse_a = presse_h or [], presse_a or []
 

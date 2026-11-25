@@ -474,7 +474,7 @@ def test_shared_surname_needs_the_first_name_or_initial():
     assert [x["nom"] for x in got["ESP:Barcelona"]] == ["Joan Garcia"]
 
 
-def test_press_fetch_keeps_72_hours_caches_6_hours_and_fails_silently(tmp_path):
+def test_press_fetch_keeps_7_days_caches_6_hours_and_fails_silently(tmp_path):
     from football import context as CTX
     now = datetime(2026, 11, 25, 12, tzinfo=timezone.utc)
     appels = []
@@ -483,8 +483,8 @@ def test_press_fetch_keeps_72_hours_caches_6_hours_and_fails_silently(tmp_path):
         appels.append((url, timeout))
         if "bbc" in url:
             raise TimeoutError("trop long")
-        return _rss(("Kane forfait Bayern", "", "Tue, 24 Nov 2026 20:00:00 +0100"),
-                    ("Vieille nouvelle", "", "Wed, 18 Nov 2026 20:00:00 +0100"))
+        return _rss(("Kane forfait Bayern", "", "Fri, 20 Nov 2026 22:00:00 +0100"),     # 5 jours : gardé
+                    ("Vieille nouvelle", "", "Tue, 17 Nov 2026 20:00:00 +0100"))          # plus de 7 jours
 
     items = CTX.fetch_press(tmp_path, now, fetch=flux)
     assert {i["titre"] for i in items} == {"Kane forfait Bayern"}
@@ -497,7 +497,7 @@ def test_press_fetch_keeps_72_hours_caches_6_hours_and_fails_silently(tmp_path):
         raise OSError("réseau coupé")
 
     assert CTX.fetch_press(tmp_path, now + timedelta(hours=7), fetch=panne)      # le cache reste servi
-    assert CTX.fetch_press(tmp_path, now + timedelta(days=5), fetch=panne) == []   # puis il vieillit
+    assert CTX.fetch_press(tmp_path, now + timedelta(days=3), fetch=panne) == []   # puis il vieillit
     assert CTX.fetch_press(tmp_path / "vide", now, fetch=panne) == []
 
 
@@ -591,3 +591,86 @@ def test_barcelona_nicknames_do_not_designate_espanyol():
     alias = {"ESP:Espanol": CTX.club_aliases("RCD Espanyol de Barcelona", "Espanyol")}
     item = [{"titre": "Barça : Garcia forfait", "resume": "", "date": 0}]
     assert CTX.detect_press_absences(item, squads, alias) == {}
+
+
+def test_press_fetch_remembers_articles_that_left_the_feed_for_7_days(tmp_path):
+    """Un flux chargé ne montre que ses derniers articles : sans mémoire, la fenêtre de 7 jours ne servirait à rien."""
+    from football import context as CTX
+    now = datetime(2026, 11, 21, 8, tzinfo=timezone.utc)
+    contenu = {"corps": _rss(("Kane forfait Bayern", "", "Fri, 20 Nov 2026 22:00:00 +0100"))}
+
+    def flux(url, timeout):
+        return contenu["corps"]
+
+    CTX.fetch_press(tmp_path, now, fetch=flux)
+    contenu["corps"] = _rss(("Autre nouvelle", "", "Wed, 25 Nov 2026 08:00:00 +0100"))
+    titres = [i["titre"] for i in CTX.fetch_press(tmp_path, now + timedelta(days=4, hours=2), fetch=flux)]
+    assert sorted(titres) == ["Autre nouvelle", "Kane forfait Bayern"]          # une seule fois chacun
+    contenu["corps"] = _rss(("Nouvelle du 28", "", "Sat, 28 Nov 2026 08:00:00 +0100"))
+    titres = [i["titre"] for i in CTX.fetch_press(tmp_path, datetime(2026, 11, 28, 12, tzinfo=timezone.utc), fetch=flux)]
+    assert "Kane forfait Bayern" not in titres
+
+
+def test_press_feeds_include_international_champions_league_coverage():
+    from football import context as CTX
+    urls = " ".join(CTX.RSS_FEEDS.values())
+    assert "theguardian.com/football/rss" in urls and "theguardian.com/football/championsleague/rss" in urls
+    assert "skysports.com" in urls and "espn.com" in urls
+
+
+# ---------------------------------------------------------------- API-Football : noms de clubs en coupe d'Europe
+
+def _blessure(equipe, team_id, joueur, ligue, motif="Ankle Injury", genre="Missing Fixture"):
+    return {"league": {"id": ligue}, "team": {"id": team_id, "name": equipe},
+            "player": {"name": joueur, "type": genre, "reason": motif}}
+
+
+def _blessures_lues(tmp_path, items):
+    from football import context as CTX
+    from football import sources as SRC
+    now = datetime(2026, 11, 25, 12, tzinfo=timezone.utc)
+    SRC.write_json(tmp_path / "injuries_2026-11-25.json", {"fetched": now.timestamp(), "items": items})
+    idx = SRC.TeamIndex(["GER:Bayern Munich", "FRA:Lille"])
+    return CTX.fetch_injuries(["2026-11-25"], None, tmp_path, now, idx)
+
+
+def test_cup_injuries_are_kept_when_api_football_uses_the_local_club_name(tmp_path):
+    """Cas réel du 25 novembre 2026 : « Bayern München » en Ligue des champions (pays inconnu) était jeté."""
+    injuries, team_ids = _blessures_lues(tmp_path, [_blessure("Bayern München", 157, "H. Kane", 2),
+                                                    _blessure("Lille", 79, "H. Igamane", 2)])
+    kane = injuries[("2026-11-25", "GER:Bayern Munich")]
+    assert [(x["nom"], x["statut"], x.get("hors_modele")) for x in kane] == [("H. Kane", "absent", True)]
+    assert "hors_modele" not in injuries[("2026-11-25", "FRA:Lille")][0]     # reconnu directement : inchangé
+    # club récupéré : pas ajouté au suivi des entraîneurs, qui peut modifier les probabilités
+    assert team_ids == {"FRA:Lille": 79}
+
+
+def test_unknown_cup_club_is_reported_in_the_log(tmp_path, capsys):
+    injuries, _ = _blessures_lues(tmp_path, [_blessure("Club Inconnu", 1, "X. Joueur", 2)])
+    assert injuries == {}
+    assert "Club Inconnu" in capsys.readouterr().out
+
+
+def test_recovered_cup_absentees_leave_scorers_and_appear_without_touching_lambda():
+    from football import context as CTX
+    scorers = {"GER:Bayern": [_buteur("Harry Kane", 12, 5), _buteur("Michael Olise", 5, 5), _buteur("Luis Díaz", 4, 5)]}
+    base = dict(lh=1.0, la=2.0, home_id="FRA:Lille", away_id="GER:Bayern", home_nom="Lille", away_nom="Bayern Munich",
+                injuries_h=[], injuries_a=[], coach_h=None, coach_a=None, scorers_map=scorers, team_goals={"GER:Bayern": 25})
+    recuperes = [{"nom": n, "statut": "absent", "hors_modele": True}
+                 for n in ("H. Kane", "M. Olise", "S. Gnabry", "M. Neuer")]
+    sans = CTX.apply_context_adjustments(**base)
+    avec = CTX.apply_context_adjustments(**{**base, "injuries_a": recuperes})
+    assert (avec["lh"], avec["la"], avec["variance_temp"]) == (sans["lh"], sans["la"], sans["variance_temp"])
+    assert "Absents notables (Bayern Munich) : Harry Kane, Michael Olise (+2)" in avec["facteurs"]
+    assert [b["nom"] for b in avec["buteurs"]["ext"]] == ["Luis Díaz"]
+
+
+@pytest.mark.parametrize("titre", [
+    "El Bayern ha perdido 130 goles por las lesiones de Kane y Olise",      # titre réel d'AS, 25 novembre 2026
+    "El Bayern, sin los lesionados Kane y Olise",
+    "Bayern : les blessures de Kane et Olise changent tout",
+    "Bayern count the cost of injuries to Kane and Olise",
+    "Bayern, gli infortuni di Kane e Olise",
+])
+def test_press_reads_plural_injury_words(titre):
+    assert {n for _, n, _ in _signales(titre)} == {"Harry Kane", "Michael Olise"}, titre

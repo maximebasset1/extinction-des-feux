@@ -624,8 +624,20 @@ def _apifoot_get(path: str, key: str, state: Path, jour: str) -> list | None:
     return data.get("response") or []
 
 
+# graphies propres à API-Football en coupe d'Europe. Tenues ici et non dans `names.py`, qui sert aussi à
+# rapprocher les cotes : les absents reconnus ainsi restent `hors_modele`.
+APIFOOT_NOMS_COUPE = {
+    "Ararat-Armenia": "ARM:FC Ararat-Armenia", "Celje": "SVN:NK Celje", "Levski Sofia": "BUL:PFC Levski Sofia",
+    "Omonia Nicosia": "CYP:Omonia Nikosia", "Plzen": "CZE:Viktoria Plzeň", "Sabah FA": "AZE:Sabah FK",
+    "Union St. Gilloise": "BEL:St. Gilloise",
+}
+
+
 def _club_nom_local(nom: str) -> str | None:
-    """Club désigné par un nom connu de la table des noms, quel que soit le pays ; None si inconnu ou ambigu."""
+    """Club désigné par une graphie d'API-Football ou un nom de la table des noms, quel que soit le pays ;
+    None si inconnu ou ambigu."""
+    if nom in APIFOOT_NOMS_COUPE:
+        return APIFOOT_NOMS_COUPE[nom]
     trouves = {f"{cc}:{club}" for (cc, source), club in N.MANUAL.items() if source == nom}
     return trouves.pop() if len(trouves) == 1 else None
 

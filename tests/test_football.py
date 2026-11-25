@@ -687,3 +687,27 @@ def test_press_reads_plural_injury_words(titre):
 ])
 def test_press_ignores_plural_denials(titre):
     assert _signales(titre) == set(), titre
+
+
+# noms lus dans le journal du calcul du 25 novembre 2026 ; identifiants lus dans les données publiées
+@pytest.mark.parametrize("nom_apifoot,club", [
+    ("Ararat-Armenia", "ARM:FC Ararat-Armenia"),
+    ("Celje", "SVN:NK Celje"),
+    ("Levski Sofia", "BUL:PFC Levski Sofia"),
+    ("Omonia Nicosia", "CYP:Omonia Nikosia"),
+    ("Plzen", "CZE:Viktoria Plzeň"),
+    ("Sabah FA", "AZE:Sabah FK"),
+    ("Union St. Gilloise", "BEL:St. Gilloise"),
+])
+def test_cup_injuries_are_recovered_for_api_football_spellings(tmp_path, capsys, nom_apifoot, club):
+    injuries, team_ids = _blessures_lues(tmp_path, [_blessure(nom_apifoot, 1, "X. Joueur", 3)])
+    assert [(x["nom"], x.get("hors_modele")) for x in injuries[("2026-11-25", club)]] == [("X. Joueur", True)]
+    assert team_ids == {}                                   # ni buts attendus, ni suivi des entraîneurs
+    assert "non reconnus" not in capsys.readouterr().out
+
+
+def test_api_football_cup_spellings_stay_out_of_the_shared_name_tables():
+    """`names.py` sert aussi à rapprocher les cotes : y ajouter ces noms pourrait changer des probabilités."""
+    from football import context as CTX
+    from football import names as N
+    assert not set(CTX.APIFOOT_NOMS_COUPE) & (set(N.NO_COUNTRY) | {source for _, source in N.MANUAL})

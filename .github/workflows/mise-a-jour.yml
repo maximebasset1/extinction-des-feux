@@ -239,7 +239,16 @@ jobs:
       id-token: write   # prouver à Pages que la publication vient bien de ce dépôt
     environment:
       name: github-pages
-      url: ${{ steps.deploiement.outputs.page_url }}
+      url: ${{ steps.essai2.outputs.page_url || steps.essai1.outputs.page_url }}
+    # Pages refuse parfois un déploiement (erreur 500) : un second essai, deux minutes plus tard, avec le même paquet.
+    # S'il échoue aussi, la tâche finit en échec pour que le site non publié se voie.
     steps:
-      - id: deploiement
+      - id: essai1
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Attendre avant un second essai
+        if: steps.essai1.outcome == 'failure'
+        run: sleep 120
+      - id: essai2
+        if: steps.essai1.outcome == 'failure'
         uses: actions/deploy-pages@v4

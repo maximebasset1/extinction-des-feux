@@ -41,7 +41,7 @@ jobs:
         run: pip install -r requirements-ci.txt
 
       - name: Reprendre les données déjà téléchargées
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             data/raw
@@ -57,7 +57,7 @@ jobs:
 
       # pronostics F1 du lancement précédent : gardés si le calcul F1 échoue (le football est publié quand même)
       - name: Reprendre les pronostics F1 précédents
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             site/data/next.json
@@ -78,7 +78,7 @@ jobs:
       # un calcul F1 arrêté en cours de route peut laisser des fichiers à moitié réécrits : on revient aux précédents
       - name: Revenir aux pronostics F1 précédents
         if: steps.f1.outcome == 'failure'
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             site/data/next.json
@@ -92,7 +92,7 @@ jobs:
 
       - name: Garder les pronostics F1
         if: steps.f1.outcome == 'success'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             site/data/next.json
@@ -110,7 +110,7 @@ jobs:
 
       # si le calcul football échoue, les pages gardent les pronostics précédents et la F1 est publiée quand même
       - name: Reprendre les données football
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             data/football/eu
@@ -120,7 +120,7 @@ jobs:
 
       # état du quota de cotes : gardé à chaque lancement, pas une fois par jour, sinon la limite de 3 h ne tiendrait pas
       - name: Reprendre l'état des cotes
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: data/football/cotes
           key: recherche-cotes-aucune
@@ -142,7 +142,7 @@ jobs:
       # même principe que pour la F1 : après un échec, les pages reprennent les derniers pronostics complets
       - name: Revenir aux pronostics football précédents
         if: steps.foot.outcome == 'failure'
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             data/football/eu
@@ -160,7 +160,7 @@ jobs:
 
       - name: Garder les données pour la prochaine fois
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             data/raw
@@ -169,7 +169,7 @@ jobs:
 
       - name: Enregistrer l'état des cotes
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: data/football/cotes
           key: recherche-cotes-${{ github.run_id }}-${{ github.run_attempt }}
@@ -183,7 +183,7 @@ jobs:
 
       - name: Enregistrer le cache football
         if: always() && steps.foot.outcome != 'failure'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             data/football/eu

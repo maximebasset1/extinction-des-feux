@@ -11,13 +11,15 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/titillium-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/titillium-900.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=6422aed4">
-<script src="assets/commun.js?v=96287dee" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=714960b3">
+<script src="assets/commun.js?v=f6b04cb9" defer></script>
 <script src="assets/favoris.js?v=19849e09" defer></script>
 <script src="assets/compte.js?v=d05480e2" defer></script>
-<script src="assets/direct.js?v=fd2ecc31" defer></script>
-<script src="assets/foot.js?v=de2b80a9" defer></script>
-<script src="assets/onglet-direct.js?v=74af7850" defer></script>
+<script src="assets/modele-direct.js?v=cd098144" defer></script>
+<script src="assets/direct.js?v=38781d9a" defer></script>
+<script src="assets/fiche.js?v=300eb086" defer></script>
+<script src="assets/foot.js?v=5627a80d" defer></script>
+<script src="assets/onglet-direct.js?v=1b4ffeb7" defer></script>
 </head>
 <body data-root="./">
 <a class="evitement" href="#contenu">Aller au contenu</a>
@@ -42,57 +44,69 @@
   </div>
 </header>
 <main id="contenu">
-  <section class="titre-page">
-    <div class="titre-in">
-      <h1>Football</h1>
-      <p class="chapeau">Premier League, Bundesliga, Liga, Serie A, Ligue 1, Ligue des champions et Ligue Europa : les chances de chaque match à venir.</p>
-      <div class="recherche">
-        <label for="q">Chercher un club ou un match</label>
-        <input id="q" type="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
-        <ul id="suggest" class="suggest" role="listbox" hidden></ul>
-        <p class="club-favori" id="club-favori" hidden></p>
-      </div>
+  <div class="nav-foot">
+    <nav class="filtres" id="nav-foot" aria-label="Football">
+      <a href="foot.html" data-vue="une" aria-current="page">À la une</a>
+      <a href="foot.html#favoris" data-vue="favoris">Mes favoris</a>
+      <a href="foot/ligue-1.html">Ligue 1</a>
+      <a href="foot/ligue-des-champions.html" title="Ligue des champions">LDC</a>
+      <a href="foot/ligue-europa.html" title="Ligue Europa">LEC</a>
+      <a href="foot/premier-league.html">Premier League</a>
+      <a href="foot/liga.html">Liga</a>
+      <a href="foot/serie-a.html">Serie A</a>
+      <a href="foot/bundesliga.html">Bundesliga</a>
+    </nav>
+  </div>
+
+  <div class="page page-foot">
+    <h1 class="cache">Football</h1>
+    <section class="bloc bloc-direct" id="bloc-direct" aria-labelledby="h-direct" hidden>
+      <div class="bloc-tete"><h2 id="h-direct">En direct <small data-compte></small></h2><a href="foot/en-direct.html">Page En direct</a></div>
+      <ul class="matchs avec-comp"></ul>
+    </section>
+    <p class="direct-etat" id="direct-etat"><span id="direct-etat-texte" aria-live="polite">Vérification du direct…</span> <a href="foot/en-direct.html">Voir le direct</a></p>
+
+    <div id="vue-une">
+      <section class="bloc" aria-labelledby="h-affiches">
+        <div class="bloc-tete"><h2 id="h-affiches">Les prochaines affiches</h2></div>
+        <ul class="matchs avec-comp" id="affiches-liste"></ul>
+      </section>
+
+      <section class="bloc" aria-labelledby="h-matchs">
+        <div class="bloc-tete"><h2 id="h-matchs">Tous les prochains matchs</h2></div>
+        <div class="recherche">
+          <label for="q">Chercher un club ou un match</label>
+          <input id="q" type="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
+          <ul id="suggest" class="suggest" role="listbox" hidden></ul>
+          <p class="club-favori" id="club-favori" hidden></p>
+        </div>
+        <p class="note" id="note" aria-live="polite"></p>
+        <div id="results" class="avec-comp"></div>
+        <p class="plus"><button type="button" id="more" hidden>Voir plus de matchs</button></p>
+      </section>
+
+      <section class="bloc" aria-labelledby="h-comp">
+        <div class="bloc-tete"><h2 id="h-comp">Les compétitions</h2></div>
+        <ul class="competitions" id="competitions"></ul>
+      </section>
+
+      <section class="bloc" aria-labelledby="h-fiab">
+        <div class="bloc-tete"><h2 id="h-fiab">Fiabilité par compétition</h2><a href="methode.html">Méthode</a></div>
+        <p class="note" id="f-note"></p>
+        <div class="defile"><table class="tableau" id="f-table"></table></div>
+      </section>
     </div>
-  </section>
 
-  <div class="page">
-    <section class="bloc" id="favoris" aria-labelledby="h-favoris" hidden>
-      <div class="bloc-tete"><h2 id="h-favoris">Mes favoris</h2></div>
-      <ul class="mes-favoris" id="favoris-liste"></ul>
-      <p class="note" id="favoris-note"></p>
-      <div id="favoris-matchs" class="avec-comp"></div>
-      <p class="plus"><button type="button" id="favoris-tous" hidden>Voir tous leurs matchs</button></p>
-    </section>
-
-    <section class="bloc" aria-labelledby="h-matchs">
-      <div class="bloc-tete"><h2 id="h-matchs">Prochains matchs</h2></div>
-      <div class="filtres" id="chips" role="group" aria-label="Filtrer les matchs">
-        <button type="button" data-comp="FAV" aria-pressed="false" hidden>Mes favoris</button>
-        <button type="button" data-comp="" aria-pressed="true">Tout</button>
-        <button type="button" data-comp="F1" aria-pressed="false">Ligue 1</button>
-        <button type="button" data-comp="LDC" aria-pressed="false" title="Ligue des champions">LDC</button>
-        <button type="button" data-comp="LEC" aria-pressed="false" title="Ligue Europa">LEC</button>
-        <button type="button" data-comp="E0" aria-pressed="false">Premier League</button>
-        <button type="button" data-comp="SP1" aria-pressed="false">Liga</button>
-        <button type="button" data-comp="I1" aria-pressed="false">Serie A</button>
-        <button type="button" data-comp="D1" aria-pressed="false">Bundesliga</button>
-      </div>
-      <p class="note" id="note" aria-live="polite"></p>
-      <p class="note" id="lien-comp" hidden></p>
-      <div id="results" class="avec-comp"></div>
-      <p class="plus"><button type="button" id="more" hidden>Voir plus de matchs</button></p>
-    </section>
-
-    <section class="bloc" aria-labelledby="h-comp">
-      <div class="bloc-tete"><h2 id="h-comp">Les compétitions</h2></div>
-      <ul class="competitions" id="competitions"></ul>
-    </section>
-
-    <section class="bloc" aria-labelledby="h-fiab">
-      <div class="bloc-tete"><h2 id="h-fiab">Fiabilité par compétition</h2><a href="methode.html">Méthode</a></div>
-      <p class="note" id="f-note"></p>
-      <div class="defile"><table class="tableau" id="f-table"></table></div>
-    </section>
+    <div id="vue-favoris" hidden>
+      <section class="bloc" aria-labelledby="h-favoris">
+        <div class="bloc-tete"><h2 id="h-favoris">Mes favoris</h2></div>
+        <ul class="mes-favoris" id="favoris-liste"></ul>
+        <p class="note" id="favoris-note" aria-live="polite"></p>
+        <p><button type="button" class="btn-secondaire" id="favoris-chercher">Chercher un club à suivre</button></p>
+        <div id="favoris-matchs" class="avec-comp"></div>
+        <p class="plus"><button type="button" id="favoris-plus" hidden>Voir plus de matchs</button></p>
+      </section>
+    </div>
   </div>
 </main>
 <footer class="pied">

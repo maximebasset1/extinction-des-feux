@@ -24,6 +24,11 @@ le Worker ne fait que le servir.
 | `matchs[].g`, `mt` | `[domicile, extérieur]` | score du moment ; score à la mi-temps |
 | `matchs[].ev` | liste de `[minute, arrêts, buts domicile, buts extérieur]` | chronologie des buts : un point à chaque changement de score vu par le relais — **ajouté le 22 novembre 2026** |
 
+Le site (depuis le 26 novembre 2026, sans nouveau champ) montre en tête de liste tout match dont `st` est un statut en jeu et
+dont le coup d'envoi date de 4 h au plus, y compris un match qu'il ne rattache à aucun des siens (il affiche alors `h` et `a`).
+Au-delà de 20 min sans relevé (ou de deux `intervalle_min` et 5 min), le score reste affiché avec son heure, sans la mention
+« DIRECT ». Une réponse sans tableau `matchs` est traitée comme un relais en panne.
+
 `ev` sert à la courbe des chances de la fiche d'un match (`fiche.js`). Sa précision est celle du relevé : la minute d'un but est
 la minute du relevé qui l'a vu, au plus `intervalle_min` minutes après le but. Un score déjà acquis au premier relevé (relais lancé
 en retard) apparaît à la minute de ce relevé ; une annulation par la VAR apparaît comme un point à score plus bas. La chronologie

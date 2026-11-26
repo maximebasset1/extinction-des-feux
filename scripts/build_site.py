@@ -18,7 +18,7 @@ COMPETITIONS = [("E0", "premier-league", "Premier League"), ("D1", "bundesliga",
                 ("I1", "serie-a", "Serie A"), ("F1", "ligue-1", "Ligue 1"),
                 ("LDC", "ligue-des-champions", "Ligue des champions"), ("LEC", "ligue-europa", "Ligue Europa")]
 LIGHTS = '<span class="feux" aria-hidden="true">' + '<i></i>' * 5 + "</span>"
-# ordre et libellés courts de la ligne de filtres du football (le nom complet reste en info-bulle quand il est abrégé)
+# ordre et libellés courts de la barre de la section Football (le nom complet reste en info-bulle quand il est abrégé)
 FILTRES = [("F1", "Ligue 1"), ("LDC", "LDC"), ("LEC", "LEC"), ("E0", "Premier League"), ("SP1", "Liga"), ("I1", "Serie A"),
            ("D1", "Bundesliga")]
 SLUGS = {code: slug for code, slug, _ in COMPETITIONS}
@@ -29,21 +29,23 @@ def infobulle(code: str, libelle: str) -> str:
     return f' title="{NOMS[code]}"' if libelle != NOMS[code] else ""
 
 
-def boutons_filtres() -> str:
-    """Page Football : les filtres de la liste des matchs. « Mes favoris » n'apparaît qu'avec un club suivi (foot.js)."""
-    boutons = ['<button type="button" data-comp="FAV" aria-pressed="false" hidden>Mes favoris</button>',
-               '<button type="button" data-comp="" aria-pressed="true">Tout</button>']
-    boutons += [f'<button type="button" data-comp="{c}" aria-pressed="false"{infobulle(c, n)}>{n}</button>' for c, n in FILTRES]
-    return "\n        ".join(boutons)
-
-
-def selecteur_competitions(courante: str) -> str:
-    """Pages de compétition : la même ligne, en liens d'une page à l'autre."""
-    liens = ['<a href="../foot.html">Tout</a>']
+def barre_football(courante: str = "") -> str:
+    """Barre en tête de la section Football : « À la une », « Mes favoris », puis les compétitions. La même sur la page Football
+    (`courante` vide : les deux premières entrées sont des vues de la page, tenues par foot.js) et sur les pages de compétition."""
+    r = "../" if courante else ""
+    vue = (lambda v: "") if courante else (lambda v: f' data-vue="{v}"')
+    ici = ' aria-current="page"'
+    liens = [f'<a href="{r}foot.html"{vue("une")}{"" if courante else ici}>À la une</a>',
+             f'<a href="{r}foot.html#favoris"{vue("favoris")}>Mes favoris</a>']
     for c, n in FILTRES:
-        marque = ' aria-current="page"' if SLUGS[c] == courante else ""
-        liens.append(f'<a href="../foot/{SLUGS[c]}.html"{infobulle(c, n)}{marque}>{n}</a>')
-    return "\n        ".join(liens)
+        marque = ici if SLUGS[c] == courante else ""
+        liens.append(f'<a href="{r}foot/{SLUGS[c]}.html"{infobulle(c, n)}{marque}>{n}</a>')
+    contenu = "\n      ".join(liens)
+    return f"""  <div class="nav-foot">
+    <nav class="filtres" id="nav-foot" aria-label="Football">
+      {contenu}
+    </nav>
+  </div>"""
 
 
 def compte(r: str) -> tuple[str, str]:
@@ -269,68 +271,92 @@ F1 = """  <section class="depart depart-f1" aria-labelledby="gp-name">
     </section>
   </div>"""
 
-FOOT = """  <section class="titre-page">
-    <div class="titre-in">
-      <h1>Football</h1>
-      <p class="chapeau">Premier League, Bundesliga, Liga, Serie A, Ligue 1, Ligue des champions et Ligue Europa : les chances de chaque match à venir.</p>
-      <div class="recherche">
-        <label for="q">Chercher un club ou un match</label>
-        <input id="q" type="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
-        <ul id="suggest" class="suggest" role="listbox" hidden></ul>
-        <p class="club-favori" id="club-favori" hidden></p>
-      </div>
+FOOT = """{barre}
+
+  <div class="page page-foot">
+    <h1 class="cache">Football</h1>
+    <section class="bloc bloc-direct" id="bloc-direct" aria-labelledby="h-direct" hidden>
+      <div class="bloc-tete"><h2 id="h-direct">En direct <small data-compte></small></h2><a href="foot/en-direct.html">Page En direct</a></div>
+      <ul class="matchs avec-comp"></ul>
+    </section>
+    <p class="direct-etat" id="direct-etat"><span id="direct-etat-texte" aria-live="polite">Vérification du direct…</span> <a href="foot/en-direct.html">Voir le direct</a></p>
+
+    <div id="vue-une">
+      <section class="bloc" aria-labelledby="h-affiches">
+        <div class="bloc-tete"><h2 id="h-affiches">Les prochaines affiches</h2></div>
+        <ul class="matchs avec-comp" id="affiches-liste"></ul>
+      </section>
+
+      <section class="bloc" aria-labelledby="h-matchs">
+        <div class="bloc-tete"><h2 id="h-matchs">Tous les prochains matchs</h2></div>
+        <div class="recherche">
+          <label for="q">Chercher un club ou un match</label>
+          <input id="q" type="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
+          <ul id="suggest" class="suggest" role="listbox" hidden></ul>
+          <p class="club-favori" id="club-favori" hidden></p>
+        </div>
+        <p class="note" id="note" aria-live="polite"></p>
+        <div id="results" class="avec-comp"></div>
+        <p class="plus"><button type="button" id="more" hidden>Voir plus de matchs</button></p>
+      </section>
+
+      <section class="bloc" aria-labelledby="h-comp">
+        <div class="bloc-tete"><h2 id="h-comp">Les compétitions</h2></div>
+        <ul class="competitions" id="competitions"></ul>
+      </section>
+
+      <section class="bloc" aria-labelledby="h-fiab">
+        <div class="bloc-tete"><h2 id="h-fiab">Fiabilité par compétition</h2><a href="methode.html">Méthode</a></div>
+        <p class="note" id="f-note"></p>
+        <div class="defile"><table class="tableau" id="f-table"></table></div>
+      </section>
     </div>
-  </section>
 
-  <div class="page">
-    <section class="bloc" id="favoris" aria-labelledby="h-favoris" hidden>
-      <div class="bloc-tete"><h2 id="h-favoris">Mes favoris</h2></div>
-      <ul class="mes-favoris" id="favoris-liste"></ul>
-      <p class="note" id="favoris-note"></p>
-      <div id="favoris-matchs" class="avec-comp"></div>
-      <p class="plus"><button type="button" id="favoris-tous" hidden>Voir tous leurs matchs</button></p>
-    </section>
-
-    <section class="bloc" aria-labelledby="h-matchs">
-      <div class="bloc-tete"><h2 id="h-matchs">Prochains matchs</h2></div>
-      <div class="filtres" id="chips" role="group" aria-label="Filtrer les matchs">
-        {filtres}
-      </div>
-      <p class="note" id="note" aria-live="polite"></p>
-      <p class="note" id="lien-comp" hidden></p>
-      <div id="results" class="avec-comp"></div>
-      <p class="plus"><button type="button" id="more" hidden>Voir plus de matchs</button></p>
-    </section>
-
-    <section class="bloc" aria-labelledby="h-comp">
-      <div class="bloc-tete"><h2 id="h-comp">Les compétitions</h2></div>
-      <ul class="competitions" id="competitions"></ul>
-    </section>
-
-    <section class="bloc" aria-labelledby="h-fiab">
-      <div class="bloc-tete"><h2 id="h-fiab">Fiabilité par compétition</h2><a href="methode.html">Méthode</a></div>
-      <p class="note" id="f-note"></p>
-      <div class="defile"><table class="tableau" id="f-table"></table></div>
-    </section>
+    <div id="vue-favoris" hidden>
+      <section class="bloc" aria-labelledby="h-favoris">
+        <div class="bloc-tete"><h2 id="h-favoris">Mes favoris</h2></div>
+        <ul class="mes-favoris" id="favoris-liste"></ul>
+        <p class="note" id="favoris-note" aria-live="polite"></p>
+        <p><button type="button" class="btn-secondaire" id="favoris-chercher">Chercher un club à suivre</button></p>
+        <div id="favoris-matchs" class="avec-comp"></div>
+        <p class="plus"><button type="button" id="favoris-plus" hidden>Voir plus de matchs</button></p>
+      </section>
+    </div>
   </div>"""
 
-LIVE = """  <section class="titre-page">
+LIVE = """  <section class="titre-page titre-compact">
     <div class="titre-in">
       <h1>En direct</h1>
-      <p class="chapeau">Les matchs du jour des sept compétitions, de quinze minutes avant le coup d'envoi jusqu'au coup de sifflet final : le score, la minute et les chances de chaque camp, recalculées à chaque but.</p>
+      <p class="chapeau">Scores, minute et chances recalculées à chaque but, dans les sept compétitions.</p>
     </div>
   </section>
 
-  <div class="page">
+  <div class="page page-foot">
+    <div class="synchro">
+      <p><span id="live-synchro">Dernière synchronisation : en cours…</span><small id="live-releve"></small></p>
+      <button type="button" class="btn-secondaire" id="live-actualiser">Actualiser</button>
+    </div>
+    <p class="alerte" id="live-alerte" role="alert" hidden></p>
+
     <section class="bloc" aria-labelledby="h-live">
-      <div class="bloc-tete"><h2 id="h-live">Matchs à suivre</h2></div>
-      <p class="note" id="live-note" aria-live="polite">Chargement…</p>
+      <div class="bloc-tete"><h2 id="h-live">Matchs en cours</h2></div>
+      <p class="live-note" id="live-note" aria-live="polite">Chargement…</p>
       <div id="live-liste" class="live-groupes"></div>
     </section>
 
+    <section class="bloc" id="du-jour" aria-labelledby="h-jour" hidden>
+      <div class="bloc-tete"><h2 id="h-jour">Prochains matchs du jour</h2><a href="../foot.html">Tous les matchs</a></div>
+      <p class="note" id="jour-note">Heures à l'heure de ton appareil.</p>
+      <ul class="matchs avec-comp" id="jour-liste"></ul>
+    </section>
+
+    <section class="bloc" id="termines" aria-labelledby="h-termines" hidden>
+      <div class="bloc-tete"><h2 id="h-termines">Terminés aujourd'hui</h2></div>
+      <ul class="matchs avec-comp" id="termines-liste"></ul>
+    </section>
+
     <section class="bloc" id="prochains" aria-labelledby="h-prochains" hidden>
-      <div class="bloc-tete"><h2 id="h-prochains">Prochains coups d'envoi</h2><a href="../foot.html">Tous les matchs</a></div>
-      <p class="note">Heures à l'heure de ton appareil. Un match apparaît dans la liste du dessus quinze minutes avant son coup d'envoi.</p>
+      <div class="bloc-tete"><h2 id="h-prochains">Prochains coups d'envoi</h2></div>
       <ul class="matchs avec-comp" id="prochains-liste"></ul>
     </section>
   </div>"""
@@ -452,61 +478,69 @@ LIGUES = """  <section class="titre-page">
     </div>
   </div>"""
 
-COMP = """  <section class="titre-page">
-    <div class="titre-in">
-      <nav class="filtres filtres-page" aria-label="Compétitions">
-        {selecteur}
-      </nav>
+COMP = """{barre}
+
+  <div class="page page-foot">
+    <header class="titre-comp">
       <h1 id="c-titre">{nom}</h1>
-      <p class="chapeau" id="c-chapeau"></p>
-      <nav class="sommaire" aria-label="Dans cette page">
-        <a href="#matchs">Matchs</a><a href="#classement" id="lien-classement">Classement</a><a href="#club">Clubs</a><a href="#face">Face-à-face</a><a href="#fiabilite">Fiabilité</a>
-      </nav>
+      <p class="note" id="c-chapeau"></p>
+    </header>
+
+    <div class="vues" role="tablist" aria-label="Vue de la compétition">
+      <button type="button" role="tab" id="onglet-matchs" aria-controls="vue-matchs" aria-selected="true">Matchs</button>
+      <button type="button" role="tab" id="onglet-classement" aria-controls="vue-classement" aria-selected="false" tabindex="-1">Classement</button>
     </div>
-  </section>
 
-  <div class="page">
-    <section class="bloc" id="matchs" aria-labelledby="j-titre">
-      <div class="bloc-tete">
-        <h2 id="j-titre">Matchs</h2>
-        <div class="pager">
-          <button type="button" id="j-prev" aria-label="Journée précédente">‹</button>
-          <label class="cache" for="j-select">Journée</label>
-          <select id="j-select"></select>
-          <button type="button" id="j-next" aria-label="Journée suivante">›</button>
+    <div id="vue-matchs" role="tabpanel" aria-labelledby="onglet-matchs">
+      <div class="journees" id="matchs">
+        <button type="button" class="j-pas" id="j-prev"><span aria-hidden="true">‹</span> Journée précédente</button>
+        <div class="j-pilules" id="j-pilules" role="group" aria-label="Choisir une journée"></div>
+        <button type="button" class="j-pas" id="j-next">Journée suivante <span aria-hidden="true">›</span></button>
+      </div>
+      <p class="alerte" id="direct-alerte" role="alert" hidden></p>
+      <section class="bloc bloc-direct" id="bloc-direct" aria-labelledby="h-direct" hidden>
+        <div class="bloc-tete"><h2 id="h-direct">En direct <small data-compte></small></h2><a href="en-direct.html">Page En direct</a></div>
+        <ul class="matchs"></ul>
+      </section>
+      <section class="bloc bloc-journee" aria-labelledby="j-titre">
+        <div class="bloc-tete"><h2 id="j-titre">Matchs</h2></div>
+        <p class="note" id="j-note"></p>
+        <div id="j-liste"></div>
+      </section>
+    </div>
+
+    <div id="vue-classement" role="tabpanel" aria-labelledby="onglet-classement" hidden>
+      <section class="bloc" id="classement" aria-labelledby="h-classement">
+        <div class="bloc-tete"><h2 id="h-classement">Classement et fin de saison prévue</h2></div>
+        <p class="note" id="t-note"></p>
+        <div class="defile"><table class="tableau" id="t-table"></table></div>
+      </section>
+
+      <section class="bloc" id="face" aria-labelledby="h-face">
+        <div class="bloc-tete"><h2 id="h-face">Face-à-face</h2>
+          <div class="pager"><label class="cache" for="f-a">Premier club</label><select id="f-a"></select><span>contre</span><label class="cache" for="f-b">Second club</label><select id="f-b"></select></div>
         </div>
-      </div>
-      <p class="note" id="j-note"></p>
-      <div id="j-liste"></div>
-    </section>
+        <p id="f-resume"></p>
+        <div class="defile"><table class="tableau" id="f-liste"></table></div>
+      </section>
 
-    <section class="bloc" id="classement" aria-labelledby="h-classement">
-      <div class="bloc-tete"><h2 id="h-classement">Classement et fin de saison prévue</h2></div>
-      <p class="note" id="t-note"></p>
-      <div class="defile"><table class="tableau" id="t-table"></table></div>
-    </section>
+      <section class="bloc" id="club" aria-labelledby="h-club">
+        <div class="bloc-tete"><h2 id="h-club">Calendrier d'un club</h2><label class="cache" for="club-select">Club</label><select id="club-select"></select></div>
+        <div id="club-resume"></div>
+        <div id="club-liste"></div>
+      </section>
+    </div>
 
-    <section class="bloc" id="club" aria-labelledby="h-club">
-      <div class="bloc-tete"><h2 id="h-club">Calendrier d'un club</h2><label class="cache" for="club-select">Club</label><select id="club-select"></select></div>
-      <div id="club-resume"></div>
-      <div id="club-liste"></div>
-    </section>
-
-    <section class="bloc" id="face" aria-labelledby="h-face">
-      <div class="bloc-tete"><h2 id="h-face">Face-à-face</h2>
-        <div class="pager"><label class="cache" for="f-a">Premier club</label><select id="f-a"></select><span>contre</span><label class="cache" for="f-b">Second club</label><select id="f-b"></select></div>
-      </div>
-      <p id="f-resume"></p>
-      <div class="defile"><table class="tableau" id="f-liste"></table></div>
-    </section>
-
-    <section class="bloc" id="fiabilite" aria-labelledby="h-fiab">
-      <div class="bloc-tete"><h2 id="h-fiab">Fiabilité</h2><a href="../methode.html">Méthode</a></div>
-      <p class="note" id="b-note"></p>
-      <div class="defile"><table class="tableau" id="b-table"></table></div>
-      <h3>Journal des pronostics publiés</h3>
-      <p class="note">Chaque pronostic est enregistré avant le coup d'envoi, jamais réécrit, puis comparé au résultat.</p>
-      <div id="journal"></div>
+    <section class="bloc" id="fiabilite">
+      <details class="repli">
+        <summary><h2>Fiabilité et journal des pronostics</h2></summary>
+        <p><a href="../methode.html">Méthode</a></p>
+        <p class="note" id="b-note"></p>
+        <div class="defile"><table class="tableau" id="b-table"></table></div>
+        <h3>Journal des pronostics publiés</h3>
+        <p class="note">Chaque pronostic est enregistré avant le coup d'envoi, jamais réécrit, puis comparé au résultat.</p>
+        <div id="journal"></div>
+      </details>
     </section>
   </div>"""
 
@@ -651,7 +685,8 @@ def pages() -> dict[str, str]:
                                 F1_METHODE, ["f1.js"], "f1", styles=("f1.css",), common=False, name="f1-methode"),
         "foot.html": page("foot.html", "Football : probabilités des prochains matchs - Extinction des feux",
                           "Chercher un club et voir les chances de ses prochains matchs : Premier League, Bundesliga, Liga, Serie A, Ligue 1, Ligue des champions, Ligue Europa.",
-                          FOOT.replace("{filtres}", boutons_filtres()), ["favoris.js", "direct.js", "foot.js"], "foot", "hub"),
+                          FOOT.replace("{barre}", barre_football()), ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "foot.js"],
+                          "foot", "hub"),
         "foot/en-direct.html": page("foot/en-direct.html", "Football en direct : scores et chances des matchs en cours - Extinction des feux",
                                     "Les matchs du jour de la Premier League, de la Bundesliga, de la Liga, de la Serie A, de la Ligue 1, de la Ligue des champions et de la Ligue Europa : score, minute et chances recalculées à chaque but.",
                                     LIVE, ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "en-direct.js"], "foot", "en-direct"),
@@ -665,8 +700,9 @@ def pages() -> dict[str, str]:
     for _, slug, nom in COMPETITIONS:
         out[f"foot/{slug}.html"] = page(f"foot/{slug}.html", f"{nom} : pronostics, classement et fin de saison - Extinction des feux",
                                         f"{nom} : probabilités de chaque match, classement, fin de saison simulée, face-à-face et fiabilité du modèle.",
-                                        COMP.replace("{nom}", nom).replace("{selecteur}", selecteur_competitions(slug)),
-                                        ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "competition.js"], "foot", slug).replace(
+                                        COMP.replace("{nom}", nom).replace("{barre}", barre_football(slug)),
+                                        ["favoris.js", "modele-direct.js", "direct.js", "fiche.js", "journees.js", "competition.js"],
+                                        "foot", slug).replace(
             '<body data-root="../">', f'<body data-root="../" data-competition="{slug}">')
     out["ligue1.html"] = REDIRECT.format(csp=CSP, target="foot/ligue-1.html", label="Ligue 1", version=empreinte("redirection.js"))
     out["recherche.html"] = REDIRECT.format(csp=CSP, target="foot.html", label="Football", version=empreinte("redirection.js"))

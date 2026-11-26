@@ -137,7 +137,7 @@ document.addEventListener("click", (e) => {
   const li = e.target.closest("li.match[data-match]");
   if (!li || typeof D === "undefined") return;
   const s = D.suivis.find((x) => cleId(x.m.id) === li.dataset.match);
-  if (!s || DIRECT_REPORTE[s.f.st]) return;
+  if (!s || s.connu === false || DIRECT_REPORTE[s.f.st]) return;
   e.preventDefault();
   const a = li.querySelector("a.m-lien"), det = li.querySelector("details");
   ouvrirFiche(li.dataset.match, a ? a.getAttribute("href") : null, det ? det.id : null);

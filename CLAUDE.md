@@ -48,8 +48,22 @@ Carte du dépôt :
 ## Navigation
 
 - Une seule barre principale : `F1`, `Football`, `En direct` (pastille quand un match est en cours), `Ligues`, `Méthode`, puis le bouton du compte. Pas de seconde rangée dans l'en-tête.
-- Une seule ligne de filtres : `Mes favoris` (dès un club suivi), `Tout`, puis les compétitions dans l'ordre de `FILTRES` (`scripts/build_site.py`). Les pages de compétition ont la même ligne en liens.
+- Section Football : une seule barre (`#nav-foot`, `barre_football()` dans `scripts/build_site.py`), tout en haut de `foot.html` et des pages de compétition : `À la une`, `Mes favoris` (toujours là), puis les compétitions dans l'ordre de `FILTRES`. `À la une` et `Mes favoris` sont deux vues de `foot.html` (adresse nue ou `#favoris`) ; une compétition ouvre sa page.
+- Page Football : rien au-dessus des matchs. Matchs en cours, puis les prochaines affiches ; la recherche est en tête de « Tous les prochains matchs ». Les clubs suivis ne s'affichent que dans la vue `Mes favoris`.
+- Page de compétition : **deux vues au plus**, `Matchs` (par défaut) et `Classement` (classement, face-à-face, calendrier d'un club ; renommée `Face-à-face` sans classement, cas de la Ligue Europa). Dans `Matchs`, les journées se choisissent en un clic (`‹ Journée précédente`, pilules centrées, `Journée suivante ›`) : ne pas les remettre derrière un lien ou un sous-onglet. Fiabilité et journal : bloc repliable en bas de page.
+- Anciennes ancres gardées : `#match=`, `#classement`, `#face`, `#club`, `#matchs`, `#fiabilite`.
+- Libellés courts des pilules et journée ouverte à l'arrivée : `site/assets/journees.js`.
 - Une ligne de match cliquable est un `div` recouvert par un lien (`.m-lien`) : ne jamais remettre les étoiles à l'intérieur d'un `<a>`.
+
+## Direct Football (site)
+
+- Toute la logique est dans `site/assets/direct.js` ; `en-direct.js`, `foot.js` et `competition.js` ne font que l'afficher.
+- Tout match en cours renvoyé par `/direct` remonte en tête de liste (page Football, pages de compétition, page `En direct`), **même s'il ne se rattache à aucun match du site** : noms d'API-Football, sans pronostic, sans étoile, sans fiche.
+- Le badge `DIRECT` n'est mis que sur un relevé frais (`relaisPerime` : 20 min, ou deux intervalles et 5 min). Au-delà : « relevé à HH:MM », sans minute estimée ni chances.
+- Le site ne dit « Aucun match en cours » que s'il le sait. Relais injoignable, en erreur, ou muet pendant un match : `alerteDirect` le dit en clair, sans le message technique de l'API.
+- La page `En direct` lit le relais même sans match : heure de dernière synchronisation, bouton « Actualiser », puis matchs du jour, terminés, et prochains coups d'envoi quand la journée est vide.
+- Les scores dépendent de la boucle `direct.yml` : GitHub lance souvent ses tâches programmées avec des heures de retard (25 novembre 2026 : démarrage à 19:54 UTC, les matchs de 17:45 n'ont pas été suivis). Le site le signale ; il ne peut pas le corriger.
+- Tests : `tests/navigation.test.mjs` (dont un essai de bout en bout du Worker au site) et `tests/direct.test.mjs`.
 
 ## Charte éditoriale
 

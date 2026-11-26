@@ -104,7 +104,7 @@ function blocFacteurs(m, clubs) {
 /* ---------- une ligne de match ; `detail` (HTML) la rend dépliable, `lien` en fait un lien vers la page de la compétition.
    Chaque nom d'équipe porte une étoile quand favoris.js est chargé. */
 const etoileClub = (k, nom) => (typeof Favoris === "undefined" ? "" : Favoris.bouton(k, nom, { mini: true }));
-function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDansHeure = false, prefixe = "m" } = {}) {
+function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDansHeure = false, prefixe = "m", centre: impose = null, etoiles = true } = {}) {
   const c = (k) => clubs[k] || { nom: String(k).split(":").pop(), sigle: String(k).split(":").pop().slice(0, 3).toUpperCase() };
   const dom = c(m.home), ext = c(m.away);
   let centre, sous = "";
@@ -128,15 +128,17 @@ function ligneMatch(m, clubs, { detail = null, lien = null, comp = null, jourDan
   } else {
     centre = `${barre(m.p, dom.nom, ext.nom)}${badgeConfiance(m)}`;
   }
+  if (impose !== null) centre = impose;
+  const etoileDe = (k, nom) => (etoiles ? etoileClub(k, nom) : "");
   const h = m.kickoff ? heure(m.kickoff) : "–";
   const quandTxt = jourDansHeure && m.jour ? `<small>${esc(midi(m.jour).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }))}</small>` : "";
   const compTxt = comp ? `<small class="m-comp">${esc(comp)}</small>` : "";
   // clubs du match, lus par les scripts du football (favoris) pour repérer les lignes concernées
   const clubsData = ` data-home="${esc(m.home)}" data-away="${esc(m.away)}"`;
   const corps = `<span class="m-heure">${esc(h)}${quandTxt}${compTxt}</span>
-      <span class="m-club m-dom">${etoileClub(m.home, dom.nom)}<b>${esc(dom.nom)}</b>${ecusson(dom)}</span>
+      <span class="m-club m-dom">${etoileDe(m.home, dom.nom)}<b>${esc(dom.nom)}</b>${ecusson(dom)}</span>
       <span class="m-centre">${centre}</span>
-      <span class="m-club m-ext">${ecusson(ext)}<b>${esc(ext.nom)}</b>${etoileClub(m.away, ext.nom)}</span>`;
+      <span class="m-club m-ext">${ecusson(ext)}<b>${esc(ext.nom)}</b>${etoileDe(m.away, ext.nom)}</span>`;
   // le lien recouvre la ligne sans la contenir : les étoiles restent des boutons à part entière
   if (lien) return `<li class="match" data-match="${esc(cleId(m.id))}"${clubsData}><div class="m-ligne m-cliquable"><a class="m-lien" href="${esc(lien)}"><span class="cache">${esc(dom.nom)} contre ${esc(ext.nom)} : détail du match</span></a>${corps}</div></li>`;
   if (detail === null) return `<li class="match" data-match="${esc(cleId(m.id))}"${clubsData}><div class="m-ligne">${corps}</div></li>`;

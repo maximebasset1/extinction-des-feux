@@ -1,7 +1,9 @@
-/* Page d'une compétition : lit data/foot/<compétition>.json et data/foot/h2h_<compétition>.json. */
+/* Page d'une compétition : lit data/foot/<compétition>.json et data/foot/h2h_<compétition>.json. Deux vues : « Matchs »
+   (journées en un clic, matchs en cours en tête) et « Classement » (classement, face-à-face, calendrier d'un club). */
 "use strict";
 
-const C = { d: null, h2h: [], journee: null, club: null, a: null, b: null };
+/* ouverte : la journée montrée à l'arrivée, repérée parmi les pilules ; enCours : matchs affichés en tête de liste */
+const C = { d: null, h2h: [], journee: null, ouverte: null, club: null, a: null, b: null, enCours: new Set() };
 const club = (k) => C.d.clubs[k] || { nom: String(k).split(":").pop(), sigle: String(k).split(":").pop().slice(0, 3).toUpperCase() };
 const nom = (k) => club(k).nom;
 const COMPS = { E0: "Premier League", D1: "Bundesliga", SP1: "Liga", F1: "Ligue 1", I1: "Serie A", LDC: "Ligue des champions", LEC: "Ligue Europa" };
@@ -62,33 +64,93 @@ function detail(m) {
 }
 const ligne = (m) => ligneMatch(m, C.d.clubs, { detail: detail(m) });
 
-/* ---------- matchs d'une journée */
+/* ---------- matchs d'une journée (les matchs en cours sont en tête de liste, ils ne sont pas répétés ici) */
 function rendreJournee() {
-  const j = C.journee, liste = C.d.matchs.filter((m) => m.journee === j)
+  const j = C.journee, tous = C.d.matchs.filter((m) => m.journee === j)
     .sort((x, y) => String(x.kickoff || `${x.jour}T23:59`).localeCompare(String(y.kickoff || `${y.jour}T23:59`)));
+  const liste = tous.filter((m) => !C.enCours.has(m.id));
   const i = C.d.journees.indexOf(j);
   $("#j-titre").textContent = j || "Matchs";
-  $("#j-select").value = j;
   $("#j-prev").disabled = i <= 0;
   $("#j-next").disabled = i >= C.d.journees.length - 1;
-  const aVenir = liste.filter((m) => m.etat === "a_venir");
-  const joues = liste.filter((m) => m.etat === "joue");
-  const legende = legendeJoues(liste);
-  $("#j-note").textContent = !liste.length ? "" : !aVenir.length && joues.length === liste.length
+  const aVenir = tous.filter((m) => m.etat === "a_venir");
+  const joues = tous.filter((m) => m.etat === "joue");
+  const legende = legendeJoues(tous);
+  $("#j-note").textContent = !tous.length ? "" : !aVenir.length && joues.length === tous.length
     ? `Journée terminée (${accord(joues.length, "match", "matchs")} joué${joues.length > 1 ? "s" : ""}). Sous chaque score, la chance que le modèle donnait au résultat avant le match. ${legende ? `${legende} ` : ""}Déplie un match pour le détail.`
-    : `${joues.length ? `${accord(joues.length, "résultat")} enregistré${joues.length > 1 ? "s" : ""}, ` : ""}chances de victoire à domicile, de nul et de victoire à l'extérieur${aVenir.some((m) => m.avec_cotes) ? ", cotes d'avant-match comprises quand elles sont publiées" : ""}. Heures à l'heure de ton appareil. ${legende ? `${legende} ` : ""}Déplie un match pour le détail.`;
-  $("#j-liste").innerHTML = liste.length ? parJour(liste, ligne) : `<p class="vide">Aucun match pour l'instant.</p>`;
+    : `${joues.length ? `${accord(joues.length, "résultat")} enregistré${joues.length > 1 ? "s" : ""}, chances` : "Chances"} de victoire à domicile, de nul et de victoire à l'extérieur${aVenir.some((m) => m.avec_cotes) ? ", cotes d'avant-match comprises quand elles sont publiées" : ""}. Heures à l'heure de ton appareil. ${legende ? `${legende} ` : ""}Déplie un match pour le détail.`;
+  $("#j-liste").innerHTML = liste.length ? parJour(liste, ligne)
+    : `<p class="vide">${tous.length ? "Les matchs de cette journée sont en cours, en tête de liste." : "Aucun match pour l'instant."}</p>`;
   if (typeof Favoris !== "undefined") Favoris.marquer($("#j-liste"));
   if (typeof appliquer === "function") appliquer();
+}
+function rendrePilules() {
+  $("#j-pilules").innerHTML = C.d.journees.map((j) => `<button type="button" data-journee="${esc(j)}" title="${esc(j)}"${j === C.ouverte ? ' class="actuelle"' : ""}>${esc(libelleCourt(j))}</button>`).join("");
+}
+/* la pilule choisie, et un point rouge sur les journées qui ont un match en cours ; une seule pilule dans l'ordre de tabulation */
+function majPilules() {
+  const enDirect = new Set(C.d.matchs.filter((m) => C.enCours.has(m.id)).map((m) => m.journee));
+  for (const b of $("#j-pilules").children) {
+    const j = b.dataset.journee, choisie = j === C.journee;
+    if (choisie) b.setAttribute("aria-current", "true");
+    else b.removeAttribute("aria-current");
+    b.tabIndex = choisie ? 0 : -1;
+    b.classList.toggle("en-direct", enDirect.has(j));
+    b.setAttribute("aria-label", enDirect.has(j) ? `${j}, match en cours` : j);
+  }
+}
+/* la journée choisie au milieu de la bande, sans faire défiler la page */
+function centrerPilule() {
+  const bande = $("#j-pilules"), b = bande.querySelector('[aria-current="true"]');
+  if (b) bande.scrollLeft = b.offsetLeft - (bande.clientWidth - b.offsetWidth) / 2;
+}
+function choisirJournee(j, { focus = false } = {}) {
+  if (!C.d.journees.includes(j)) return;
+  C.journee = j;
+  rendreJournee(); majPilules(); centrerPilule();
+  if (focus) $('#j-pilules [aria-current="true"]')?.focus({ preventScroll: true });
+}
+const journeeVoisine = (pas) => C.d.journees[Math.max(0, Math.min(C.d.journees.length - 1, C.d.journees.indexOf(C.journee) + pas))];
+
+/* ---------- direct : les matchs en cours de la compétition en tête de liste */
+const ligneDirect = (x) => (x.connu ? ligneMatch(x.m, C.d.clubs, { detail: detail(x.m), prefixe: "d" })
+  : ligneMatch(x.m, x.clubs, { etoiles: false, centre: centreDirect(x.m, x.f, x.clubs) }));
+
+/* un match déplié le reste quand les listes sont refaites, même s'il passe de la journée au direct ou l'inverse */
+function garderOuverts(refaire) {
+  const ouverts = [...document.querySelectorAll("#vue-matchs li.match > details[open]")].map((d) => d.parentElement.dataset.match);
+  refaire();
+  for (const cle of ouverts) {
+    const d = document.querySelector(`#vue-matchs li.match[data-match="${CSS.escape(cle)}"] > details`);
+    if (d) d.open = true;
+  }
+}
+function majDirect() {
+  const code = C.d.code;
+  const entrees = enDirectMaintenant(D.relais, D.suivis, { comp: code });
+  const ids = new Set(entrees.filter((x) => x.connu).map((x) => x.m.id));
+  const change = ids.size !== C.enCours.size || [...ids].some((id) => !C.enCours.has(id));
+  garderOuverts(() => {
+    C.enCours = ids;
+    rendreBlocDirect($("#bloc-direct"), entrees, ligneDirect);
+    if (change) { rendreJournee(); majPilules(); }
+  });
+  // l'état du direct n'est signalé que les jours où la compétition joue
+  const relais = D.relais && { ...D.relais, matchs: D.relais.matchs.filter((f) => f.c === code) };
+  const joueAujourdhui = C.d.matchs.some((m) => m.jour === aujourdhui());
+  const alerte = joueAujourdhui ? alerteDirect(relais, C.d.matchs.map((m) => ({ ...m, c: code })), { echec: D.echec }) : null;
+  const boite = $("#direct-alerte");
+  boite.hidden = !alerte;
+  if (alerte && boite.textContent !== alerte.texte) boite.textContent = alerte.texte;
 }
 
 /* ---------- classement et fin de saison */
 function rendreClassement() {
   const t = C.d.classement;
   if (!t.length) {
-    if (C.d.type === "coupe") {   // pas de classement complet : la section et son lien disparaissent
+    if (C.d.type === "coupe") {   // pas de classement complet : la section disparaît et l'onglet dit ce qu'il contient
       $("#classement").hidden = true;
-      $("#lien-classement").hidden = true;
+      $("#onglet-classement").textContent = "Face-à-face";
       return;
     }
     $("#t-note").textContent = "Le classement apparaîtra après la première journée.";
@@ -169,16 +231,48 @@ function rendreFiabilite() {
 function options(sel, keys, courant, libelle = nom) {
   sel.innerHTML = keys.map((k) => `<option value="${esc(k)}"${k === courant ? " selected" : ""}>${esc(libelle(k))}</option>`).join("");
 }
+/* les deux vues ; les anciennes ancres de la page (#classement, #face, #club, #matchs, #fiabilite) restent valables */
+const ANCRES_CLASSEMENT = new Set(["#classement", "#face", "#club"]);
+function afficherVue(vue) {
+  for (const b of document.querySelectorAll('.vues [role="tab"]')) {
+    const choisi = b.id === `onglet-${vue}`;
+    b.setAttribute("aria-selected", String(choisi));
+    b.tabIndex = choisi ? 0 : -1;
+  }
+  $("#vue-matchs").hidden = vue !== "matchs";
+  $("#vue-classement").hidden = vue !== "classement";
+  if (vue === "matchs") centrerPilule();   // la bande ne se centre que lorsqu'elle est visible
+}
+function choisirVue(vue) {
+  afficherVue(vue);
+  history.replaceState(null, "", vue === "classement" ? "#classement" : location.pathname + location.search);
+}
 function ouvrirDepuisAdresse() {
-  if (!location.hash.startsWith("#match=")) return;
+  const ancre = location.hash;
+  if (ANCRES_CLASSEMENT.has(ancre)) {
+    afficherVue("classement");
+    if (ancre !== "#classement") $(ancre).scrollIntoView({ block: "start" });
+    return;
+  }
+  afficherVue("matchs");
+  if (ancre === "#fiabilite") {
+    $("#fiabilite details").open = true;
+    $("#fiabilite").scrollIntoView({ block: "start" });
+    return;
+  }
+  if (!ancre.startsWith("#match=")) return;
   let id;
-  try { id = decodeURIComponent(location.hash.slice(7)); } catch { return; }
+  try { id = decodeURIComponent(ancre.slice(7)); } catch { return; }
   const m = C.d.matchs.find((x) => x.id === id);
   if (!m) return;
-  C.journee = m.journee;
-  rendreJournee();
-  const el = document.getElementById(`m-${cleId(id)}`);
+  if (typeof FICHE !== "undefined" && FICHE.dlg?.open) FICHE.dlg.close();
+  choisirJournee(m.journee);
+  const el = document.getElementById(`m-${cleId(id)}`) || document.getElementById(`d-${cleId(id)}`);   // d- : le match est en cours
   if (el) { el.open = true; el.scrollIntoView({ block: "start" }); el.querySelector("summary").focus({ preventScroll: true }); }
+}
+function suivre() {
+  suivreDirect([{ matchs: C.d.matchs, clubs: C.d.clubs, comp: C.d.code }],
+    { inclureDuJourSansScore: true, toujours: true, inconnus: { comp: C.d.code }, apresTour: majDirect });
 }
 async function main() {
   const slug = document.body.dataset.competition;
@@ -186,38 +280,47 @@ async function main() {
   if (d.status !== "fulfilled") { erreur($("#j-liste"), d.reason); return; }
   C.d = d.value;
   C.h2h = h.status === "fulfilled" ? h.value.matchs : [];   // sans face-à-face, le reste de la page s'affiche quand même
-  $("#c-chapeau").textContent = `Saison ${C.d.saison}. Chances de victoire, de nul et de défaite pour chaque match, recalculées plusieurs fois par jour. Mise à jour : ${quand(C.d.maj_utc)}.`;
+  $("#c-chapeau").textContent = `Saison ${C.d.saison}, mise à jour ${quand(C.d.maj_utc)}.`;
   if (!C.d.matchs.length) {   // calendrier indisponible : on n'affiche que la fiabilité
-    $(".pager").hidden = true;
+    $(".vues").hidden = true;
+    $(".journees").hidden = true;
     $("#j-liste").innerHTML = `<p class="vide">Le calendrier de cette compétition n'est pas disponible pour l'instant. Il sera repris à la prochaine mise à jour.</p>`;
-    for (const id of ["classement", "club", "face"]) {
-      $(`#${id}`).hidden = true;
-      document.querySelector(`.sommaire a[href="#${id}"]`).hidden = true;
-    }
     rendreFiabilite();
+    suivre();   // les matchs en cours connus du relais remontent quand même
     return;
   }
-  // ouverture sur la journée/étape en cours (match commencé depuis < 12 h), sinon la prochaine ou la plus récente
-  const t = Date.now(), fenetre = 12 * 36e5;
-  const enCours = C.d.matchs.find((m) => m.kickoff && m.etat !== "joue" && t >= Date.parse(m.kickoff) && t - Date.parse(m.kickoff) < fenetre);
-  const recentJoue = [...C.d.matchs].reverse().find((m) => m.etat === "joue" && m.jour === aujourdhui());
-  const defaut = enCours?.journee || recentJoue?.journee || (C.d.journees.includes(C.d.prochaine) ? C.d.prochaine : null)
-    || C.d.journees[C.d.journees.length - 1];
-  C.journee = defaut;
-  $("#j-select").innerHTML = C.d.journees.map((j) => `<option>${esc(j)}</option>`).join("");
+  C.ouverte = journeeParDefaut(C.d);
+  C.journee = C.ouverte;
   const keys = Object.keys(C.d.clubs).sort((x, y) => nom(x).localeCompare(nom(y), "fr"));
   const tete = C.d.classement.map((r) => r.club);
   C.club = tete[0] || keys[0]; C.a = tete[0] || keys[0]; C.b = tete[1] || keys[1];
   options($("#club-select"), keys, C.club); options($("#f-a"), keys, C.a); options($("#f-b"), keys, C.b);
-  rendreJournee(); rendreClassement(); rendreClub(); rendreFace(); rendreFiabilite();
+  rendrePilules(); rendreJournee(); majPilules(); rendreClassement(); rendreClub(); rendreFace(); rendreFiabilite();
   ouvrirDepuisAdresse();
-  suivreDirect([{ matchs: C.d.matchs, clubs: C.d.clubs, comp: C.d.code }], { inclureDuJourSansScore: true });
-  $("#j-select").addEventListener("change", (e) => { C.journee = e.target.value; rendreJournee(); });
-  $("#j-prev").addEventListener("click", () => { C.journee = C.d.journees[Math.max(0, C.d.journees.indexOf(C.journee) - 1)]; rendreJournee(); });
-  $("#j-next").addEventListener("click", () => { C.journee = C.d.journees[Math.min(C.d.journees.length - 1, C.d.journees.indexOf(C.journee) + 1)]; rendreJournee(); });
+  $("#j-pilules").addEventListener("click", (e) => { const b = e.target.closest("button[data-journee]"); if (b) choisirJournee(b.dataset.journee); });
+  $("#j-pilules").addEventListener("keydown", (e) => {
+    const cible = { ArrowLeft: journeeVoisine(-1), ArrowRight: journeeVoisine(1), Home: C.d.journees[0], End: C.d.journees[C.d.journees.length - 1] }[e.key];
+    if (cible === undefined) return;
+    e.preventDefault();
+    choisirJournee(cible, { focus: true });
+  });
+  $("#j-prev").addEventListener("click", () => choisirJournee(journeeVoisine(-1)));
+  $("#j-next").addEventListener("click", () => choisirJournee(journeeVoisine(1)));
+  $(".vues").addEventListener("click", (e) => { const b = e.target.closest('[role="tab"]'); if (b) choisirVue(b.id.replace("onglet-", "")); });
+  $(".vues").addEventListener("keydown", (e) => {
+    if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+    e.preventDefault();
+    const autre = $("#onglet-matchs").getAttribute("aria-selected") === "true" ? "classement" : "matchs";
+    choisirVue(autre);
+    $(`#onglet-${autre}`).focus();
+  });
   $("#club-select").addEventListener("change", (e) => { C.club = e.target.value; rendreClub(); });
   $("#f-a").addEventListener("change", (e) => { C.a = e.target.value; rendreFace(); });
   $("#f-b").addEventListener("change", (e) => { C.b = e.target.value; rendreFace(); });
   window.addEventListener("hashchange", ouvrirDepuisAdresse);
+  window.addEventListener("resize", centrerPilule);
+  document.fonts?.ready.then(centrerPilule);   // la police arrivée après coup change la largeur des pilules
+  document.addEventListener("favoris", () => { majDirect(); appliquer(); });   // un favori réordonne les matchs en cours
+  suivre();
 }
 main();

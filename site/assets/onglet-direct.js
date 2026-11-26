@@ -14,8 +14,6 @@
   const pastille = document.querySelector(".menu a[data-direct] .menu-live");
   if (!pastille || typeof lireRelais !== "function") return;
   const chiffre = pastille.querySelector("b"), texte = pastille.querySelector(".cache");
-  const FRAIS_MS = 20 * 6e4;   // un relais muet depuis 20 min ne dit plus rien de fiable : on masque
-
   const afficher = (n) => {
     pastille.hidden = !n;
     chiffre.textContent = n || "";
@@ -25,8 +23,7 @@
     if (document.hidden) return;
     try {
       const r = await lireRelais();
-      const frais = !r.maj_utc || Date.now() - Date.parse(r.maj_utc) < FRAIS_MS;
-      afficher(frais ? (r.matchs || []).filter((f) => DIRECT_EN_JEU.has(f.st)).length : 0);
+      afficher(relaisPerime(r) ? 0 : enDirectMaintenant(r, []).length);   // relevé trop vieux : rien de fiable, on masque
     } catch {
       afficher(0);   // relais injoignable : pas de pastille plutôt qu'un nombre périmé
     }

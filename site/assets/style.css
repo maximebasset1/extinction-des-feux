@@ -124,9 +124,6 @@ body:has(dialog.compte-dlg[open]) { overflow: hidden; }
 .compte p { margin: 0 0 .3rem; color: var(--texte-doux); font-weight: 700; }
 .compte-chiffres { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 1rem; color: var(--texte-doux); }
 .compte-chiffres b { font-weight: 700; font-size: clamp(2rem, 1.5rem + 1.8vw, 2.8rem); line-height: 1; color: var(--texte); margin-right: .15rem; }
-.sommaire { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1.4rem; }
-.sommaire a { text-decoration: none; font-weight: 700; padding: .3rem .85rem; border: 1px solid var(--ligne-forte); border-radius: 99px; color: var(--texte-doux); }
-.sommaire a:hover { border-color: var(--accent-clair); color: var(--texte); }
 
 /* ---------- mise en page */
 .page { max-width: var(--large); margin: 0 auto; padding: 0 1.25rem 4rem; }
@@ -153,7 +150,7 @@ select { background: var(--surface-2); border: 1px solid var(--ligne-forte); bor
 .pastilles button { background: transparent; border: 1px solid var(--ligne-forte); border-radius: 99px; padding: .3rem .85rem; font-weight: 700; font-size: .92rem; cursor: pointer; color: var(--texte-doux); }
 .pastilles button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .pastilles button:disabled { opacity: .4; cursor: default; }
-/* une seule ligne de filtres (page Football) ou de liens (pages de compétition), qui défile sur les petits écrans */
+/* une seule ligne de filtres ou de liens, qui défile sur les petits écrans */
 .filtres { display: flex; gap: .35rem; overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch; margin: .4rem 0 .8rem; padding-bottom: .25rem; }
 .filtres > * { flex: none; white-space: nowrap; background: transparent; border: 1px solid var(--ligne-forte); border-radius: 99px; padding: .3rem .85rem;
   font-weight: 700; font-size: .92rem; line-height: 1.5; color: var(--texte-doux); text-decoration: none; cursor: pointer; }
@@ -161,7 +158,72 @@ select { background: var(--surface-2); border: 1px solid var(--ligne-forte); bor
 .filtres > [aria-pressed="true"], .filtres > [aria-current="page"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .filtres > button:disabled { opacity: .4; cursor: default; }
 .filtres > :focus-visible { outline-offset: -3px; border-radius: 99px; }
-.filtres-page { margin: -.9rem 0 1.5rem; }
+
+/* ---------- section Football : barre en tête (« À la une », « Mes favoris », compétitions) */
+.nav-foot { background: var(--surface); border-bottom: 1px solid var(--ligne); }
+.nav-foot .filtres { max-width: var(--large); margin: 0 auto; padding: .65rem 1.25rem; gap: .4rem; scrollbar-width: none; }
+.nav-foot .filtres > * { font-size: 1rem; padding: .42rem 1rem; }
+.page-foot .bloc { margin-top: 2.2rem; }
+.page-foot .bloc-direct { margin-top: 1.3rem; }
+.page-foot .direct-etat { margin: 1.1rem 0 0; }
+.page-foot #vue-une > .bloc:first-child, .page-foot #vue-favoris > .bloc:first-child { margin-top: 1.6rem; }
+
+/* ---------- direct : badge « DIRECT », bloc en tête de liste, état du relais */
+.badge-direct { display: inline-flex; align-items: center; gap: .3rem; padding: .08rem .55rem; border-radius: 99px; font-size: .78rem; font-weight: 700;
+  line-height: 1.45; white-space: nowrap; font-variant-numeric: tabular-nums; background: rgba(226, 56, 47, .16); border: 1px solid rgba(226, 56, 47, .55); color: #ff8a83; }
+.badge-direct b { font-weight: 900; letter-spacing: .05em; }
+.badge-direct .pastille { margin: 0; vertical-align: 0; }
+.m-direct .badge-direct { justify-self: center; }
+.badge-direct.perime { background: transparent; border-color: var(--ligne-forte); color: var(--texte-doux); }
+.bloc-direct h2 small { font-size: 1rem; font-weight: 600; color: var(--texte-doux); margin-left: .5rem; white-space: nowrap; }
+.bloc-direct .match:not(.fav) > .m-ligne, .bloc-direct .match:not(.fav) > details > summary { background: rgba(226, 56, 47, .06); }
+.direct-etat { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .3rem 1rem; padding: .65rem .95rem;
+  background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); color: var(--texte-doux); font-size: .98rem; }
+.direct-etat a { color: var(--accent-clair); font-weight: 700; }
+.alerte { margin: 1rem 0 0; padding: .65rem .95rem; border-radius: var(--rayon); border: 1px solid rgba(242, 179, 102, .55);
+  background: rgba(242, 179, 102, .1); color: #f2b366; font-weight: 600; }
+.direct-etat.alerte { background: rgba(242, 179, 102, .1); border-color: rgba(242, 179, 102, .55); color: #f2b366; }
+
+/* ---------- page « En direct » : titre compact, synchronisation datée et actualisation à la main */
+.titre-compact .titre-in { padding-block: 1.2rem 1.35rem; }
+.titre-compact h1 { font-size: clamp(2rem, 1.6rem + 1.8vw, 2.9rem); }
+.titre-compact .chapeau { margin-top: .35rem; font-size: 1.02rem; }
+.synchro { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; margin-top: 1.2rem;
+  padding: .75rem 1rem; background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); }
+.synchro p { flex: 1 1 18rem; margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.synchro small { display: block; font-weight: 400; font-size: .88rem; color: var(--texte-doux); }
+.synchro button[aria-disabled="true"] { opacity: .55; cursor: progress; }
+.live-note { font-size: 1.08rem; font-weight: 700; margin: 0; max-width: 72ch; }
+
+/* ---------- pages de compétition : deux vues, journées en un clic */
+.titre-comp { margin-top: 1.3rem; }
+.titre-comp h1 { font-size: clamp(1.9rem, 1.4rem + 2.2vw, 3rem); }
+.titre-comp .note { margin: .4rem 0 0; }
+.vues { display: inline-flex; gap: .2rem; margin-top: 1rem; padding: .2rem; background: var(--surface); border: 1px solid var(--ligne); border-radius: 99px; }
+.vues button { min-height: 2.4rem; padding: .35rem 1.5rem; background: transparent; border: 0; border-radius: 99px; font-weight: 700; color: var(--texte-doux); cursor: pointer; }
+.vues button:hover { color: var(--texte); }
+.vues button[aria-selected="true"] { background: var(--accent); color: #fff; }
+.vues button:focus-visible { outline-offset: -3px; border-radius: 99px; }
+.journees { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "prec pilules suiv"; align-items: center; gap: .6rem; margin-top: 1rem; }
+.j-pas { min-height: 2.6rem; padding: .35rem 1rem; background: transparent; border: 1px solid var(--ligne-forte); border-radius: 99px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.j-pas:hover:not(:disabled) { border-color: var(--accent-clair); background: var(--surface-2); }
+.j-pas:disabled { opacity: .35; cursor: default; }
+#j-prev { grid-area: prec; }
+#j-next { grid-area: suiv; }
+/* « position » : le centrage de la pilule choisie se mesure depuis la bande */
+.j-pilules { grid-area: pilules; position: relative; display: flex; gap: .3rem; overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch; padding: .25rem; }
+.j-pilules button { position: relative; flex: none; min-width: 3.1rem; min-height: 2.6rem; padding: .3rem .7rem; background: var(--surface); border: 1px solid var(--ligne);
+  border-radius: .55rem; font-weight: 700; color: var(--texte-doux); font-variant-numeric: tabular-nums; white-space: nowrap; cursor: pointer; }
+.j-pilules button:hover { border-color: var(--accent-clair); color: var(--texte); }
+.j-pilules button.actuelle { border-color: var(--accent-clair); color: var(--texte); }
+.j-pilules button[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.j-pilules button:focus-visible { outline-offset: -3px; border-radius: .55rem; }
+.j-pilules button.en-direct::after { content: ""; position: absolute; top: .22rem; right: .22rem; width: .45rem; height: .45rem; border-radius: 50%; background: var(--feu);
+  box-shadow: 0 0 0 2px var(--fond); }
+.page-foot .bloc-journee { margin-top: 1.6rem; }
+.repli summary { cursor: pointer; padding: .3rem 0; }
+.repli summary h2 { display: inline; font-size: 1.35rem; }
+.repli[open] summary { margin-bottom: .8rem; }
 
 /* ---------- écussons */
 .ecusson { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 2rem; height: 2rem; border-radius: 50%;
@@ -206,7 +268,6 @@ img.ecusson { background: transparent; object-fit: contain; }
 .m-etat { display: block; text-align: center; color: var(--texte-doux); font-weight: 600; font-size: .95rem; }
 .m-direct { display: grid; gap: .45rem; }
 .m-direct .m-score { font-size: 1.4rem; }
-.m-direct .m-score small { color: var(--feu); }
 .pastille { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%; background: var(--feu); margin-right: .35rem; vertical-align: .05rem; }
 @media (prefers-reduced-motion: no-preference) {
   .pastille { animation: pastille 2s ease-in-out infinite; }
@@ -287,6 +348,12 @@ img.ecusson { background: transparent; object-fit: contain; }
 
 /* ---------- petits écrans */
 @media (max-width: 720px) {
+  /* les deux boutons de journée sur une rangée, la bande de pilules dessous, sur toute la largeur */
+  .journees { grid-template-columns: 1fr 1fr; grid-template-areas: "prec suiv" "pilules pilules"; gap: .5rem; }
+  .j-pas { padding: .35rem .5rem; font-size: .92rem; }
+  .vues { display: flex; }
+  .vues button { flex: 1; }
+  .nav-foot .filtres { padding-inline: .8rem; }
   .match .m-ligne { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "heure heure" "dom ext" "centre centre"; gap: .45rem .8rem; }
   .m-heure { grid-area: heure; } .m-heure small { display: inline; margin-left: .4rem; }
   /* en ligne inversée, « flex-end » range à gauche : écusson puis nom pour l'équipe à domicile */

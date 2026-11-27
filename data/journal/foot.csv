@@ -71,3 +71,8 @@ publie_utc,match_id,competition,journee,domicile,exterieur,coup_envoi,p_dom,p_nu
 2026-11-23T21:32:57Z,LEC|FRA:Lyon|NOR:Lillestrom|2026-11-26,LEC,Semaine du 26 novembre,FRA:Lyon,NOR:Lillestrom,2026-11-26T20:00:00Z,0.82,0.12,0.06,True
 2026-11-23T21:32:57Z,LEC|NED:Nijmegen|FRA:Rennes|2026-11-26,LEC,Semaine du 26 novembre,NED:Nijmegen,FRA:Rennes,2026-11-26T20:00:00Z,0.31,0.23,0.46,True
 2026-11-23T21:32:57Z,LEC|GER:Hoffenheim|AUT:Sturm Graz|2026-11-26,LEC,Semaine du 26 novembre,GER:Hoffenheim,AUT:Sturm Graz,2026-11-26T20:00:00Z,0.72,0.16,0.12,True
+2026-11-27T08:22:47Z,E0|ENG:Nott'm Forest|ENG:Chelsea|2026-11-27,E0,Journée 12,ENG:Nott'm Forest,ENG:Chelsea,2026-11-27T20:00:00Z,0.44,0.28,0.28,False
+2026-11-27T08:22:47Z,D1|GER:Werder Bremen|GER:M'gladbach|2026-11-27,D1,Journée 11,GER:Werder Bremen,GER:M'gladbach,2026-11-27T19:30:00Z,0.52,0.24,0.24,False
+2026-11-27T08:22:47Z,SP1|ESP:Levante|ESP:Santander|2026-11-27,SP1,Journée 14,ESP:Levante,ESP:Santander,2026-11-27T20:00:00Z,0.56,0.21,0.23,False
+2026-11-27T08:22:47Z,I1|ITA:Venezia|ITA:Bologna|2026-11-27,I1,Journée 13,ITA:Venezia,ITA:Bologna,2026-11-27T19:45:00Z,0.21,0.29,0.5,False
+2026-11-27T08:22:47Z,F1|FRA:Brest|FRA:Paris FC|2026-11-27,F1,Journée 12,FRA:Brest,FRA:Paris FC,2026-11-27T19:45:00Z,0.35,0.29,0.36,False
